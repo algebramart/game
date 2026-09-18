@@ -1,1092 +1,3302 @@
-/* Reset dasar untuk memastikan tampilan seragam di semua browser */
+/* =========================================
+   1. VARIABLES & COLOR PALETTE
+   ========================================= */
+:root {
+    /* Brand Colors (Diadaptasi dari desain awalmu) */
+    --color-brand-dark: #0f172a;
+    --color-brand-blue: #1e3a8a;
+    --color-brand-light: #3b82f6;
+    --color-brand-accent: #f59e0b;
+
+    /* Slate/Gray Scale */
+    --color-slate-50: #f8fafc;
+    --color-slate-100: #f1f5f9;
+    --color-slate-200: #e2e8f0;
+    --color-slate-300: #cbd5e1;
+    --color-slate-400: #94a3b8;
+    --color-slate-500: #64748b;
+    --color-slate-600: #475569;
+    --color-slate-700: #334155;
+    --color-slate-800: #1e293b;
+    --color-slate-900: #0f172a;
+
+    /* System Colors */
+    --color-white: #ffffff;
+    --color-black: #000000;
+    --color-red-400: #f87171;
+    --color-red-500: #ef4444;
+    --color-green-500: #22c55e;
+    --color-yellow-400: #facc15;
+
+    /* Font Family */
+    --font-primary: 'Inter', sans-serif;
+}
+
+/* =========================================
+   2. CSS RESET & BASE STYLES
+   ========================================= */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* border: red 1px solid; */
 }
 
-body {
-    background-color: #2c3e50;
+body.app-body {
+    background-color: #000000;
+    /* Latar belakang hitam untuk efek letterbox */
+    color: var(--color-white);
+    font-family: var(--font-primary);
     margin: 0;
     padding: 0;
     width: 100vw;
     height: 100vh;
-    overflow: hidden;
-    /* Mengunci layar agar tidak bisa di-scroll ke bawah/samping */
     display: flex;
     justify-content: center;
+    /* Meratakan ke tengah horizontal */
     align-items: center;
+    /* Meratakan ke tengah vertikal */
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Container utama game (Pendekatan Desktop-First dengan Flex Row) */
-/* Container utama game (Layar Penuh Edge-to-Edge) */
-.game-container {
+/* PEMBUNGKUS RAKSASA (KUNCI 16:9) */
+#app-container {
+    position: relative;
     width: 100vw;
     height: 100vh;
-    background-image: radial-gradient(circle, rgba(0, 0, 0, 0.3) 5%, rgba(0, 0, 0, 0.5) 100%), url('/assets/background/background-2.png');
+    /* Trik Kalkulasi: Mengunci maksimal dimensi pada rasio 16:9 */
+    max-width: calc(100vh * (16 / 9));
+    max-height: calc(100vw * (9 / 16));
+    background-color: var(--color-brand-dark);
+    overflow: hidden;
+    /* Mencegah konten keluar dari rasio */
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+    /* Sedikit cahaya di batas layar */
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    outline: none;
+    font-family: inherit;
+}
+
+input,
+select {
+    font-family: inherit;
+}
+
+/* =========================================
+   3. SCREEN DISPLAY LOGIC (THE FIX)
+   ========================================= */
+/* Menyembunyikan layar secara absolut jika tidak memiliki class .active */
+.screen:not(.active) {
+    display: none !important;
+}
+
+/* Pengaturan dasar pembungkus layar */
+/* Pengaturan dasar pembungkus layar */
+.screen {
+    width: 100%;
+    /* Berubah dari 100vw */
+    height: 100%;
+    /* Berubah dari 100vh */
+    overflow-y: auto;
+    position: absolute;
+    /* Ubah ke absolute agar menumpuk rapi di dalam container */
+    top: 0;
+    left: 0;
+}
+
+/* Class utilitas global untuk menyembunyikan modal/elemen */
+.hidden {
+    display: none !important;
+}
+
+/* =========================================
+   4. CUSTOM SCROLLBAR
+   ========================================= */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-brand-light);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-brand-blue);
+}
+
+/* =========================================
+   5. ANIMATIONS
+   ========================================= */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes floatBounce {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-6deg);
+    }
+
+    50% {
+        transform: translateY(-15px) rotate(-6deg);
+    }
+}
+
+/* =========================================
+   6. SCREEN: LOGIN
+   ========================================= */
+/* Membuat tata letak ke tengah (Center Layout) menggunakan Flexbox */
+.login-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(image/background.png);
     background-size: cover;
-    max-width: none;
-    /* Menghapus batas lebar maksimal */
-    border-radius: 0;
-    /* Menghapus lengkungan sudut */
-    box-shadow: none;
-    /* Menghapus bayangan tepi */
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
 }
 
-/* ----- AREA ATAS: Meja Kasir ----- */
-.top-area {
-    /* flex: 1; */
-    height: 90vh;
-    /* Mengambil 50% tinggi layar */
-    /* background-color: #ecf0f1; */
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: flex-start;
-    border-bottom: 6px solid #2c3e50;
-    /* Garis batas meja tebal */
-    position: relative;
-    /* background-image: linear-gradient(to bottom, #d5dbdb, #ecf0f1); */
-    /* Efek dinding */
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    animation: fadeIn 0.4s ease-out forwards;
 }
 
-.customer-zone {
-    flex: 0 0 250px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    /* Memastikan pelanggan menempel ke lantai meja */
-    position: relative;
-}
-
-/* Placeholder untuk karakter pelanggan */
-.customer-placeholder {
-    width: auto;
-    height: 250px;
-    background-color: transparent;
-    border-radius: 0;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
+.main-title {
+    font-size: clamp(3rem, 5vw, 4.5rem);
+    font-weight: 900;
+    /* Efek teks gradasi */
+    background: linear-gradient(to right, #60a5fa, var(--color-brand-accent));
+    -webkit-background-clip: text;
     color: transparent;
+    letter-spacing: -0.05em;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: var(--color-slate-400);
+    font-size: 1.125rem;
+}
+
+/* Glassmorphism Card */
+.login-card {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+    border: 1px solid var(--color-slate-700);
+    width: 100%;
+    max-width: 28rem;
+    opacity: 0;
+    animation: fadeIn 0.4s ease-out 0.1s forwards;
+}
+
+.card-title {
+    font-size: 1.5rem;
     font-weight: bold;
-    box-shadow: none;
+    margin-bottom: 1.5rem;
+    text-align: center;
 }
 
-/* Gambar Karakter Pelanggan */
-.customer-image {
-    height: 100%;
-    width: auto;
-    object-fit: contain;
-    filter: drop-shadow(5px 5px 10px rgba(0, 0, 0, 0.3));
+.card-title i {
+    color: var(--color-brand-light);
+    margin-right: 0.5rem;
 }
 
+/* User List (Hasil Inject JS) */
+.user-list-container {
+    max-height: 10rem;
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+    padding-right: 0.5rem;
+}
 
-/* ==========================================
-   GAYA AREA BAWAH (MEJA, MESIN, BARANG KUMPUL)
-   ========================================== */
-.bottom-area {
-    flex: 1;
-    /* width: 100vw; */
-    height: 50vh;
-    /* Mengambil 50% tinggi layar bagian bawah */
+/* Styling dinamis untuk elemen list yang nanti dibuat oleh JS */
+.user-list-container button {
+    width: 100%;
+    text-align: left;
+    background: var(--color-slate-700);
+    padding: 0.75rem;
+    border-radius: 1rem;
     display: flex;
-    background-color: #e67e22;
-    /* Warna dasar meja kayu */
-    position: relative;
+    align-items: center;
+    border: 1px solid var(--color-slate-600);
+    color: var(--color-white);
+    margin-bottom: 0.5rem;
+    transition: background-color 0.2s;
 }
 
-.cashier-machine {
-    flex: 0 0 600px;
-    /* Lebarnya diperbesar dari 340px agar muat tombol & layar */
-    background-color: #34495e;
-    padding: 10px;
-    border-radius: 10px;
+.user-list-container button:hover {
+    background: var(--color-slate-600);
+}
+
+.user-list-container .user-avatar {
+    height: 2.5rem;
+    width: 2.5rem;
+    background: var(--color-brand-blue);
+    border-radius: 50%;
     display: flex;
-    flex-direction: row;
-    /* Mengubah susunan menjadi berdampingan kiri-kanan */
-    gap: 15px;
-    border-right: 5px solid #2c3e50;
-    box-shadow: 5px 0 20px rgba(0, 0, 0, 0.4);
-    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 0.75rem;
+    border: 2px solid var(--color-slate-500);
 }
 
-.cashier-screen {
+.user-list-container .user-info {
     flex: 1;
-    background-color: #2c3e50;
-    border-radius: 10px;
+}
+
+.user-list-container .user-name {
+    font-weight: bold;
+}
+
+.user-list-container .user-meta {
+    font-size: 0.75rem;
+    color: var(--color-slate-400);
+}
+
+/* Form Profil Baru */
+.new-profile-form {
+    border-top: 1px solid var(--color-slate-600);
+    padding-top: 1.5rem;
+}
+
+.new-profile-form h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-slate-400);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.form-input,
+.form-select {
+    width: 100%;
+    background: var(--color-slate-900);
+    border: 1px solid var(--color-slate-600);
+    border-radius: .5rem;
+    padding: 0.75rem 1rem;
+    color: var(--color-white);
+    margin-bottom: 0.75rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.form-input::placeholder {
+    color: var(--color-slate-500);
+}
+
+.form-input:focus,
+.form-select:focus {
+    border-color: var(--color-brand-light);
+    box-shadow: 0 0 0 1px var(--color-brand-light);
+}
+
+.form-group-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.form-group-row>* {
+    margin-bottom: 0;
+    flex: 1;
+}
+
+.btn-primary {
+    width: 100%;
+    background: var(--color-brand-light);
+    color: var(--color-white);
+    font-weight: bold;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-primary:active {
+    transform: translateY(2px);
+}
+
+.btn-settings {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    color: var(--color-slate-300);
+    font-size: 2.5rem;
+    transition: color 0.2s;
+}
+
+.btn-settings:hover {
+    color: var(--color-white);
+}
+
+
+/* =========================================
+   7. SCREEN: LOBBY
+   ========================================= */
+.lobby-screen {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(image/background-1.png);
+    background-size: cover;
+}
+
+.lobby-nav {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 50;
+}
+
+.btn-logout {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--color-red-400);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    backdrop-filter: blur(4px);
+    transition: all 0.2s;
+}
+
+.btn-logout:hover {
+    background: var(--color-red-500);
+    color: var(--color-white);
+}
+
+.lobby-layout {
     display: flex;
     flex-direction: column;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+    height: 100%;
 }
 
-.desk-surface {
-    flex: 1;
-    position: relative;
-    padding: 20px;
-    border-radius: 10px;
-    background-image: linear-gradient(to bottom, #e5e5e5, #989898);
-    /* Tekstur meja */
-    overflow: hidden;
+@media (min-width: 768px) {
+    .lobby-layout {
+        flex-direction: row;
+        padding: 3rem 2rem;
+    }
 }
 
-#collected-items-zone {
+/* Panel Kiri: Info Pemain */
+.lobby-info-panel {
+    width: 100%;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0;
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@media (min-width: 768px) {
+    .lobby-info-panel {
+        width: 50%;
+    }
+}
+
+.info-label {
+    color: #93c5fd;
+    font-size: 1.25rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+}
+
+.player-name {
+    font-size: clamp(2.25rem, 4vw, 3.75rem);
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+.profile-card {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(51, 65, 85, 0.5);
+    margin-bottom: 2rem;
+    display: inline-block;
+}
+
+.profile-card table {
+    font-size: 1.125rem;
+    color: var(--color-slate-100);
+}
+
+.profile-card td:first-child {
+    color: var(--color-slate-400);
+    padding-right: 1.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.profile-card td:last-child {
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+}
+
+.player-title {
+    color: var(--color-brand-accent);
+}
+
+.player-title i {
+    margin-right: 0.5rem;
+}
+
+/* Tombol Aksi di Lobi */
+.lobby-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-width: 28rem;
+}
+
+.btn-start-game {
+    background: linear-gradient(to right, #2563eb, #60a5fa);
+    color: var(--color-white);
+    font-weight: 900;
+    font-size: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-start-game:hover {
+    transform: scale(1.05);
+}
+
+.secondary-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-secondary {
+    flex: 1;
+    background: var(--color-slate-800);
+    color: var(--color-white);
+    font-weight: bold;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-slate-600);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-secondary:hover {
+    background: var(--color-slate-700);
+}
+
+.btn-secondary i.fa-book {
+    color: var(--color-brand-accent);
+    font-size: 1.25rem;
+}
+
+.btn-secondary i.fa-trophy {
+    color: var(--color-yellow-400);
+    font-size: 1.25rem;
+}
+
+/* Panel Kanan: Karakter dan ID Card */
+.lobby-character-panel {
+    width: 100%;
+    display: flex;
+    justify-content: center;
     align-items: flex-end;
-    align-content: flex-start;
-    gap: 15px;
+    position: relative;
+    margin-top: 2rem;
+    opacity: 0;
+    animation: fadeIn 0.4s ease-out 0.2s forwards;
+}
+
+@media (min-width: 768px) {
+    .lobby-character-panel {
+        width: 50%;
+        margin-top: 0;
+    }
+}
+
+/* Cahaya biru di belakang karakter */
+.lobby-character-panel::before {
+    content: '';
+    position: absolute;
+    width: 16rem;
+    height: 16rem;
+    background: var(--color-brand-light);
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.3;
+    bottom: 2.5rem;
+}
+
+.character-img {
+    height: 85vh;
+    max-height: 900px;
+    object-fit: contain; /* Menjaga proporsi full body agar tidak gepeng */
+    z-index: 10;
+    position: relative;
+    /* Jika SVG sudah transparan, Anda bisa menghapus latar gelap ini jika ingin lebih bersih */
+    background-color: transparent; 
+}
+
+/* Animasi Melayang untuk ID Card */
+.id-card-floating {
+    position: absolute;
+    top: 2.5rem;
+    left: 2.5rem;
+    background: var(--color-white);
+    color: var(--color-black);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border-top: 8px solid var(--color-brand-blue);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 12rem;
+    z-index: 20;
+    animation: floatBounce 3s ease-in-out infinite;
+}
+
+.id-card-header {
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.75rem;
+    color: var(--color-slate-500);
+    margin-bottom: 0.5rem;
+}
+
+.id-card-avatar {
+    height: 5rem;
+    width: 5rem;
+    background: var(--color-slate-200);
+    margin: 0 auto 0.5rem;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--color-slate-300);
+}
+
+.id-card-avatar img {
     width: 100%;
     height: 100%;
+    object-fit: cover; /* Agar avatar pas mengisi bulatan ID card */
 }
 
-/* Area meja kayu tempat barang berada */
-.desk {
-    width: 100%;
-    height: 120px;
-    background-color: #d35400;
-    /* Warna coklat meja */
-    border-top: 5px solid #e67e22;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    z-index: 10;
+.id-card-name {
+    font-weight: 900;
+    text-align: center;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Placeholder untuk barang belanjaan */
-.item-placeholder {
-    width: 85px;
-    height: 100px;
-    background-color: transparent;
-    /* Hilangkan kotak kuning */
-    border: none;
-    border-radius: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+.id-card-title {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-brand-light);
+    margin-top: 0.25rem;
 }
 
-/* Class baru untuk elemen <img> barang */
-.item-image {
-    width: 100%;
-    height: 75px;
-    object-fit: contain;
-    filter: drop-shadow(2px 5px 8px rgba(0, 0, 0, 0.4));
-    /* Memberi bayangan realistis 3D */
-    transition: transform 0.2s;
+/* =========================================
+   8. SCREEN: GAME 
+   ========================================= */
+.game-screen {
+    background-color: var(--color-slate-200);
+    color: var(--color-slate-900);
 }
 
-/* ----- AREA BAWAH: Mesin Kasir ----- */
-.bottom-area {
-    flex: 4;
-    background-color: #34495e;
-    display: flex;
-    padding: 20px;
-    gap: 20px;
-}
-
-/* Kiri: Layar Kasir */
-.cashier-screen {
-    width: 360px;
-    height: 250px;
-    flex: 1;
-    background-color: #2c3e50;
-    border-radius: 10px;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-}
-
-.screen-content {
-    flex: 1;
-    background-color: #a3e4d7;
-    /* Warna layar LCD */
-    border: 8px inset #7ee8d3cc;
-    border-radius: 2px;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    /* Teks rata kanan mirip kalkulator asli */
-}
-
-.display-text {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 24px;
-    font-weight: bold;
-    color: #17202a;
-}
-
-/* Kanan: Kalkulator */
-/* Kanan: Kalkulator (Diperbarui untuk 4 kolom) */
-.calculator {
-    width: 250px;
-    height: 250px;
-    /* Dilebarkan sedikit agar tombol tetap proporsional */
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    /* Berubah dari 3 menjadi 4 kolom */
-    gap: 10px;
-}
-
-
-
-/* Gaya dasar tombol */
-.btn {
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 4px #bdc3c7;
-    transition: all 0.1s;
-}
-
-.btn:active {
-    box-shadow: 0 0 #bdc3c7;
-    transform: translateY(4px);
-}
-
-.num-btn {
-    background-color: #fff;
-    color: #2c3e50;
-}
-
-.action-btn {
-    background-color: #e74c3c;
-    color: white;
-    box-shadow: 0 4px #c0392b;
-}
-
-.action-btn:active {
-    box-shadow: 0 0 #c0392b;
-}
-
-/* Update gaya tombol total (tidak lagi span 3) */
-.total-btn {
-    background-color: #2ecc71;
-    color: white;
-    box-shadow: 0 4px #27ae60;
-}
-
-.total-btn:active {
-    box-shadow: 0 0 #27ae60;
-}
-
-/* ==========================================
-   GAYA VISUAL LACI KASIR & KEMBALIAN
-   ========================================== */
-
-/* Container utama laci kasir */
-.cash-drawer {
-    width: 300px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-/* Kotak (Grid) untuk menata tombol pecahan uang (2 kolom agar muat 10 pecahan) */
-.drawer-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    flex: 1;
-}
-
-/* Gaya tombol pecahan uang di dalam laci */
-.money-btn {
-    background-color: #f39c12;
-    color: #fff;
-    font-size: 14px;
-    padding: 8px;
-    box-shadow: 0 4px #d35400;
-}
-
-.money-btn:active {
-    box-shadow: 0 0 #d35400;
-}
-
-/* Tombol validasi kembalian akhir */
-.finish-btn {
-    background-color: #8e44ad;
-    color: white;
-    box-shadow: 0 4px #732d91;
-    padding: 12px;
-    font-size: 16px;
-}
-
-.finish-btn:active {
-    box-shadow: 0 0 #732d91;
-}
-
-/* Efek kursor untuk uang yang ditaruh di meja kasir */
-.given-money-item {
-    cursor: pointer;
-    transition: transform 0.1s;
-}
-
-.given-money-item:hover {
-    transform: scale(1.1);
-}
-
-/* ==========================================
-   GAYA VISUAL MODAL STRUK BELANJA
-   ========================================== */
-
-/* Latar belakang gelap transparan (Overlay) */
-.modal-overlay {
+/* Game Topbar */
+.game-topbar {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: none;
-    /* Sembunyikan secara default */
-    justify-content: center;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    z-index: 100;
-    /* Pastikan selalu berada di paling atas */
+    background-color: var(--color-slate-800);
+    color: var(--color-white);
+    z-index: 50;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* Kertas Struk */
-.receipt-paper {
-    background-color: #fff;
-    width: 320px;
-    padding: 20px;
-    border-radius: 4px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    font-family: 'Courier New', Courier, monospace;
-    color: #2c3e50;
+.btn-close-game {
+    background-color: var(--color-red-500);
+    color: var(--color-white);
+    font-weight: bold;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.btn-close-game:hover {
+    background-color: #dc2626;
+    /* red-600 */
+}
+
+.game-title {
+    font-size: 1.25rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: var(--color-brand-accent);
+}
+
+.game-title span {
+    color: var(--color-white);
+    font-size: 0.875rem;
+    font-weight: 400;
+    margin-left: 0.5rem;
+}
+
+.game-coins {
+    font-weight: bold;
+}
+
+.game-coins i {
+    color: var(--color-yellow-400);
+    margin-right: 0.5rem;
+}
+
+/* Game Layout Container */
+.game-layout {
+    padding-top: 5rem;
+    /* Ruang untuk topbar */
+    height: 100%;
     display: flex;
     flex-direction: column;
+    gap: 1rem;
+    max-width: 72rem;
+    margin: 0 auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 1rem;
 }
 
-.receipt-paper h2 {
+/* Environment (Rak Barang & Pelanggan) */
+.game-environment {
+    flex: 1;
+    background: linear-gradient(to bottom, #fef3c7, #fff7ed);
+    /* amber-100 to orange-50 */
+    border-radius: 0.75rem;
+    border: 4px solid #92400e;
+    /* amber-800 */
+    padding: 1rem;
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+.shelf-area {
+    width: 50%;
+    background-color: rgba(120, 53, 15, 0.1);
+    border-radius: 0.5rem;
+    border: 2px solid #78350f;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+
+.shelf-row {
+    height: 33%;
+    border-bottom: 8px solid #78350f;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    padding-bottom: 0.5rem;
+}
+
+.item-card {
     text-align: center;
-    margin-bottom: 5px;
-    font-size: 22px;
+    position: relative;
 }
 
-.receipt-subtitle,
-.receipt-footer {
+.item-card img {
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.item-card p {
+    font-size: 0.625rem;
+    font-weight: bold;
+    margin-top: 0.25rem;
+}
+
+.item-var {
+    position: absolute;
+    top: -1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--color-slate-800);
+    color: var(--color-white);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    font-family: serif;
+    font-style: italic;
+}
+
+/* Pelanggan */
+.customer-area {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    position: relative;
+}
+
+.speech-bubble {
+    background-color: var(--color-white);
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border: 2px solid var(--color-slate-800);
     text-align: center;
-    font-size: 12px;
-    color: #7f8c8d;
-    margin-bottom: 10px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 10;
+    width: 80%;
 }
 
-.receipt-paper hr {
-    border: none;
-    border-top: 1px dashed #2c3e50;
-    margin: 10px 0;
+.speech-bubble span {
+    color: #2563eb;
+    /* blue-600 */
+    font-weight: bold;
 }
 
-/* Area rincian di dalam struk */
-#receipt-content {
-    font-size: 14px;
-    line-height: 1.5;
-    margin-bottom: 15px;
+/* Segitiga Ekor Balon Chat */
+.speech-bubble::before,
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
 }
 
-#receipt-content .receipt-row {
+.speech-bubble::before {
+    bottom: -15px;
+    border-width: 15px 10px 0 10px;
+    border-color: var(--color-slate-800) transparent transparent transparent;
+}
+
+.speech-bubble::after {
+    bottom: -12px;
+    border-width: 12px 8px 0 8px;
+    border-color: var(--color-white) transparent transparent transparent;
+}
+
+.customer-npc {
+    height: 12rem;
+    object-fit: contain;
+}
+
+/* Meja Permainan (Nampan, Dompet, Mesin Kasir) */
+.game-desk {
+    height: 16rem;
+    display: flex;
+    gap: 1rem;
+}
+
+/* Area Nampan & Dompet */
+.tray-wallet-area {
+    width: 33.333%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tray-container {
+    flex: 1;
+    background-color: var(--color-slate-300);
+    border-radius: 0.75rem;
+    border: 4px solid var(--color-slate-400);
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tray-label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--color-slate-500);
+    text-transform: uppercase;
+}
+
+.tray-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: flex-end;
+    width: 100%;
+    height: 100%;
+    padding-bottom: 0.5rem;
+}
+
+.wallet-container {
+    height: 5rem;
+    background-color: #78350f;
+    /* amber-900 */
+    border-radius: 0.75rem;
+    border: 2px dashed #b45309;
+    /* amber-700 */
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.wallet-label {
+    position: absolute;
+    top: 0.25rem;
+    left: 0.5rem;
+    font-size: 0.625rem;
+    color: #fde68a;
+    /* amber-200 */
+    font-weight: bold;
+}
+
+.wallet-money {
+    display: flex;
+    margin-left: -1rem;
+    /* Overlap image trick (-space-x-4) */
+    margin-top: 0.5rem;
+}
+
+.wallet-money img {
+    border-radius: 0.25rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--color-slate-400);
+}
+
+.wallet-money img:nth-child(1) {
+    transform: rotate(-5deg);
+    margin-right: -1rem;
+}
+
+.wallet-money img:nth-child(2) {
+    transform: rotate(5deg);
+}
+
+/* Mesin Kasir */
+.cash-register {
+    width: 66.666%;
+    background-color: var(--color-yellow-400);
+    border-radius: 1rem;
+    border: 4px solid #ca8a04;
+    /* yellow-600 */
+    padding: 0.75rem;
+    display: flex;
+    gap: 0.75rem;
+    box-shadow: 0 10px 0 #ca8a04;
+}
+
+.register-display {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.display-screen {
+    flex: 1;
+    background-color: #14532d;
+    /* green-900 */
+    border: 4px solid var(--color-slate-800);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.display-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #bbf7d0;
+    /* green-200 */
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+/* Input Aktif & Efek Glow */
+.kasir-input {
+    width: 75%;
+    text-align: right;
+    font-weight: bold;
+    background-color: var(--color-white);
+    color: var(--color-slate-900);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    outline: none;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.kasir-input.input-active {
+    border-color: var(--color-yellow-400);
+    box-shadow: 0 0 8px rgba(250, 204, 21, 0.8);
+}
+
+.btn-confirm {
+    height: 3rem;
+    background-color: var(--color-green-500);
+    color: var(--color-white);
+    font-weight: 900;
+    font-size: 1.125rem;
+    border-radius: 0.5rem;
+    border-bottom: 4px solid #15803d;
+    /* green-700 */
+    transition: all 0.1s;
+}
+
+.btn-confirm:hover {
+    background-color: #4ade80;
+    /* green-400 */
+}
+
+.btn-confirm:active {
+    border-bottom-width: 0;
+    transform: translateY(4px);
+}
+
+/* Numpad Kalkulator menggunakan CSS Grid */
+.register-numpad {
+    width: 50%;
+    background-color: #ea580c;
+    /* orange-600 */
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 0.375rem;
+}
+
+/* Global Button Styles for Numpad */
+.btn-num,
+.btn-var,
+.btn-op,
+.btn-action {
+    font-weight: bold;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s;
+}
+
+.btn-num:active,
+.btn-var:active,
+.btn-op:active,
+.btn-action:active {
+    transform: translateY(2px);
+}
+
+.btn-num {
+    background-color: #fef08a;
+    /* yellow-100 */
+    color: #713f12;
+    /* yellow-900 */
+    border-bottom: 4px solid #eab308;
+    /* yellow-500 */
+}
+
+.btn-var {
+    background-color: #fde047;
+    /* yellow-300 */
+    color: #713f12;
+    /* yellow-900 */
+    border-bottom: 4px solid #ca8a04;
+    /* yellow-600 */
+    font-family: serif;
+    font-style: italic;
+}
+
+.btn-op {
+    background-color: #bae6fd;
+    /* sky-200 */
+    color: #0c4a6e;
+    /* sky-900 */
+    border-bottom: 4px solid #0ea5e9;
+    /* sky-500 */
+}
+
+.btn-action {
+    background-color: var(--color-red-400);
+    color: var(--color-white);
+    border-bottom: 4px solid #dc2626;
+    /* red-600 */
+}
+
+.btn-del {
+    background-color: #fb923c;
+    /* orange-400 */
+    border-bottom-color: #ea580c;
+}
+
+.btn-equals {
+    grid-column: span 3;
+    font-size: 1.25rem;
+    font-weight: 900;
+    background-color: #38bdf8;
+    /* sky-400 */
+    color: var(--color-white);
+    border-bottom: 4px solid #0284c7;
+    /* sky-600 */
+}
+
+
+/* =========================================
+   9. MODAL: RECEIPT & GENERAL MODALS
+   ========================================= */
+.modal-overlay {
+    position: absolute;
+    /* Ubah dari fixed agar terkurung di dalam app-container */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 100;
+}
+
+.modal-overlay.hidden {
+    /* Diprioritaskan agar benar-benar tertutup saat di-hide via JS */
+    display: none !important;
+}
+
+/* Modal Struk */
+.receipt-card {
+    background-color: var(--color-white);
+    color: var(--color-slate-800);
+    padding: 1.5rem;
+    border-radius: 0.25rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 350px;
+    font-family: monospace;
+    font-size: 0.875rem;
+    border-top: 8px solid var(--color-slate-800);
+    position: relative;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Efek Sobekan Kertas Struk */
+.receipt-tear {
+    position: absolute;
+    top: -8px;
+    /* Ditarik ke atas agar menimpa border top */
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background-color: var(--color-white);
+    -webkit-mask-image: radial-gradient(circle at 4px 0, transparent 4px, black 5px);
+    mask-image: radial-gradient(circle at 4px 0, transparent 4px, black 5px);
+    -webkit-mask-size: 10px 10px;
+    mask-size: 10px 10px;
+    -webkit-mask-repeat: repeat-x;
+    mask-repeat: repeat-x;
+}
+
+.receipt-card h3 {
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+}
+
+.receipt-subtitle {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--color-slate-500);
+    margin-bottom: 1rem;
+}
+
+.divider {
+    border-bottom: 2px dashed var(--color-slate-400);
+    margin-bottom: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.section-title {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.row {
     display: flex;
     justify-content: space-between;
 }
 
-#receipt-content .receipt-title {
+.row.note {
+    font-size: 0.75rem;
+    color: var(--color-slate-600);
+    margin-top: 0.25rem;
+}
+
+.row.total {
     font-weight: bold;
-    margin-top: 10px;
-    text-decoration: underline;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--color-slate-200);
+    padding-top: 0.25rem;
 }
 
-/* Tombol lanjut ke pelanggan berikutnya */
-.next-btn {
-    background-color: #e67e22;
+.row.change {
+    font-weight: bold;
+    color: var(--color-green-500);
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--color-slate-200);
+    padding-top: 0.25rem;
+    font-size: 1rem;
+}
+
+.receipt-msg {
+    background-color: #fef08a;
+    /* yellow-100 */
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    color: #854d0e;
+    /* yellow-800 */
+    text-align: center;
+    font-size: 0.75rem;
+    border: 1px solid #fde047;
+    margin-bottom: 1rem;
+}
+
+.receipt-msg i {
+    color: #eab308;
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+}
+
+.btn-close-receipt {
+    width: 100%;
+    background-color: var(--color-brand-light);
+    color: var(--color-white);
+    font-weight: bold;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: background-color 0.2s;
+}
+
+.btn-close-receipt:hover {
+    background-color: #2563eb;
+}
+
+/* Modal General (Pin & Pesan) */
+.modal-card {
+    background-color: var(--color-white);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    width: 320px;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.modal-pin-card {
+    background-color: var(--color-slate-800);
+    border: 1px solid var(--color-slate-600);
+    color: var(--color-white);
+    text-align: center;
+}
+
+.modal-pin-card h3 {
+    margin-bottom: 0.5rem;
+}
+
+.modal-pin-card h3 i {
+    color: var(--color-brand-light);
+    margin-right: 0.5rem;
+}
+
+.modal-pin-card p {
+    font-size: 0.75rem;
+    color: var(--color-slate-400);
+    margin-bottom: 1rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-full {
+    width: 100%;
+    margin-top: 1.5rem;
+}
+
+#msg-title {
+    font-weight: 900;
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-slate-800);
+}
+
+#msg-desc {
+    font-size: 0.875rem;
+    color: var(--color-slate-600);
+}
+
+/* =========================================
+   10. COMMON & NAV (Navigasi & Judul)
+   ========================================= */
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-slate-400);
+    background: transparent;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    transition: color 0.2s;
+}
+
+.btn-back:hover {
+    color: var(--color-white);
+}
+
+.btn-back i {
+    margin-right: 0.5rem;
+}
+
+.section-title {
+    font-size: 2rem;
+    font-weight: 900;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+/* =========================================
+   11. SCREEN: LEVELS
+   ========================================= */
+.levels-screen {
+    padding: 2rem;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(image/background-1.png);
+    background-size: cover;
+}
+
+.level-grid-wrapper {
+    max-width: 64rem;
+    margin: 0 auto;
+    background-color: color-mix(in srgb, var(--color-slate-800), transparent 40%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid var(--color-slate-800);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.level-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-slate-700);
+}
+
+.level-tabs button {
+    flex: 1;
+    padding: 1rem;
+    font-weight: bold;
+    font-size: 1.125rem;
+}
+
+.tab-active {
+    background-color: var(--color-brand-blue);
+    color: var(--color-white);
+}
+
+.tab-disabled {
+    background-color: transparent;
+    color: var(--color-slate-500);
+    cursor: not-allowed;
+}
+
+.tab-disabled i {
+    margin-left: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.level-grid {
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+/* =========================================
+   12. SCREEN: BUKU KAS
+   ========================================= */
+.bukukas-screen {
+    padding: 2rem;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(image/background-1.png);
+    background-size: cover;
+}
+
+.bukukas-layout {
+    max-width: 72rem;
+    margin: 0 auto;
+    background-color: var(--color-white);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    height: 85vh;
+}
+
+@media (min-width: 768px) {
+    .bukukas-layout {
+        flex-direction: row;
+    }
+}
+
+.panel-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--color-brand-dark);
+    margin-bottom: 1.5rem;
+    border-bottom: 4px solid var(--color-brand-light);
+    display: inline-block;
+    padding-bottom: 0.25rem;
+}
+
+/* Kiri: Grafik & Ringkasan */
+.bukukas-chart-panel {
+    width: 100%;
+    padding: 1.5rem;
+    border-right: 2px dashed var(--color-slate-300);
+}
+
+@media (min-width: 768px) {
+    .bukukas-chart-panel {
+        width: 50%;
+    }
+}
+
+.chart-container {
+    height: 16rem;
+    width: 100%;
+    margin-bottom: 1.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+}
+
+.stat-box {
+    padding: .7rem;
+    border-radius: 10px;
+    border: 1px solid;
+}
+
+.stat-box p {
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: capitalize;
+    margin-bottom: 0.5rem;
+}
+
+.stat-box h3 {
+    font-size: .7rem;
+    font-weight: 900;
+}
+
+.stat-revenue {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.stat-revenue p {
+    color: #2563eb;
+}
+
+.stat-revenue h3 {
+    color: var(--color-brand-dark);
+}
+
+.stat-cost {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+}
+
+.stat-cost p {
+    color: #dc2626;
+}
+
+.stat-cost h3 {
+    color: var(--color-brand-dark);
+}
+
+.stat-profit {
+    grid-column: span 2;
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.stat-profit p {
+    color: #16a34a;
+}
+
+.stat-profit h3 {
+    color: #15803d;
+    font-size: 1.875rem;
+}
+
+/* Kanan: Riwayat */
+.bukukas-history-panel {
+    width: 100%;
+    padding: 1.5rem;
+    background-color: var(--color-slate-50);
+    overflow-y: auto;
+}
+
+@media (min-width: 768px) {
+    .bukukas-history-panel {
+        width: 50%;
+    }
+}
+
+.accuracy-box {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-slate-200);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.accuracy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--color-slate-600);
+}
+
+.accuracy-header span:last-child {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: var(--color-brand-light);
+}
+
+.progress-bar-bg {
+    width: 100%;
+    background-color: var(--color-slate-200);
+    border-radius: 9999px;
+    height: 0.625rem;
+}
+
+.progress-bar-fill {
+    background-color: var(--color-brand-light);
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.5s ease;
+}
+
+.history-title {
+    font-weight: bold;
+    color: var(--color-slate-700);
+    margin-bottom: 0.75rem;
+}
+
+.history-title i {
+    margin-right: 0.5rem;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+
+/* =========================================
+   13. SCREEN: PRESTASI
+   ========================================= */
+.prestasi-screen {
+    padding: 2rem;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(image/background-1.png);
+    background-size: cover;
+}
+
+.prestasi-layout {
+    max-width: 72rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: 85vh;
+}
+
+@media (min-width: 768px) {
+    .prestasi-layout {
+        flex-direction: row;
+    }
+}
+
+/* Papan Peringkat */
+.leaderboard-panel {
+    width: 100%;
+    background-color: color-mix(in srgb, var(--color-slate-800), transparent 30%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 1rem;
+    border: 1px solid var(--color-slate-700);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+@media (min-width: 768px) {
+    .leaderboard-panel {
+        width: 50%;
+    }
+}
+
+.leaderboard-panel .panel-header {
+    background-color: var(--color-slate-900);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-slate-700);
+}
+
+.leaderboard-panel .panel-header h2 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+}
+
+.leaderboard-panel .panel-header h2 i {
+    color: var(--color-yellow-400);
+    margin-right: 0.75rem;
+}
+
+.leaderboard-panel .panel-header p {
+    font-size: 0.75rem;
+    color: var(--color-slate-400);
+    margin-top: 0.25rem;
+}
+
+.table-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.leaderboard-table {
+    width: 100%;
+    text-align: left;
+    border-collapse: collapse;
+}
+
+.leaderboard-table th {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-slate-700);
+    font-size: 0.875rem;
+    color: var(--color-slate-400);
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Kanan: Lencana & Token */
+.badges-token-panel {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .badges-token-panel {
+        width: 50%;
+    }
+}
+
+.badges-panel {
+    flex: 1;
+    background-color: rgba(127, 29, 29, 0.2);
+    /* red-900/20 */
+    border-radius: 1rem;
+    border: 1px solid rgba(127, 29, 29, 0.5);
+    padding: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.badges-panel h2 {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: var(--color-red-400);
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(127, 29, 29, 0.5);
+    padding-bottom: 0.5rem;
+}
+
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.token-panel {
+    background-color: var(--color-brand-blue);
+    border-radius: 1rem;
+    border: 1px solid #3b82f6;
+    /* blue-500 */
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.token-panel h3 {
+    font-size: 0.875rem;
+    font-weight: bold;
+    color: #bfdbfe;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.token-panel p {
+    font-size: 0.75rem;
+    color: #dbeafe;
+    margin-bottom: 0.75rem;
+}
+
+.token-display {
+    background-color: var(--color-slate-900);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-family: monospace;
+    font-size: 1.25rem;
+    color: var(--color-yellow-400);
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    border: 1px solid var(--color-slate-700);
+    margin-bottom: 0.75rem;
+}
+
+.btn-copy {
+    background-color: var(--color-white);
+    color: var(--color-brand-blue);
+    font-weight: bold;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+}
+
+.btn-copy:hover {
+    background-color: var(--color-slate-100);
+}
+
+
+/* =========================================
+   14. SCREEN: FASILITATOR
+   ========================================= */
+.fasilitator-screen {
+    background-color: var(--color-slate-100);
+    color: var(--color-slate-900);
+}
+
+.fasil-topbar {
+    background-color: var(--color-brand-dark);
+    color: var(--color-white);
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.fasil-topbar h1 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--color-brand-light);
+}
+
+.fasil-topbar p {
+    font-size: 0.75rem;
+    color: var(--color-slate-400);
+}
+
+.btn-exit-fasil {
+    background-color: var(--color-slate-700);
+    color: var(--color-white);
+    font-weight: bold;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+}
+
+.btn-exit-fasil:hover {
+    background-color: var(--color-slate-600);
+}
+
+.fasil-layout {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .fasil-layout {
+        flex-direction: row;
+    }
+}
+
+.fasil-main-panel {
+    width: 100%;
+    background-color: var(--color-white);
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--color-slate-200);
+    overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+    .fasil-main-panel {
+        width: 75%;
+    }
+}
+
+.fasil-main-panel .panel-header {
+    background-color: var(--color-slate-50);
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-slate-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fasil-main-panel .panel-header h2 {
+    font-weight: bold;
+    font-size: 1.125rem;
+    color: var(--color-slate-700);
+}
+
+.btn-export {
+    background-color: #16a34a;
+    color: var(--color-white);
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s;
+}
+
+.btn-export:hover {
+    background-color: #15803d;
+}
+
+.fasil-table {
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+}
+
+.fasil-table thead {
+    background-color: var(--color-slate-100);
+    color: var(--color-slate-600);
+}
+
+.fasil-table th {
+    padding: 0.75rem;
+}
+
+.fasil-sidebar {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .fasil-sidebar {
+        width: 25%;
+    }
+}
+
+.ews-panel,
+.admin-panel {
+    background-color: var(--color-white);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--color-slate-200);
+}
+
+.ews-panel {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+}
+
+.ews-panel h2 {
+    font-weight: bold;
+    color: #b91c1c;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+}
+
+.ews-panel h2 i {
+    font-size: 1.25rem;
+    margin-right: 0.5rem;
+}
+
+.admin-panel h2 {
+    font-weight: bold;
+    color: var(--color-slate-700);
+    margin-bottom: 0.5rem;
+}
+
+.btn-reset-data {
+    width: 100%;
+    background-color: #fee2e2;
+    color: #b91c1c;
+    font-weight: bold;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid #fca5a5;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+}
+
+.btn-reset-data:hover {
+    background-color: #fecaca;
+}
+
+/* =========================================
+   15. JS DYNAMIC CLASSES (Di-inject dari JS)
+   ========================================= */
+/* Tombol Level */
+.btn-level-unlocked {
+    background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+    border: 2px solid #60a5fa;
+    border-radius: 50px;
+    height: 6rem;
+    width: 6rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-white);
+    transition: transform 0.2s;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.btn-level-unlocked:hover {
+    transform: scale(1.05);
+}
+
+.btn-level-unlocked span {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin-bottom: 0.25rem;
+}
+
+.btn-level-locked {
+    background-color: var(--color-slate-700);
+    border: 2px solid var(--color-slate-600);
+    border-radius: 50px;
+    height: 6rem;
+    width: 6rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-slate-500);
+    cursor: not-allowed;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-level-locked span {
+    font-size: 1.5rem;
+    font-weight: 900;
+    opacity: 0.5;
+    margin-bottom: 0.25rem;
+}
+
+.level-stars {
+    display: flex;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+
+.star-active {
+    color: var(--color-yellow-400);
+}
+
+.star-inactive {
+    color: rgba(148, 163, 184, 0.5);
+}
+
+/* Item Nampan Kasir */
+.tray-item {
+    position: relative;
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+.tray-item-var {
+    position: absolute;
+    top: -0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--color-slate-800);
+    color: var(--color-white);
+    padding: 0.125rem 0.25rem;
+    font-size: 0.6rem;
+    border-radius: 0.25rem;
+    font-family: serif;
+    font-style: italic;
+}
+
+.tray-item img {
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--color-slate-400);
+}
+
+/* Error Flash (Game) */
+.error-flash {
+    background-color: #7f1d1d !important;
+    border-color: var(--color-red-500) !important;
+    transition: all 0.3s ease;
+}
+
+/* Item Riwayat Buku Kas */
+.history-item {
+    border-left: 4px solid var(--color-brand-light);
+    padding-left: 1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    background-color: var(--color-white);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border-top-right-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.history-header span:first-child {
+    font-weight: 900;
+    color: var(--color-slate-800);
+}
+
+.history-header span:last-child {
+    font-size: 0.75rem;
+    color: var(--color-slate-500);
+}
+
+.history-stats {
+    font-size: 0.875rem;
+    color: var(--color-slate-600);
+    display: flex;
+    justify-content: space-between;
+}
+
+.text-success {
+    font-weight: bold;
+    color: #16a34a;
+}
+
+.text-error {
+    color: #ef4444;
+}
+
+/* Leaderboard Rows */
+.table-row {
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    transition: background-color 0.2s;
+}
+
+.table-row:hover {
+    background-color: rgba(51, 65, 85, 0.5);
+}
+
+.table-row td {
+    padding: 0.75rem 0;
+    color: var(--color-white);
+}
+
+.table-row td:first-child {
+    padding-left: 0.5rem;
+    width: 2.5rem;
+    text-align: center;
+}
+
+.table-row td:last-child {
+    padding-right: 0.5rem;
+    font-family: monospace;
+    color: var(--color-brand-light);
+}
+
+.table-row-me {
+    background-color: rgba(30, 58, 138, 0.3);
+    font-weight: bold;
+}
+
+.rank-1 {
+    color: var(--color-yellow-400);
+}
+
+.rank-2 {
+    color: #d1d5db;
+}
+
+.rank-3 {
+    color: #d97706;
+}
+
+.rank-name {
+    display: block;
+}
+
+.rank-title {
+    font-size: 0.625rem;
+    color: var(--color-slate-400);
+    font-weight: normal;
+}
+
+/* Badges */
+.badge-card {
+    display: flex;
+    width: 150px;
+    height: 100px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.75rem;
+    border-radius: 75px;
+    border: 1px solid;
+}
+
+.badge-unlocked {
+    background-color: var(--color-slate-800);
+    border-color: var(--color-slate-600);
+}
+
+.badge-locked {
+    background-color: var(--color-slate-900);
+    border-color: var(--color-slate-800);
+    opacity: 0.5;
+}
+
+.badge-icon-wrapper {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.badge-unlocked .badge-icon-wrapper {
+    background-color: var(--color-slate-700);
+}
+
+.badge-locked .badge-icon-wrapper {
+    background-color: var(--color-slate-800);
+}
+
+.badge-card h4 {
+    font-weight: bold;
+    font-size: 0.75rem;
+    line-height: 1.1;
+}
+
+.badge-unlocked h4 {
+    color: var(--color-white);
+}
+
+.badge-locked h4 {
+    color: var(--color-slate-500);
+}
+
+.badge-icon {
+    font-size: 1.5rem;
+}
+
+.icon-blue {
+    color: #60a5fa;
+}
+
+.icon-red {
+    color: #f87171;
+}
+
+.icon-yellow {
+    color: #facc15;
+}
+
+.icon-disabled {
+    color: var(--color-slate-600);
+}
+
+/* Fasilitator EWS & Table */
+.ews-alert {
+    background-color: var(--color-white);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border-left: 4px solid var(--color-red-500);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    margin-bottom: 0.5rem;
+}
+
+.ews-alert span {
+    font-weight: bold;
+    color: #b91c1c;
+}
+
+.ews-alert p {
+    font-size: 0.75rem;
+    color: var(--color-slate-600);
+    margin-top: 0.25rem;
+}
+
+.fasil-tr:hover {
+    background-color: #eff6ff;
+}
+
+.fasil-td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-slate-100);
+}
+
+.fasil-name {
+    font-weight: bold;
+    color: var(--color-slate-800);
+}
+
+.level-badge {
+    background-color: #dbeafe;
+    color: #1e40af;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.fasil-money {
+    font-family: monospace;
+    color: #16a34a;
+    font-weight: bold;
+}
+
+.btn-delete-user {
+    color: var(--color-red-500);
+    background: none;
+    padding: 0.25rem;
+    transition: color 0.2s;
+}
+
+.btn-delete-user:hover {
+    color: #b91c1c;
+}
+
+/* =========================================
+   TAHAP 2: CSS GAME BARU (INTEGRASI 16:9)
+   ========================================= */
+
+/* KONTENER RASIO LAYAR UTAMA 16:9 FIXED */
+.game-container {
+    width: 100%;
+    max-width: 1280px;
+    aspect-ratio: 16 / 9;
+    position: relative;
+    background-color: #f5f5f5;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Scope Tombol Kembali Khusus Area Game agar tidak bentrok */
+#screen-game .btn-back {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 50;
+    background-color: #ef5350;
     color: white;
-    padding: 12px;
+    border: 2px solid #b71c1c;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 0 #b71c1c;
+    transition: transform 0.1s, box-shadow 0.1s;
+    display: block;
+    margin-bottom: 0;
+}
+
+#screen-game .btn-back:active {
+    transform: translateY(4px);
+    box-shadow: none;
+}
+
+/* === PLACEHOLDER & ASSETS === */
+.img-placeholder {
+    background-color: #e0e0e0;
+    border: 2px dashed #757575;
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #424242;
+    font-weight: bold;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.img-placeholder:hover {
+    background-color: #d6d6d6;
+}
+
+.product-size {
+    width: 70px;
+    height: 66px;
+    font-size: 0.6rem;
+}
+
+.npc-avatar-placeholder {
+    width: 85%;
+    height: 70%;
+    font-size: 0.8rem;
+    background-color: #bbdefb;
+    border-color: #1e88e5;
+    color: #1565c0;
+}
+
+.basket-item-size {
+    width: 22px;
+    height: 28px;
+    font-size: 0.55rem;
+}
+
+.banknote-20k-placeholder {
+    width: 110px;
+    height: 55px;
+    background-color: #c8e6c9;
+    border-color: #4caf50;
+    color: #2e7d32;
+    font-size: 0.65rem;
+    transform: rotate(-8deg);
+    box-shadow: 3px 5px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* === AREA LATAR BELAKANG TOKO === */
+.shop-background {
+    height: 55%;
+    width: 100%;
+    background: linear-gradient(to bottom, #d7ccc8, #e0f2f1);
+    position: relative;
+    border-bottom: 8px solid #3e2723;
+    padding: 10px;
+}
+
+.wooden-shelf {
+    width: 96%;
+    height: 90%;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.shelf-tier {
+    width: 100%;
+    height: 38%;
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 12px solid #5d4037;
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.15);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    padding-bottom: 2px;
+}
+
+.product-column {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: flex-end;
+    width: 25%;
+    height: 100%;
+}
+
+.product-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.variable-label {
+    background-color: #333333;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 3px;
+    position: absolute;
+    top: -16px;
+    z-index: 10;
+}
+
+.hanging-plates {
+    width: 100%;
+    height: 15%;
+    display: flex;
+    justify-content: space-around;
+    position: absolute;
+    top: 38%;
+    z-index: 5;
+}
+
+.wooden-plate-wrapper {
+    width: 25%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.plate-rope {
+    width: 16px;
+    height: 8px;
+    border-left: 2px solid #5d4037;
+    border-right: 2px solid #5d4037;
+}
+
+.wooden-plate {
+    background: #8d6e63;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 2px;
+    border: 1px solid #4e342e;
+    text-align: center;
+    width: 75%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.npc-image {
+    width: 150px;
+    height: 500px;
+}
+
+.npc-container {
+    position: absolute;
+    right: 10px;
+    bottom: -8px;
+    width: 25%;
+    height: 95%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    z-index: 12;
+}
+
+.speech-bubble {
+    background-color: #ffffff;
+    color: #000000;
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    margin-bottom: 6px;
+    line-height: 1.3;
+    position: relative;
+    border: 2px solid #2c3e50;
+    width: 95%;
+    text-align: center;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 10px 10px 0;
+    border-style: solid;
+    border-color: #ffffff transparent;
+}
+
+/* === AREA MEJA KASIR INTERAKTIF === */
+.cashier-desk {
+    height: 45%;
+    width: 100%;
+    background: linear-gradient(to bottom, #5d4037, #3e2723);
+    position: relative;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* MESIN KASIR */
+.cash-register {
+    width: 45%;
+    height: 98%;
+    background-color: #ffeb3b;
+    border: 5px solid #fbc02d;
+    border-radius: 10px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.register-display-panel {
+    width: 48%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.green-indicator-screen {
+    background-color: #1b5e20;
+    border: 3px solid #0d47a1;
+    border-radius: 6px;
+    height: 74%;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.7);
+}
+
+.screen-row {
+    color: #ffffff;
+    font-size: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.screen-label {
+    font-weight: bold;
+    color: #c8e6c9;
+}
+
+.formula-box {
+    width: 55%;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-align: center;
+    border: none;
+    border-radius: 3px;
+    padding: 2px;
+    color: #1a1a1a;
+}
+
+.confirm-button {
+    background-color: #4caf50;
+    border: none;
+    border-bottom: 4px solid #1b5e20;
+    border-radius: 6px;
+    color: white;
+    font-size: 1.3rem;
+    height: 22%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.confirm-button:active {
+    transform: translateY(2px);
+    border-bottom-width: 1px;
+}
+
+.numpad-panel {
+    width: 52%;
+    background-color: #e65100;
+    border-radius: 6px;
+    padding: 5px;
+}
+
+.numpad-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 4px;
+    height: 100%;
+}
+
+.numpad-grid button {
+    background-color: #fff59d;
+    border: none;
+    border-bottom: 3px solid #fbc02d;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #3e2723;
+    cursor: pointer;
+}
+
+.numpad-grid button:active {
+    transform: translateY(1px);
+    border-bottom-width: 1px;
+}
+
+.numpad-grid .btn-var {
+    background-color: #ffe082;
+    border-bottom-color: #ffa000;
+    font-family: serif;
+    font-style: italic;
+}
+
+.numpad-grid .btn-op {
+    background-color: #b3e5fc;
+    border-bottom-color: #0288d1;
+}
+
+.numpad-grid .btn-clear {
+    background-color: #ef9a9a;
+    border-bottom-color: #e53935;
+    color: #ffffff;
+    grid-column: span 1;
+}
+
+#screen-game .kasir-input {
+    width: 60%;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-align: right;
+    border: 2px solid transparent;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#screen-game .input-active {
+    background-color: #ffffff;
+    border: 2px solid #ffeb3b;
+    box-shadow: 0 0 6px rgba(255, 235, 59, 0.8);
+}
+
+.btn-action {
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    border: none;
+}
+
+.btn-backspace {
+    background-color: #ffb74d;
+    border-bottom: 3px solid #f57c00;
+    color: #fff;
+}
+
+.btn-calc {
+    background-color: #4fc3f7;
+    border-bottom: 3px solid #0288d1;
+    color: #fff;
+    grid-column: span 3;
+    font-size: 1.5rem;
+}
+
+/* DOMPET PELANGGAN */
+.customer-wallet {
+    width: 20%;
+    height: 98%;
+    background-color: #3e2723;
+    border: 2px dashed #8d6e63;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.wallet-title {
+    color: #d7ccc8;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid #795548;
+    padding-bottom: 4px;
+}
+
+.wallet-money-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 50px;
     margin-top: 15px;
-    box-shadow: 0 4px #d35400;
 }
 
-.next-btn:active {
-    box-shadow: 0 0 #d35400;
+.money {
+    width: 200px;
+    height: 60px;
 }
 
-/* ==========================================
-   GAYA VISUAL KUIS EVALUASI
-   ========================================== */
+.money-5k {
+    width: 70px;
+    height: 35px;
+    background-color: #d7ccc8;
+    border-color: #795548;
+    color: #4e342e;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+    font-size: 0.5rem;
+    transform: none;
+}
+
+/* NAMPAN PESANAN */
+.serving-tray {
+    width: 30%;
+    height: 90%;
+    background-color: #eceff1;
+    border: 3px solid #b0bec5;
+    border-radius: 8px;
+    box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding: 10px;
+}
+
+.tray-title-label {
+    font-size: 0.8rem;
+    color: #78909c;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 2px dashed #b0bec5;
+    width: 90%;
+    padding-bottom: 4px;
+    margin-bottom: auto;
+}
+
+.tray-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    align-items: flex-end;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.tray-product {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    80% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.tray-label {
+    background-color: #333333;
+    color: #ffffff;
+    font-size: 0.6rem;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 3px;
+    position: absolute;
+    top: -12px;
+    z-index: 10;
+}
+
+/* MODAL STRUK (POP-UP) REVISI EDUKATIF */
+.final-receipt-card {
+    background-color: #ffffff;
+    width: 400px;
+    border-radius: 4px;
+    padding: 20px;
+    font-family: 'Courier New', Courier, monospace;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #212121;
+}
+
+.final-receipt-card h3 {
+    text-align: center;
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.receipt-divider {
+    font-size: 0.8rem;
+    color: #616161;
+    text-align: center;
+    letter-spacing: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    margin: 3px 0;
+}
+
+.receipt-section-title {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin: 6px 0 2px 0;
+}
+
+.receipt-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.flex-row-between {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.total-row {
+    font-size: 0.95rem;
+    margin-top: 4px;
+    border-top: 1px dashed #bdbdbd;
+    padding-top: 4px;
+}
+
+.small-detail {
+    font-size: 0.72rem;
+    color: #616161;
+    margin-top: 2px;
+    line-height: 1.4;
+}
+
+.math-step {
+    color: #1565c0;
+    font-weight: bold;
+}
+
+.change-row {
+    font-size: 1.2rem;
+    color: #2e7d32;
+    font-weight: bold;
+    margin-top: 6px;
+    border-top: 1px dashed #bdbdbd;
+    padding-top: 6px;
+}
+
+#btn-close-modal {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    font-weight: bold;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#btn-close-modal:hover {
+    background-color: #388e3c;
+}
+
+.tray-img {
+    width: 70px;
+    height: 66px;
+}
+
+/* =========================================
+   SISTEM TUTORIAL INTERAKTIF
+   ========================================= */
+
+/* Pembungkus utama, posisinya fixed menutupi seluruh layar browser */
+/* Pembungkus utama */
+.tutorial-overlay {
+    position: absolute;
+    /* Ubah dari fixed */
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* Berubah dari 100vw */
+    height: 100%;
+    /* Berubah dari 100vh */
+    z-index: 9999;
+    pointer-events: none;
+}
+
+/* Memastikan display aktif saat tidak ada class hidden */
+.tutorial-overlay:not(.hidden) {
+    display: block;
+    animation: fadeInTutorial 0.4s ease-out forwards;
+}
+
+/* Trik box-shadow raksasa untuk efek highlight (sorotan) */
+.tutorial-highlight {
+    position: absolute;
+    border-radius: 8px;
+    background-color: transparent;
+    /* Bayangan raksasa berwarna hitam transparan yang bertindak sebagai latar gelap */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75);
+    /* Transisi halus saat sorotan berpindah antar tombol */
+    transition: all 0.4s ease-in-out;
+    z-index: 10000;
+}
+
+/* Kotak Dialog (Tooltip) */
+.tutorial-tooltip {
+    position: absolute;
+    background-color: #ffffff;
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+    min-width: 250px;
+    max-width: 320px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    border-top: 5px solid #3b82f6;
+    /* Aksen warna brand-light */
+    z-index: 10001;
+    pointer-events: auto;
+    /* Memastikan tombol di dalam tooltip bisa diklik */
+    transition: all 0.4s ease-in-out;
+}
+
+.tutorial-tooltip p {
+    color: #1e293b;
+    /* slate-800 */
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.tutorial-btn {
+    background-color: #3b82f6;
+    /* brand-light */
+    color: white;
+    width: 100%;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 0.25rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+}
+
+.tutorial-btn:hover {
+    background-color: #2563eb;
+    /* Biru yang lebih gelap saat dihover */
+}
+
+.tutorial-btn:active {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+
+@keyframes fadeInTutorial {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* =========================================
+   16. MODAL KUIS
+   ========================================= */
+.quiz-card {
+    background-color: var(--color-white);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    width: 90%;
+    max-width: 500px;
+    color: var(--color-slate-900);
+    animation: fadeIn 0.3s ease-out forwards;
+    border-top: 8px solid var(--color-brand-blue);
+}
+
+.quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px dashed var(--color-slate-200);
+    padding-bottom: 0.75rem;
+}
+
+.quiz-header h3 {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: var(--color-brand-blue);
+}
+
+#quiz-counter {
+    background-color: var(--color-slate-100);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: bold;
+    color: var(--color-slate-600);
+}
+
+.quiz-question-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
 
 .quiz-options-container {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    width: 100%;
-    max-width: 500px;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
 }
 
-.quiz-btn {
-    background-color: #ecf0f1;
-    color: #2c3e50;
-    font-size: 18px;
-    padding: 15px 20px;
-    border: none;
-    border-radius: 8px;
+.btn-quiz-option {
+    background-color: var(--color-slate-50);
+    border: 2px solid var(--color-slate-200);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: left;
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 4px #bdc3c7;
-    transition: all 0.1s;
-    font-family: 'Courier New', Courier, monospace;
+    transition: all 0.2s;
+    color: var(--color-slate-700);
+}
+
+.btn-quiz-option:hover:not(:disabled) {
+    background-color: #eff6ff;
+    border-color: #93c5fd;
+    transform: translateY(-2px);
+}
+
+.btn-quiz-option.correct {
+    background-color: #dcfce7 !important;
+    border-color: #4ade80 !important;
+    color: #166534 !important;
+}
+
+.btn-quiz-option.wrong {
+    background-color: #fee2e2 !important;
+    border-color: #f87171 !important;
+    color: #991b1b !important;
+}
+
+.quiz-feedback {
+    text-align: center;
     font-weight: bold;
+    font-size: 1.125rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
 }
 
-.quiz-btn:hover {
-    background-color: #bdc3c7;
+.feedback-correct {
+    background-color: #dcfce7;
+    color: #166534;
 }
 
-.quiz-btn:active {
-    box-shadow: 0 0 #bdc3c7;
-    transform: translateY(4px);
+.feedback-wrong {
+    background-color: #fee2e2;
+    color: #991b1b;
 }
 
-.quiz-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.8;
-}
-
-/* Modifier untuk status jawaban Kuis */
-.quiz-btn.correct {
-    background-color: #2ecc71;
-    color: white;
-    box-shadow: 0 4px #27ae60;
-}
-
-.quiz-btn.wrong {
-    background-color: #e74c3c;
-    color: white;
-    box-shadow: 0 4px #c0392b;
-}
-
-/* ==========================================
-   GAYA VISUAL MENU UTAMA & LEVEL
-   ========================================== */
-
-/* Container Menu Layar Penuh */
-.menu-container {
-    width: 100vw;
-    height: 100vh;
-    max-width: none;
-    /* background-color: #34495e; */
-    background-image: radial-gradient(circle, rgba(0, 0, 0, 0.6) 5%, rgba(0, 0, 0, 0.8) 100%), url('/assets/background/background-3.png');
-    background-size: cover;
-    border-radius: 0;
-    box-shadow: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    position: relative;
-    /* <-- TAMBAHKAN BARIS INI */
-}
-
-.game-title {
-    font-size: 54px;
-    color: #f1c40f;
-    margin-bottom: 5px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.game-subtitle {
-    font-size: 20px;
-    color: #bdc3c7;
-    margin-bottom: 50px;
-}
-
-.menu-title {
-    font-size: 32px;
-    margin-bottom: 40px;
-    color: #ecf0f1;
-}
-
-/* Tata letak tombol-tombol menu */
-.menu-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    width: 250px;
-}
-
-.menu-btn {
-    padding: 15px;
-    font-size: 18px;
-    border-radius: 8px;
+#btn-next-quiz {
     width: 100%;
 }
 
-.primary-btn {
-    background-color: #2ecc71;
-    color: white;
-    box-shadow: 0 4px #27ae60;
-}
-
-.primary-btn:active {
-    box-shadow: 0 0 #27ae60;
-}
-
-.secondary-btn {
-    background-color: #7f8c8d;
-    color: white;
-    box-shadow: 0 4px #95a5a6;
-}
-
-.secondary-btn:active {
-    box-shadow: 0 0 #95a5a6;
-}
-
-/* Grid Pemilihan Level */
-/* Grid Pemilihan Level */
-.level-grid {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-    flex-wrap: wrap;
-    /* Tambahan agar tombol membungkus ke baris baru */
-    max-width: 800px;
-    /* Membatasi lebar agar tampil rapi di tengah */
-}
-
-.level-btn {
-    width: 120px;
-    height: 120px;
-    background-color: #3498db;
-    color: white;
-    font-size: 20px;
-    border-radius: 12px;
-    box-shadow: 0 6px #2980b9;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 5px;
-}
-
-.level-btn:active:not(.locked) {
-    box-shadow: 0 0 #2980b9;
-    transform: translateY(6px);
-}
-
-.level-btn small {
-    font-size: 12px;
-    font-weight: normal;
-    color: #ecf0f1;
-}
-
-/* Modifier Level Terkunci */
-.level-btn.locked {
-    background-color: #95a5a6;
-    box-shadow: 0 6px #7f8c8d;
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* ==========================================
-   ANIMASI BARANG MASUK KE MEJA
-   ========================================== */
-/* ==========================================
-   TAHAP 2: ANIMASI & GAYA MENGAMBANG (AREA ATAS)
-   ========================================== */
-
-/* 1. Animasi naik-turun (Floating/Hovering) */
-@keyframes floatUpDown {
-    0% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-12px);
-    }
-
-    100% {
-        transform: translateY(0px);
-    }
-}
-
-/* Animasi Muncul Halus (Fade & Scale In) */
-@keyframes fadeInScale {
-    0% {
-        opacity: 0;
-        transform: scale(0.5) translateY(30px);
-    }
-
-    100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-/* 2. Container utama elemen yang melayang */
-.floating-group {
-    margin-top: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    animation: floatUpDown 3s ease-in-out infinite;
-    position: relative;
-    margin-left: 20px;
-}
-
-/* Animasi saat elemen baru ditambahkan ke layar */
-.fade-enter {
-    animation: fadeInScale 0.5s ease-out forwards, floatUpDown 3s ease-in-out infinite 0.5s;
-}
-
-/* 3. Label Keterangan di Atas Barang / Uang (Contoh: "3 Terong = Rp 7.500") */
-.floating-label {
-    background-color: rgba(44, 62, 80, 0.95);
-    color: #f1c40f;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: bold;
-    margin-bottom: 15px;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-    white-space: nowrap;
-    border: 2px solid #f39c12;
-    text-align: center;
-    position: relative;
-}
-
-/* Segitiga kecil (panah) di bawah label yang menunjuk ke barang */
-.floating-label::after {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 10px 10px 0;
-    border-style: solid;
-    border-color: rgba(44, 62, 80, 0.95) transparent transparent transparent;
-}
-
-/* 4. Baris untuk menyusun fisik barang (jika barangnya ada banyak) */
-.floating-items-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-/* 5. Gaya Uang Realistis Melayang */
-.floating-money {
-    width: 120px;
-    height: 65px;
-    background-color: #2ecc71;
-    border: 3px dashed #27ae60;
-    border-radius: 6px;
-    color: white;
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-    font-size: 16px;
-    position: relative;
-    overflow: hidden;
-}
-
-/* Garis watermark pita uang (detail estetik) */
-.floating-money::before {
-    content: '';
-    position: absolute;
-    width: 15px;
-    height: 100%;
-    background-color: rgba(255, 255, 255, 0.25);
-    left: 15px;
-}
-
-/* Penyesuaian area tempat barang yang sudah dihitung (Meja Bawah) */
-#collected-items-zone .item-placeholder {
-    transform: scale(0.9);
-    /* Sedikit dikecilkan agar meja tidak cepat penuh */
-}
-
-/* ==========================================
-   MEDIA QUERY UNTUK RESPONSIVITAS MOBILE
-   ========================================== */
-/* ==========================================
-   MEDIA QUERY UNTUK RESPONSIVITAS MOBILE
-   ========================================== */
-@media (max-width: 768px) {
-    .game-container {
-        flex-direction: column;
-        height: 100vh;
-        /* Ubah dari 95vh menjadi 100vh penuh */
-        overflow-y: auto;
-        /* Biarkan bisa di-scroll JIKA elemen di HP terlalu padat */
-    }
-
-    .left-area,
-    .top-area {
-        border-right: none;
-        border-bottom: 4px solid #34495e;
-        min-height: 70%;
-    }
-
-    #collected-items-zone {
-        display: none !important;
-    }
-}
-
-/* ==========================================
-   TAHAP 4: LACI UANG REALISTIS (AREA BAWAH)
-   ========================================== */
-
-/* Container Laci Uang Besi (Muncul dari bawah meja) */
-.realistic-cash-drawer {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 600px;
-    background-color: #2c3e50;
-    /* Warna luar laci besi */
-    border: 4px solid #1a252f;
-    border-bottom: none;
-    border-radius: 10px 10px 0 0;
-    padding: 15px;
-    box-shadow: 0 -15px 30px rgba(0, 0, 0, 0.6);
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    z-index: 50;
-    animation: slideUpDrawer 0.4s ease-out forwards;
-}
-
-@keyframes slideUpDrawer {
-    0% {
-        bottom: -100%;
-    }
-
-    100% {
-        bottom: 0;
-    }
-}
-
-/* Bagian dalam laci (Cekung, gelap dan berongga) */
-.drawer-inner {
-    background-color: #1a252f;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: inset 0 10px 20px rgba(0, 0, 0, 0.8);
-}
-
-/* Grid kompartemen penyekat uang */
-.realistic-drawer-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    /* 5 kolom (kertas) atas, 5 kolom (koin) bawah */
-    gap: 8px;
-    padding: 5px;
-    background-color: #111;
-    border: 2px solid #333;
-    border-radius: 5px;
-}
-
-/* Gaya sekat/slot (kompartemen tempat menaruh uang) */
-.drawer-slot {
-    background-color: #222;
-    border: 1px solid #444;
-    border-radius: 3px;
-    height: 70px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: inset 0 5px 10px rgba(0, 0, 0, 0.9);
-    position: relative;
-}
-
-/* Gaya Tumpukan Uang Realistis di dalam slot laci */
-.real-money-stack {
-    width: 90%;
-    height: 80%;
-    background-color: #2ecc71;
-    border: 2px dashed rgba(255, 255, 255, 0.4);
-    border-radius: 4px;
-    color: white;
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 4px 5px rgba(0, 0, 0, 0.5);
-    font-size: 13px;
+/* =========================================
+   17. INTERAKSI BARANG RAK (KLIK VARIABEL)
+   ========================================= */
+.clickable-item {
     cursor: pointer;
-    transition: transform 0.1s, filter 0.1s;
-    user-select: none;
-    position: relative;
-    overflow: hidden;
+    transition: transform 0.2s ease, filter 0.2s ease;
 }
 
-/* Pita putih uang */
-.real-money-stack::before {
-    content: '';
-    position: absolute;
-    width: 10px;
-    height: 100%;
-    background-color: rgba(255, 255, 255, 0.2);
-    left: 10px;
-}
-
-/* Efek ditekan seperti mengambil uang dari laci */
-.real-money-stack:active {
-    transform: scale(0.9);
-    filter: brightness(0.8);
-}
-
-/* Gaya untuk Uang Melayang (Pembayaran & Kembalian) */
-.floating-money-img {
-    width: 130px;
-    height: auto;
-    object-fit: contain;
-    filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.4));
-    transition: transform 0.2s;
-    border-radius: 4px;
-}
-
-.floating-coin-img {
-    width: 50px;
-    height: 50px;
-    object-fit: contain;
-    filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.4));
-    transition: transform 0.2s;
-}
-
-/* Gaya Tumpukan Uang Realistis di dalam Laci Kasir */
-.real-money-stack-img {
-    width: 90%;
-    height: auto;
-    object-fit: contain;
-    cursor: pointer;
-    transition: transform 0.1s, filter 0.1s;
-    filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.6));
-    user-select: none;
-}
-
-.real-money-stack-img:active {
-    transform: scale(0.9);
-    filter: brightness(0.8) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6));
-}
-
-.real-money-coin-img {
-    width: 45px;
-    height: 45px;
-    object-fit: contain;
-    cursor: pointer;
-    transition: transform 0.1s, filter 0.1s;
-    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
-    user-select: none;
-}
-
-.real-money-coin-img:active {
-    transform: scale(0.9);
-    filter: brightness(0.8);
-}
-
-/* Kuning Kusam */
-
-/* Pecahan 500, 200, 100 diubah menjadi bentuk koin */
-.money-coin {
-    width: 45px !important;
-    height: 45px !important;
-    border-radius: 50% !important;
-    border: 3px solid #d35400 !important;
-    background-color: #f1c40f !important;
-    /* Emas koin */
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3), 0 4px 4px rgba(0, 0, 0, 0.5);
-}
-
-.money-coin::before {
-    display: none;
-}
-
-/* Koin tidak ada pita kertas */
-
-/* ==========================================
-   GAYA BINTANG PADA LEVEL (STAR RATING)
-   ========================================== */
-.level-stars {
-    font-size: 20px;
-    color: #f1c40f;
-    /* Warna emas */
-    letter-spacing: 2px;
-    margin-top: 5px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-/* ==========================================
-   GAYA MODERN ALERT / POP-UP NOTIFIKASI
-   ========================================== */
-.modern-alert {
-    position: fixed;
-    /* Memastikan posisi akurat di layar */
-    background-color: #e74c3c;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: bold;
-    box-shadow: 0 10px 25px rgba(231, 76, 60, 0.4);
-    z-index: 9999;
-    /* Pastikan selalu berada di paling atas */
-    pointer-events: none;
-    /* Agar tidak menghalangi klik pemain */
-    opacity: 0;
-    transform: translate(-50%, 15px);
-    /* Posisi awal sedikit ke bawah */
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    text-align: center;
-    max-width: 300px;
-    line-height: 1.5;
-}
-
-/* Segitiga kecil yang menunjuk ke bawah */
-.modern-alert::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 8px 8px 0;
-    border-style: solid;
-    border-color: #e74c3c transparent transparent transparent;
-}
-
-/* Class ini ditambahkan oleh JS untuk memicu animasi muncul */
-.modern-alert.show {
-    opacity: 1;
-    transform: translate(-50%, 0);
-}
-
-/* ==========================================
-   GAYA VISUAL BALON DIALOG PELANGGAN
-   ========================================== */
-.customer-bubble {
-    position: absolute;
-    top: -20px;
-    /* Melayang di atas kepala */
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
-    color: #c0392b;
-    /* Merah untuk penekanan batas */
-    padding: 12px 18px;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 15px;
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-    white-space: nowrap;
+.clickable-item:hover {
+    transform: scale(1.15);
+    /* Membesar saat disorot */
+    filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.4));
     z-index: 20;
-    border: 3px solid #e74c3c;
-    animation: floatUpDown 3s ease-in-out infinite;
-    /* Memakai animasi yang sama dengan barang */
 }
 
-/* Ekor Balon Dialog yang menunjuk ke karakter */
-.customer-bubble::after {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    left: 30px;
-    transform: translateX(-50%);
-    border-width: 10px 10px 0;
-    border-style: solid;
-    border-color: #e74c3c transparent transparent transparent;
+.clickable-item:active {
+    transform: scale(0.9);
+    /* Mengecil sedikit saat diklik */
 }
 
-/* Menjadikan area melayang sebagai Flexbox horizontal */
-#floating-zone {
+/* =========================================
+   18. RAK KAYU FORMASI 6 - 6 - 5
+   ========================================= */
+.wide-shelf {
+    width: 65%;
+    /* Lebarkan area rak agar 6 barang muat menyamping */
     display: flex;
-    flex-direction: row;
+    right: 12%;
+    flex-direction: column;
+    justify-content: space-around;
+    padding: 10px;
+}
+
+.wide-shelf .shelf-tier {
+    display: flex;
+    justify-content: center;
+    /* Memusatkan barang di rak */
     align-items: flex-end;
-    /* PERUBAHAN: Mendorong barang, uang pelanggan, dan kembalian agar mentok ke bawah */
-    gap: 30px;
-    padding-bottom: 30px;
-    /* Memberikan jarak sekitar 30px agar tidak menempel langsung dengan mesin kasir */
+    /* Barang seolah duduk di atas papan */
+    gap: 25px;
+    /* Jarak antar barang */
+    margin-bottom: 25px;
+    /* Jarak antar tingkat rak */
+    border-bottom: 12px solid #5d4037;
+    /* Papan kayunya */
+    border-radius: 4px;
+    padding-bottom: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* ==========================================
-   ANIMASI "AHA!" MOMENT (TRANSLASI ALJABAR)
-   ========================================== */
-.algebra-glow {
-    text-shadow: 0 0 10px #f1c40f, 0 0 20px #f1c40f;
-    transform: scale(1.1);
-    display: inline-block;
-    transition: all 0.5s ease-in-out;
-}
-
-.algebra-text {
-    color: #27ae60;
-    font-weight: bold;
-    display: inline-block;
-}
-
-@keyframes itemSlideDown {
-    0% {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-
-    100% {
-        transform: translateY(150px) scale(0.5);
-        /* Asumsi meja bawah berada di bawah */
-        opacity: 0;
-    }
-}
-
-.itemSlideDown {
-    animation: itemSlideDown 1s forwards ease-in-out;
-}
-
-/* ==========================================
-   MODAL SIFAT KOMUTATIF (LEVEL 2)
-   ========================================== */
-#commutative-modal .commutative-container,
-#associative-modal .commutative-container {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 30px;
-    border-radius: 12px;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    max-width: 700px;
-}
-
-/* ==========================================
-   LEVEL 4 KANTONG PLASTIK (ASOSIATIF)
-   ========================================== */
-.plastic-bag {
-    border: 2px dashed rgba(255, 255, 255, 0.5);
-    border-radius: 10px;
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 5px;
-    display: flex;
-    gap: 5px;
+.wide-shelf .product-item {
     position: relative;
-    margin-top: 15px;
+    width: 12%;
+    /* Ukuran disesuaikan agar 6 barang muat */
+    display: flex;
+    justify-content: center;
 }
 
-.plastic-bag::before {
-    content: "Kantong";
+.wide-shelf .product-size {
+    width: 100%;
+    max-height: 50px;
+    object-fit: contain;
+    filter: drop-shadow(2px 4px 4px rgba(0, 0, 0, 0.4));
+    /* Bayangan barang */
+}
+
+.wide-shelf .variable-label {
     position: absolute;
     top: -15px;
-    left: 5px;
-    font-size: 10px;
-    color: #f1c40f;
+    right: -10px;
+    background-color: #e65100;
+    color: white;
+    font-size: 0.85rem;
     font-weight: bold;
-    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    z-index: 5;
+}
+
+/* Sedikit menyesuaikan posisi NPC agar tidak tertutup rak yang lebar */
+.npc-container {
+    width: 28%;
+    right: 2%;
+}
+
+/* =========================================
+   19. LACI KASIR & KEMBALIAN
+   ========================================= */
+.laci-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 10px;
+    background: #3e2723;
+    /* Warna Laci Kayu Gelap */
+    border-radius: 8px;
+    height: 100%;
+    overflow-y: auto;
+    box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.btn-uang {
+    background: #5d4037;
+    border: 2px solid #8d6e63;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 5px;
+    transition: transform 0.1s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-uang img {
+    width: 100%;
+    max-height: 50px;
+    object-fit: contain;
+}
+
+.btn-uang:active {
+    transform: scale(0.95);
+    background: #4e342e;
+}
+
+/* Uang kembalian yang ada di atas nampan (tray) */
+.tray-money-item {
+    width: 80px;
+    /* Lebar disamakan dengan ukuran uang pelanggan */
+    height: 40px;
+    /* Tinggi disamakan agar proporsional */
+    object-fit: cover;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s, filter 0.2s;
+    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.4));
+    margin: -10px 5px 10px 5px;
+    /* Margin negatif agar tumpukan uang merapat ke samping, bukan ke bawah */
+}
+
+.tray-money-item:hover {
+    transform: translateY(-5px) scale(1.1) !important;
+    filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.6));
+    z-index: 10;
+}
+
+/* =========================================
+   20. LABEL NAMA PRODUK DI RAK
+   ========================================= */
+.wide-shelf .item-labels {
+    position: absolute;
+    top: -15px;
+    right: -10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    /* Jarak antara nama produk dan huruf variabel */
+    z-index: 5;
+}
+
+.wide-shelf .product-name {
+    background-color: #fff3e0;
+    /* Latar belakang krem/kuning muda */
+    color: #e65100;
+    /* Teks warna oranye senada dengan variabel */
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #ffb74d;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
+    /* Mencegah nama panjang turun ke bawah */
+}
+
+/* Memperbaiki posisi label variabel bulat agar tidak menumpuk dengan nama */
+.wide-shelf .variable-label {
+    position: relative !important;
+    top: 0 !important;
+    right: 0 !important;
 }

@@ -3,227 +3,563 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Algebra-Mart</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
-
-    <div class="menu-container" id="main-menu-ui">
-        <h1 class="game-title">ALGEBRA-MART</h1>
-        <p class="game-subtitle">Simulator Kasir & Matematika</p>
-        <div class="menu-buttons">
-            <button class="btn menu-btn primary-btn" id="start-project-btn">Mulai Proyek</button>
-
-            <button class="btn menu-btn secondary-btn" id="fasilitator-btn"
-                style="background-color: #8e44ad; box-shadow: 0 4px #732d91;">Masuk Fasilitator</button>
-
-            <button class="btn menu-btn secondary-btn" id="about-btn">Tentang</button>
-        </div>
-    </div>
-
-    <div class="menu-container" id="level-menu-ui" style="display: none;">
-
-        <button class="btn secondary-btn" id="back-to-main-btn"
-            style="position: absolute; top: 10px; left: 10px; z-index: 100; padding: 5px 15px; width: auto; font-size: 16px;">Kembali</button>
-
-        <h2 class="menu-title">Pilih Tingkat Kesulitan</h2>
-        <div class="level-grid" id="main-level-grid">
-            <button class="btn level-btn" id="level-1-btn">
-                Level 1<br><small>Dasar</small>
-                <div class="level-stars" id="stars-level-1">☆☆☆</div>
-            </button>
-            <button class="btn level-btn locked" id="level-2-btn" disabled>
-                Level 2<br><small>Menengah</small>
-                <div class="level-stars" id="stars-level-2">☆☆☆</div>
-            </button>
-            <button class="btn level-btn locked" id="level-3-btn" disabled>
-                Level 3<br><small>Lanjut</small>
-                <div class="level-stars" id="stars-level-3">☆☆☆</div>
-            </button>
-            <button class="btn level-btn locked" id="level-4-btn" disabled>
-                Level 4<br><small>Tahap 4</small>
-                <div class="level-stars" id="stars-level-4">☆☆☆</div>
-            </button>
-            <button class="btn level-btn locked" id="level-5-btn" disabled>
-                Level 5<br><small>Tahap 5</small>
-                <div class="level-stars" id="stars-level-5">☆☆☆</div>
-            </button>
-            <button class="btn level-btn locked" id="level-6-btn" disabled>
-                Level 6<br><small>Tahap 6</small>
-                <div class="level-stars" id="stars-level-6">☆☆☆</div>
-            </button>
-            <button class="btn level-btn locked" id="level-7-btn" disabled>
-                Level 7<br><small>Tahap 7</small>
-                <div class="level-stars" id="stars-level-7">☆☆☆</div>
-            </button>
-            <button class="btn level-btn locked" id="level-8-btn" disabled>
-                Level 8<br><small>Tahap 8</small>
-                <div class="level-stars" id="stars-level-8">☆☆☆</div>
-            </button>
-            <button class="btn level-btn locked" id="level-9-btn" disabled>
-                Level 9<br><small>Tahap 9</small>
-                <div class="level-stars" id="stars-level-9">☆☆☆</div>
-            </button>
-            <button class="btn level-btn locked" id="level-10-btn" disabled>
-                Level 10<br><small>Ahli</small>
-                <div class="level-stars" id="stars-level-10">☆☆☆</div>
-            </button>
-        </div>
-
-    </div>
-
-    <div id="game-wrapper"
-        style="display: none; justify-content: center; align-items: center; width: 100%; height: 100%;">
-
-        <div class="game-container" id="main-game-ui">
-
-            <div id="audit-ui"
-                style="width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(44, 62, 80, 0.95); color: white; z-index: 50; position: absolute; top: 0; left: 0;">
+<body class="app-body">
+    <div id="app-container">
+        <div id="screen-login" class="screen active login-screen">
+            <div class="login-header">
+                <h1 class="main-title">ALGEBRA-MART</h1>
             </div>
 
-            <div id="tutorial-overlay"
-                style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 200; justify-content: center; align-items: center;">
-                <div
-                    style="background: white; padding: 25px; border-radius: 12px; max-width: 450px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                    <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 24px;">🌟 Panduan Kasir</h3>
-                    <p
-                        style="color: #34495e; font-size: 16px; margin-bottom: 20px; text-align: left; line-height: 1.6;">
-                        1. Lihat barang pesanan pelanggan yang melayang di atas meja.<br>
-                        2. Ketik di kalkulator: <strong>Jumlah</strong> tekan tombol <strong>x</strong> lalu ketik
-                        <strong>Harga</strong>.<br>
-                        <span style="color: #e74c3c; font-weight: bold;">Contoh: 3 x (5000</span><br>
-                        3. Tekan tombol <strong>+</strong> untuk memindai barang.<br>
-                        4. Jika semua barang sudah di-scan, tekan <strong>=</strong> lalu <strong>Bayar</strong>.
-                    </p>
-                    <button id="close-tutorial-btn" class="btn primary-btn" style="width: 100%; font-size: 18px;">Oke,
-                        Saya Mengerti!</button>
+            <div class="login-card">
+                <h2 class="card-title"><i class="fa-solid fa-user-circle"></i> Siapa Kasir Kita Hari Ini?</h2>
+
+                <div id="user-list" class="user-list-container">
+                </div>
+
+                <div class="new-profile-form">
+                    <h3>Buat Profil Baru</h3>
+                    <input type="text" id="new-username" placeholder="Masukkan Nama" class="form-input">
+                    <div class="form-group-row">
+                        <select id="new-gender" class="form-select">
+                            <option value="Laki-laki">Laki-laki</option>
+                            <option value="Perempuan">Perempuan</option>
+                        </select>
+                        <input type="text" id="new-class" placeholder="Kelas (mis. 7A)" class="form-input">
+                    </div>
+                    <button onclick="createUser()" class="btn-primary btn-add-user">
+                        <i class="fa-solid fa-plus"></i> Tambah Kasir
+                    </button>
                 </div>
             </div>
 
-            <div class="top-area">
-                <button id="in-game-back-btn" class="btn action-btn"
-                    style="position: absolute; top: 10px; left: 10px; z-index: 100; padding: 5px 15px;">Kembali</button>
+            <button onclick="showFasilitatorLogin()" class="btn-settings">
+                <i class="fa-solid fa-cog"></i>
+            </button>
+        </div>
 
-                <div class="customer-zone">
-                    <div class="customer-placeholder">Pelanggan</div>
-                </div>
-
-                <div class="floating-zone" id="floating-zone"></div>
+        <div id="screen-lobby" class="screen lobby-screen">
+            <div class="lobby-nav">
+                <button onclick="logout()" class="btn-logout">
+                    <i class="fa-solid fa-sign-out-alt"></i> Keluar
+                </button>
             </div>
 
-            <div class="bottom-area">
+            <div class="lobby-layout">
+                <div class="lobby-info-panel">
+                    <h2 class="info-label">Profil Saya</h2>
+                    <h1 id="lobby-name" class="player-name">Nama Siswa</h1>
 
-                <div class="cashier-machine">
-
-                    <div class="calculator" id="calculator-ui">
-                        <button class="btn num-btn">7</button>
-                        <button class="btn num-btn">8</button>
-                        <button class="btn num-btn">9</button>
-                        <button class="btn action-btn">C</button>
-
-                        <button class="btn num-btn">4</button>
-                        <button class="btn num-btn">5</button>
-                        <button class="btn num-btn">6</button>
-                        <button class="btn action-btn">⌫</button>
-
-                        <button class="btn num-btn">1</button>
-                        <button class="btn num-btn">2</button>
-                        <button class="btn num-btn">3</button>
-                        <button class="btn action-btn">-</button>
-
-                        <button class="btn num-btn">0</button>
-                        <button class="btn action-btn">x</button>
-                        <button class="btn action-btn">+</button>
-                        <button class="btn total-btn">=</button>
-
-                        <button class="btn pay-btn"
-                            style="grid-column: span 4; background-color: #3498db; color: white; box-shadow: 0 4px #2980b9;">Bayar</button>
+                    <div class="profile-card">
+                        <table>
+                            <tr>
+                                <td>Jenis Kelamin</td>
+                                <td id="lobby-gender">...</td>
+                            </tr>
+                            <tr>
+                                <td>Kelas</td>
+                                <td id="lobby-class">...</td>
+                            </tr>
+                            <tr>
+                                <td>Gelar</td>
+                                <td class="player-title"><i class="fa-solid fa-medal"></i> <span
+                                        id="lobby-title">...</span>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
 
-                    <div class="cashier-screen">
-                        <div class="screen-content"
-                            style="display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; width: 100%; height: 100%; gap: 5px; font-family: 'Courier New', monospace; font-size: 12px; overflow-y: auto;">
-                            <div style="font-weight: bold; margin-bottom: 5px;">Barang Belanjaan:</div>
-                            <div id="screen-table"
-                                style="width: 100%; display: flex; flex-direction: column; gap: 3px;"></div>
-                            <hr style="width: 100%; border: 1px dashed #2c3e50; margin: 2px 0;">
-                            <div id="screen-total"
-                                style="width: 100%; display: flex; justify-content: space-between; font-weight: bold;">
-                                <span>Total =</span>
-                                <span id="screen-total-val"></span>
+                    <div class="lobby-actions">
+                        <button onclick="bukaMenuLevel()" class="btn-start-game">
+                            Mulai Permainan
+                        </button>
+                        <div class="secondary-actions">
+                            <button onclick="openBukuKas()" class="btn-secondary">
+                                <i class="fa-solid fa-book"></i> Buku Kas
+                            </button>
+                            <button onclick="openPrestasi()" class="btn-secondary">
+                                <i class="fa-solid fa-trophy"></i> Prestasi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lobby-character-panel">
+                    <div class="id-card-floating">
+                        <div class="id-card-header">ID CARD PEGAWAI</div>
+                        <div class="id-card-avatar">
+                            <img id="lobby-avatar-mini" src="assets/character/avatar-male.svg" alt="Avatar">
+                        </div>
+                        <div id="lobby-id-name" class="id-card-name">Nama</div>
+                        <div id="lobby-id-title" class="id-card-title">Kasir Magang</div>
+                    </div>
+                    <img id="lobby-character" src="assets/character/character-male.svg" alt="Karakter" class="character-img">
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-levels" class="screen levels-screen">
+            <button onclick="switchScreen('screen-lobby')" class="btn-back">
+                <i class="fa-solid fa-arrow-left"></i> Kembali ke Lobi
+            </button>
+
+            <h2 class="section-title">PILIH TANTANGAN</h2>
+
+            <div class="level-grid-wrapper">
+                <div class="level-tabs">
+                    <button class="tab-active">Tantangan Mudah (C1-C3)</button>
+                    <button class="tab-disabled">Tantangan Sulit (C4-C6) <i class="fa-solid fa-lock"></i></button>
+                </div>
+                <div class="level-grid" id="level-grid-container">
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-game" class="screen game-screen">
+            <div class="game-container" style="margin: 0 auto; margin-top: 0rem;">
+
+                <button id="btn-back-menu" class="btn-back" onclick="switchScreen('screen-levels')">⬅ Kembali</button>
+
+                <div class="shop-background">
+
+                    <div class="wooden-shelf wide-shelf">
+                        <div class="shelf-tier">
+                            <div class="product-item clickable-item" onclick="addVariable('a')">
+                                <div class="item-labels"><span class="product-name">Apel</span><span
+                                        class="variable-label">a</span></div>
+                                <img src="assets/barangbelanja/apel.png" alt="Apel" class="product-size">
                             </div>
-                            <div id="screen-formula" style="margin-top: 5px; color: #196f3d; font-weight: bold;"></div>
-                            <div id="screen-payment" style="margin-top: 10px; color: #2980b9; font-weight: bold;"></div>
-                            <div id="screen-input"
-                                style="margin-top: auto; align-self: flex-end; font-size: 16px; font-weight: bold; color: #e74c3c; background: rgba(0,0,0,0.1); padding: 5px; border-radius: 5px;">
-                                0</div>
+                            <div class="product-item clickable-item" onclick="addVariable('b')">
+                                <div class="item-labels"><span class="product-name">Beras</span><span
+                                        class="variable-label">b</span></div>
+                                <img src="assets/barangbelanja/beras.png" alt="Beras" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('c')">
+                                <div class="item-labels"><span class="product-name">Buku</span><span
+                                        class="variable-label">c</span></div>
+                                <img src="assets/barangbelanja/buku.png" alt="Buku" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('d')">
+                                <div class="item-labels"><span class="product-name">Dodol</span><span
+                                        class="variable-label">d</span></div>
+                                <img src="assets/barangbelanja/dodolnanas.png" alt="Dodol" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('e')">
+                                <div class="item-labels"><span class="product-name">Gandus</span><span
+                                        class="variable-label">e</span></div>
+                                <img src="assets/barangbelanja/gandus.png" alt="Gandus" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('f')">
+                                <div class="item-labels"><span class="product-name">Gula</span><span
+                                        class="variable-label">f</span></div>
+                                <img src="assets/barangbelanja/gula.png" alt="Gula" class="product-size">
+                            </div>
+                        </div>
+
+                        <div class="shelf-tier">
+                            <div class="product-item clickable-item" onclick="addVariable('g')">
+                                <div class="item-labels"><span class="product-name">Jeruk</span><span
+                                        class="variable-label">g</span></div>
+                                <img src="assets/barangbelanja/jeruk.png" alt="Jeruk" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('h')">
+                                <div class="item-labels"><span class="product-name">Kopi</span><span
+                                        class="variable-label">h</span></div>
+                                <img src="assets/barangbelanja/kopiaaa.png" alt="Kopi" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('i')">
+                                <div class="item-labels"><span class="product-name">Minyak</span><span
+                                        class="variable-label">i</span></div>
+                                <img src="assets/barangbelanja/minyakgoreng.png" alt="Minyak" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('j')">
+                                <div class="item-labels"><span class="product-name">Padamaran</span><span
+                                        class="variable-label">j</span></div>
+                                <img src="assets/barangbelanja/padamaran.png" alt="Padamaran" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('k')">
+                                <div class="item-labels"><span class="product-name">Pena</span><span
+                                        class="variable-label">k</span></div>
+                                <img src="assets/barangbelanja/pena.png" alt="Pena" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('l')">
+                                <div class="item-labels"><span class="product-name">Roti</span><span
+                                        class="variable-label">l</span></div>
+                                <img src="assets/barangbelanja/roti.png" alt="Roti" class="product-size">
+                            </div>
+                        </div>
+
+                        <div class="shelf-tier">
+                            <div class="product-item clickable-item" onclick="addVariable('m')">
+                                <div class="item-labels"><span class="product-name">Sabun</span><span
+                                        class="variable-label">m</span></div>
+                                <img src="assets/barangbelanja/sabun.png" alt="Sabun" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('n')">
+                                <div class="item-labels"><span class="product-name">Telur</span><span
+                                        class="variable-label">n</span></div>
+                                <img src="assets/barangbelanja/telur.png" alt="Telur" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('o')">
+                                <div class="item-labels"><span class="product-name">Tempoyak</span><span
+                                        class="variable-label">o</span></div>
+                                <img src="assets/barangbelanja/tempoyak.png" alt="Tempoyak" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('p')">
+                                <div class="item-labels"><span class="product-name">Tepung</span><span
+                                        class="variable-label">p</span></div>
+                                <img src="assets/barangbelanja/tepung.png" alt="Tepung" class="product-size">
+                            </div>
+                            <div class="product-item clickable-item" onclick="addVariable('q')">
+                                <div class="item-labels"><span class="product-name">Terong</span><span
+                                        class="variable-label">q</span></div>
+                                <img src="assets/barangbelanja/terong.png" alt="Terong" class="product-size">
+                            </div>
                         </div>
                     </div>
 
+                    <div class="npc-container">
+                        <div class="speech-bubble">
+                            Aku mau beli<br><strong>3 Kue Padamaran</strong> dan <br><strong>2 Kue Gandus</strong>
+                        </div>
+                        <img src="image/anaksmp.png" alt="Pelanggan" class="npc-image">
+                    </div>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-top: 10px; justify-content: center;">
-                    <button id="btn-faktorkan" class="action-btn flash-btn" style="display: none;">Faktorkan /
-                        Bungkus!</button>
-                    <button id="btn-sederhanakan" class="action-btn" style="display: none;">Sederhanakan</button>
-                    <button id="btn-substitusi" class="action-btn flash-btn" style="display:none;">Substitusi
-                        Kode</button>
-                </div>
+                <div class="cashier-desk">
+                    <div class="cash-register">
+                        <div class="register-display-panel">
+                            <div class="green-indicator-screen">
+                                <div class="screen-row"><span class="screen-label">Harga:</span> <span
+                                        id="harga-display" class="screen-value"></span></div>
+                                <div class="screen-row"><span class="screen-label">Rumus:</span> <input type="text"
+                                        id="formula-box" class="kasir-input input-active" readonly></div>
+                                <div class="screen-row">
+                                    <span class="screen-label">Dibayar:</span>
+                                    <div
+                                        style="display: flex; align-items: center; width: 60%; justify-content: flex-end;">
+                                        <span
+                                            style="color: #c8e6c9; font-weight: bold; margin-right: 6px; font-size: 0.85rem;">Rp</span>
+                                        <input type="text" id="paid-box" class="kasir-input" style="width: 100%;"
+                                            readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="confirm-button" id="btn-final-checkout">Konfirmasi</button>
+                        </div>
 
-                <div class="desk-surface">
-                    <div id="collected-items-zone"></div>
+                        <div class="numpad-panel" id="panel-interaktif">
+                            <div class="numpad-grid" id="numpad-container">
+                                <button class="btn-num">7</button>
+                                <button class="btn-num">8</button>
+                                <button class="btn-num">9</button>
+                                <button class="btn-action btn-backspace">⌫</button>
 
-                    <div id="drawer-ui" class="realistic-cash-drawer" style="display: none;">
-                        <div class="drawer-inner">
-                            <div id="drawer-grid" class="realistic-drawer-grid">
+                                <button class="btn-num">4</button>
+                                <button class="btn-num">5</button>
+                                <button class="btn-num">6</button>
+                                <button class="btn-op">+</button>
+
+                                <button class="btn-num">1</button>
+                                <button class="btn-num">2</button>
+                                <button class="btn-num">3</button>
+                                <button class="btn-op">-</button>
+
+                                <button class="btn-action btn-clear">C</button>
+                                <button class="btn-num">0</button>
+                                <button class="btn-action btn-calc" style="grid-column: span 2;">=</button>
+                            </div>
+
+                            <div class="laci-grid hidden" id="laci-kasir">
+                                <button class="btn-uang" onclick="tambahUangKembalian(100000)"><img
+                                        src="assets/rupiah/rp100000.png" alt="100rb"></button>
+                                <button class="btn-uang" onclick="tambahUangKembalian(50000)"><img
+                                        src="assets/rupiah/rp50000.png" alt="50rb"></button>
+                                <button class="btn-uang" onclick="tambahUangKembalian(20000)"><img
+                                        src="assets/rupiah/rp20000.png" alt="20rb"></button>
+                                <button class="btn-uang" onclick="tambahUangKembalian(10000)"><img
+                                        src="assets/rupiah/rp10000.png" alt="10rb"></button>
+                                <button class="btn-uang" onclick="tambahUangKembalian(5000)"><img
+                                        src="assets/rupiah/rp5000.png" alt="5rb"></button>
+                                <button class="btn-uang" onclick="tambahUangKembalian(2000)"><img
+                                        src="assets/rupiah/rp2000.png" alt="2rb"></button>
+                                <button class="btn-uang" onclick="tambahUangKembalian(1000)"><img
+                                        src="assets/rupiah/rp1000.png" alt="1rb"></button>
+                                <button class="btn-uang" onclick="tambahUangKembalian(500)"><img
+                                        src="assets/rupiah/rp500.png" alt="500"></button>
+                                <button class="btn-uang" onclick="tambahUangKembalian(200)"><img
+                                        src="assets/rupiah/rp200.png" alt="200"></button>
+                                <button class="btn-uang" onclick="tambahUangKembalian(100)"><img
+                                        src="assets/rupiah/rp100.png" alt="100"></button>
                             </div>
                         </div>
-                        <button class="btn finish-btn" id="finish-btn">Tutup Laci & Selesai</button>
+                    </div>
+
+                    <div class="serving-tray">
+                        <div class="tray-title-label">Pesanan</div>
+                        <div class="tray-inner" id="tray-items"></div>
+                    </div>
+
+                    <div class="customer-wallet">
+                        <div class="wallet-title">Uang Pelanggan</div>
+                        <div class="wallet-money-layout" id="wallet-container-dynamic">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-overlay" id="receipt-modal" style="display: none;">
+                    <div class="final-receipt-card">
+                        <h3>STRUK TRANSAKSI</h3>
+                        <div class="receipt-divider">======================================</div>
+
+                        <div class="receipt-section-title">-- KALKULASI HARGA --</div>
+                        <div class="receipt-row">
+                            <span>Rumus:</span> <span id="struk-rumus"></span>
+                        </div>
+                        <div class="receipt-row">
+                            <span>Proses:</span> <span id="struk-proses"></span>
+                        </div>
+                        <div class="receipt-row">
+                            <span>Rincian:</span> <span id="struk-rincian"></span>
+                        </div>
+                        <div class="receipt-row total-row">
+                            <span>Total Harga:</span> <strong id="struk-total"></strong>
+                        </div>
+
+                        <div class="receipt-divider">--------------------------------------</div>
+
+                        <div class="receipt-section-title">-- PEMBAYARAN --</div>
+                        <div class="receipt-row flex-col">
+                            <div class="flex-row-between">
+                                <span>Tunai Dibayar:</span> <strong id="struk-bayar-total"></strong>
+                            </div>
+                            <span class="small-detail" id="struk-bayar-rincian"></span>
+                        </div>
+
+                        <div class="receipt-divider">--------------------------------------</div>
+
+                        <div class="receipt-section-title">-- KEMBALIAN --</div>
+                        <div class="receipt-row flex-col">
+                            <span class="small-detail">Persamaan: Kembalian = Tunai Dibayar - Total Harga</span>
+                            <span class="small-detail math-step" id="struk-kembalian-hitung"></span>
+                        </div>
+                        <div class="receipt-row change-row">
+                            <span>KEMBALIAN:</span> <strong id="struk-kembalian-final"></strong>
+                        </div>
+
+                        <div class="receipt-divider">======================================</div>
+                        <button id="btn-close-modal">Lanjut Level</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="screen-bukukas" class="screen bukukas-screen">
+            <button onclick="switchScreen('screen-lobby')" class="btn-back">
+                <i class="fa-solid fa-arrow-left"></i> Kembali
+            </button>
+
+            <div class="bukukas-layout">
+                <div class="bukukas-chart-panel">
+                    <h2 class="panel-title">Buku Kas (Grafik)</h2>
+                    <div class="chart-container">
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-box stat-revenue">
+                            <p>Total Pendapatan</p>
+                            <h3 id="bk-kotor">Rp 0</h3>
+                        </div>
+                        <div class="stat-box stat-cost">
+                            <p>Total Modal</p>
+                            <h3 id="bk-modal">Rp 0</h3>
+                        </div>
+                        <div class="stat-box stat-profit">
+                            <p>Total Laba Bersih = Total Pendapatan - Total Modal</p>
+                            <h3 id="bk-bersih" style="font-size: .7rem;">Rp 0</h3>
+                        </div>
+
+                        <div class="stat-box stat-profit">
+                            <p>Total Sumbangan = </p>
+                        </div>
+                        <div class="stat-box stat-profit">
+                            <p>Reputasi Toko = </p>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="bukukas-history-panel">
+                    <h2 class="panel-title">Rapor Performa</h2>
+                    <div class="accuracy-box">
+                        <div class="accuracy-header">
+                            <span>Akurasi Rumus Aljabar</span>
+                            <span id="bk-akurasi">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="bk-akurasi-bar"></div>
+                        </div>
+                    </div>
+
+                    <h3 class="history-title"><i class="fa-solid fa-list-ul"></i> Riwayat Level</h3>
+                    <div class="history-list" id="bk-history-list">
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="modal-overlay" id="receipt-modal">
-                <div class="receipt-paper">
-                    <h2>ALGEBRA-MART</h2>
-                    <div class="receipt-subtitle">Struk Bukti Pembayaran</div>
-                    <hr>
-                    <div id="receipt-content"></div>
-                    <hr>
-                    <div class="receipt-footer">Terima kasih atas kunjungan Anda!</div>
-                    <button class="btn next-btn" id="next-customer-btn">Pelanggan Berikutnya</button>
+        <div id="screen-prestasi" class="screen prestasi-screen">
+            <button onclick="switchScreen('screen-lobby')" class="btn-back">
+                <i class="fa-solid fa-arrow-left"></i> Kembali
+            </button>
+
+            <div class="prestasi-layout">
+                <div class="leaderboard-panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-ranking-star"></i> Papan Kehormatan</h2>
+                        <p>Peringkat Lokal Perangkat Ini</p>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nama Kasir</th>
+                                    <th class="text-right">Laba Bersih</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="badges-token-panel">
+                    <div class="badges-panel">
+                        <h2><i class="fa-solid fa-medal"></i> Galeri Lencana</h2>
+                        <div class="badges-grid" id="badges-container">
+                        </div>
+                    </div>
+
+                    <div class="token-panel">
+                        <h3>Kode Prestasi</h3>
+                        <div class="token-display" id="token-display">------</div>
+                        <button onclick="copyToken()" class="btn-copy">
+                            <i class="fa-solid fa-copy"></i> Salin Kode
+                        </button>
+                    </div>
                 </div>
             </div>
-
         </div>
 
-        <div class="game-container" id="quiz-ui"
-            style="display: none; background-color: #2c3e50; color: white; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center;">
-            <h2 style="color: #f1c40f; margin-bottom: 20px;">Evaluasi Pembelajaran</h2>
-            <div id="quiz-question" style="font-size: 22px; line-height: 1.5; margin-bottom: 30px;">Pertanyaan kuis akan
-                muncul di sini.</div>
-            <div class="quiz-options-container" id="quiz-options-container"></div>
-            <div id="quiz-feedback" style="margin-top: 20px; font-size: 20px; font-weight: bold; min-height: 30px;">
+        <div id="screen-fasilitator" class="screen fasilitator-screen">
+            <div class="fasil-topbar">
+                <div>
+                    <h1><i class="fa-solid fa-user-tie"></i> RUANG FASILITATOR</h1>
+                    <p>Mode Luring - Data Perangkat Lokal</p>
+                </div>
+                <button onclick="switchScreen('screen-login')" class="btn-exit-fasil">Keluar Mode</button>
             </div>
-            <button class="btn next-btn" id="next-quiz-btn"
-                style="display: none; margin-top: 20px; background-color: #3498db; width: 200px;">Soal
-                Berikutnya</button>
+
+            <div class="fasil-layout">
+                <div class="fasil-main-panel">
+                    <div class="panel-header">
+                        <h2>Daftar Peserta Didik Aktif</h2>
+                        <button onclick="exportCSV()" class="btn-export">
+                            <i class="fa-solid fa-file-csv"></i> Ekspor CSV
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="fasil-table">
+                            <thead>
+                                <tr>
+                                    <th>Nama</th>
+                                    <th>Kls/JK</th>
+                                    <th>Level Max</th>
+                                    <th class="text-right">Laba (Rp)</th>
+                                    <th class="text-center">Akurasi</th>
+                                    <th class="text-center">Kuis (B/S)</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fasil-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="fasil-sidebar">
+                    <div class="ews-panel">
+                        <h2><i class="fa-solid fa-bell"></i> Peringatan Dini</h2>
+                        <div class="ews-list" id="fasil-ews-list">
+                        </div>
+                    </div>
+                    <div class="admin-panel">
+                        <h2>Administrasi</h2>
+                        <button onclick="resetAllData()" class="btn-reset-data">
+                            <i class="fa-solid fa-trash-can"></i> Reset Semua Data Perangkat
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="game-container" id="game-over-ui"
-            style="display: none; background-color: #27ae60; color: white; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-            <h1 style="font-size: 48px; margin-bottom: 10px;">Permainan Selesai!</h1>
-            <p style="font-size: 24px;">Kamu telah menjadi kasir yang hebat.</p>
-            <div style="background-color: rgba(0,0,0,0.2); padding: 30px; border-radius: 10px; margin: 30px 0;">
-                <div style="font-size: 20px; margin-bottom: 10px;">Skor Evaluasi Aljabar:</div>
-                <div id="final-score" style="font-size: 56px; font-weight: bold; color: #f1c40f;">0 / 2</div>
+        <div id="modal-pin" class="modal-overlay hidden">
+            <div class="modal-card modal-pin-card">
+                <h3><i class="fa-solid fa-lock"></i> PIN Fasilitator</h3>
+                <p>Masukkan PIN (default: 1234)</p>
+                <input type="password" id="pin-input" class="form-input text-center font-mono">
+                <div class="modal-actions">
+                    <button onclick="closeModal('modal-pin')" class="btn-secondary">Batal</button>
+                    <button onclick="checkPIN()" class="btn-primary">Masuk</button>
+                </div>
             </div>
-            <button class="btn next-btn" id="restart-game-btn"
-                style="background-color: #fff; color: #27ae60; width: 250px; font-size: 20px;">Ke Menu Utama</button>
+        </div>
+
+        <div id="modal-msg" class="modal-overlay hidden">
+            <div class="modal-card text-center">
+                <h3 id="msg-title">Pesan</h3>
+                <p id="msg-desc">Deskripsi</p>
+                <button onclick="closeModal('modal-msg')" class="btn-primary btn-full">OK</button>
+            </div>
+        </div>
+
+        <div id="tutorial-overlay" class="tutorial-overlay hidden">
+            <div id="tutorial-highlight" class="tutorial-highlight"></div>
+
+            <div id="tutorial-tooltip" class="tutorial-tooltip">
+                <p id="tutorial-text">Teks panduan akan muncul di sini.</p>
+                <button id="tutorial-btn" class="tutorial-btn" onclick="nextTutorialStep()">Paham!</button>
+            </div>
+        </div>
+
+        <div id="quiz-modal" class="modal-overlay hidden">
+            <div class="quiz-card">
+                <div class="quiz-header">
+                    <h3 id="quiz-level-title">Kuis Level 1</h3>
+                    <span id="quiz-counter">Soal 1/2</span>
+                </div>
+                <p id="quiz-question" class="quiz-question-text">Pertanyaan akan muncul di sini...</p>
+                <div id="quiz-options" class="quiz-options-container">
+                </div>
+                <div id="quiz-feedback" class="quiz-feedback hidden">
+                </div>
+                <button id="btn-next-quiz" class="btn-primary hidden" onclick="nextQuizQuestion()">Lanjut</button>
+            </div>
         </div>
     </div>
+
 
     <script src="script.js"></script>
 </body>

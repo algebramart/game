@@ -1,1803 +1,1294 @@
 // ==========================================
-// 1. DATA DATABASE GAME (KATALOG & PELANGGAN)
+// --- DATA & STATE MANAGEMENT ---
 // ==========================================
-const katalogBarang = [
-    { nama: 'Kue Padamaran', variabel: 'kp', harga_satuan: 2000, kategori: 'camilan' },
-    { nama: 'Kopi AAA', variabel: 'ka', harga_satuan: 15000, kategori: 'campuran' },
-    { nama: 'Tempoyak', variabel: 'ty', harga_satuan: 25000, kategori: 'pokok' },
-    { nama: 'Kue Gandus', variabel: 'kg', harga_satuan: 2000, kategori: 'camilan' },
-    { nama: 'Tepung', variabel: 'tp', harga_satuan: 10000, kategori: 'pokok' },
-    { nama: 'Gula', variabel: 'gl', harga_satuan: 14000, kategori: 'pokok' },
-    { nama: 'Minyak Goreng', variabel: 'mg', harga_satuan: 16000, kategori: 'pokok' },
-    { nama: 'Beras', variabel: 'br', harga_satuan: 13000, kategori: 'pokok' },
-    { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan' },
-    { nama: 'Jeruk', variabel: 'jr', harga_satuan: 3000, kategori: 'camilan' },
-    { nama: 'Terong', variabel: 'tr', harga_satuan: 2500, kategori: 'pokok' },
-    { nama: 'Telur Ayam', variabel: 'tl', harga_satuan: 2000, kategori: 'pokok' },
-    { nama: 'Roti', variabel: 'rt', harga_satuan: 8000, kategori: 'camilan' },
-    { nama: 'Sabun', variabel: 'sb', harga_satuan: 4000, kategori: 'campuran' },
-    { nama: 'Buku', variabel: 'bk', harga_satuan: 5000, kategori: 'alat_tulis' },
-    { nama: 'Pena', variabel: 'pn', harga_satuan: 3000, kategori: 'alat_tulis' }
-];
+let users = JSON.parse(localStorage.getItem('algebraMart_users')) || [];
+let currentUser = null;
+let chartInstance = null;
 
-const daftarPelanggan = [
-    { tipe: 'Ibu-ibu', deskripsi: 'Ibu Pink', background: '#fd79a8', color: 'white' },
-    { tipe: 'Ibu-ibu', deskripsi: 'Ibu Ungu', background: '#a29bfe', color: 'white' },
-    { tipe: 'Ibu-ibu', deskripsi: 'Ibu Oranye', background: '#e17055', color: 'white' },
-    { tipe: 'Pria', deskripsi: 'Bapak Biru', background: '#0984e3', color: 'white' },
-    { tipe: 'Anak SMP', deskripsi: 'Pelajar SMP', background: 'linear-gradient(to bottom, #ecf0f1 50%, #2c3e50 50%)', color: '#333' }
-];
+let kembalianModeActive = false;
+let targetKembalian = 0;
+let arrayUangKembalian = [];
 
-const drawerDenominations = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100];
+// Variabel untuk menyimpan jawaban benar kuis per level
+let currentQuizCorrect = 0;
 
-// ==========================================
-// 2. DATA LEVEL STATIS & KUIS (KERANGKA 10 LEVEL)
-// ==========================================
-const dataLevelStatis = {
-    1: [
-        // Pelanggan 1
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu Pink', gambar: 'assets/customers/pelanggan-1.png' },
-            cart: [
-                { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan', jumlah: 3, diskon: 0 },
-                { nama: 'Terong', variabel: 'tr', harga_satuan: 2500, kategori: 'pokok', jumlah: 2, diskon: 0 }
-            ]
-        },
-        // Pelanggan 2
-        {
-            profil: { tipe: 'Pria', deskripsi: 'Bapak Biru', gambar: 'assets/customers/pelanggan-2.png' },
-            cart: [
-                { nama: 'Minyak Goreng', variabel: 'mg', harga_satuan: 16000, kategori: 'pokok', jumlah: 5, diskon: 0 }
-            ]
-        },
-        // Pelanggan 3
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu Ungu', gambar: 'assets/customers/pelanggan-3.png' },
-            cart: [
-                { nama: 'Buku', variabel: 'bk', harga_satuan: 5000, kategori: 'alat_tulis', jumlah: 4, diskon: 0 },
-                { nama: 'Pena', variabel: 'pn', harga_satuan: 3000, kategori: 'alat_tulis', jumlah: 1, diskon: 0 }
-            ]
-        }
-    ],
-    // Kerangka untuk level selanjutnya biarkan kosong dulu
-    2: [
-        // Pelanggan 1: Beli 1 Roti (Pola 2^0)
-        {
-            profil: { tipe: 'Anak SMP', deskripsi: 'Pelajar SMP', gambar: 'assets/customers/pelanggan-1.png' },
-            cart: [
-                { nama: 'Roti', variabel: 'rt', harga_satuan: 8000, kategori: 'camilan', jumlah: 1, diskon: 0 }
-            ]
-        },
-        // Pelanggan 2: Beli 2 Roti (Pola 2^1)
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu Oranye', gambar: 'assets/customers/pelanggan-2.png' },
-            cart: [
-                { nama: 'Roti', variabel: 'rt', harga_satuan: 8000, kategori: 'camilan', jumlah: 2, diskon: 0 }
-            ]
-        },
-        // Pelanggan 3: Beli 4 Roti (Pola 2^2) dan 1 Minyak Goreng (Distraksi/Tambahan Translasi)
-        {
-            profil: { tipe: 'Pria', deskripsi: 'Bapak Biru', gambar: 'assets/customers/pelanggan-3.png' },
-            cart: [
-                { nama: 'Roti', variabel: 'rt', harga_satuan: 8000, kategori: 'camilan', jumlah: 4, diskon: 0 },
-                { nama: 'Minyak Goreng', variabel: 'mg', harga_satuan: 16000, kategori: 'pokok', jumlah: 1, diskon: 0 }
-            ]
-        }
-    ],
-    // Kerangka level selanjutnya
-    3: [
-        // Pelanggan 1
-        {
-            profil: { tipe: 'Anak SMP', deskripsi: 'Pelajar', gambar: 'assets/customers/pelanggan-1.png' },
-            cart: [
-                { nama: 'Gula', variabel: 'gl', harga_satuan: 14000, kategori: 'pokok', jumlah: 4, diskon: 0 },
-                { nama: 'Gula', variabel: 'gl', harga_satuan: 14000, kategori: 'pokok', jumlah: 3, diskon: 0 }
-            ]
-        },
-        // Pelanggan 2
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu', gambar: 'assets/customers/pelanggan-2.png' },
-            cart: [
-                { nama: 'Roti', variabel: 'rt', harga_satuan: 8000, kategori: 'camilan', jumlah: 5, diskon: 0 },
-                { nama: 'Sabun', variabel: 'sb', harga_satuan: 4000, kategori: 'campuran', jumlah: 2, diskon: 0 },
-                { nama: 'Roti', variabel: 'rt', harga_satuan: 8000, kategori: 'camilan', jumlah: 2, diskon: 0 }
-            ]
-        },
-        // Pelanggan 3
-        {
-            profil: { tipe: 'Pria', deskripsi: 'Bapak', gambar: 'assets/customers/pelanggan-3.png' },
-            cart: [
-                { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan', jumlah: 3, diskon: 0 },
-                { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan', jumlah: 2, diskon: 0 }
-            ]
-        }
-    ],
-    4: [
-        // Pelanggan 1
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu', gambar: 'assets/customers/pelanggan-1.png' },
-            cart: [
-                { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan', jumlah: 1, diskon: 0, kantong: 1 },
-                { nama: 'Jeruk', variabel: 'jr', harga_satuan: 3000, kategori: 'camilan', jumlah: 1, diskon: 0, kantong: 1 },
-                { nama: 'Terong', variabel: 'tr', harga_satuan: 2500, kategori: 'pokok', jumlah: 1, diskon: 0, kantong: 0 }
-            ]
-        },
-        // Pelanggan 2
-        {
-            profil: { tipe: 'Pria', deskripsi: 'Bapak', gambar: 'assets/customers/pelanggan-2.png' },
-            cart: [
-                { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan', jumlah: 1, diskon: 0, kantong: 0 },
-                { nama: 'Jeruk', variabel: 'jr', harga_satuan: 3000, kategori: 'camilan', jumlah: 1, diskon: 0, kantong: 2 },
-                { nama: 'Terong', variabel: 'tr', harga_satuan: 2500, kategori: 'pokok', jumlah: 1, diskon: 0, kantong: 2 }
-            ]
-        }
-    ],
-    5: [
-        // Pelanggan 1
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu', gambar: 'assets/customers/pelanggan-1.png' },
-            cart: [
-                {
-                    nama: 'Paket Sembako',
-                    variabel: 'ps',
-                    harga_satuan: 42000,
-                    kategori: 'paket',
-                    jumlah: 3,
-                    diskon: 0,
-                    isiPaket: [{ nama: 'Beras', jumlah: 2 }, { nama: 'Minyak Goreng', jumlah: 1 }]
-                }
-            ]
-        },
-        // Pelanggan 2
-        {
-            profil: { tipe: 'Anak SMP', deskripsi: 'Pelajar', gambar: 'assets/customers/pelanggan-2.png' },
-            cart: [
-                {
-                    nama: 'Paket Sarapan',
-                    variabel: 'psr',
-                    harga_satuan: 54000,
-                    kategori: 'paket',
-                    jumlah: 2,
-                    diskon: 0,
-                    isiPaket: [{ nama: 'Roti', jumlah: 3 }, { nama: 'Kopi AAA', jumlah: 2 }]
-                }
-            ]
-        }
-    ],
-    6: [
-        // Pelanggan 1
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu', gambar: 'assets/customers/pelanggan-1.png' },
-            cart: [
-                { nama: 'Tepung', variabel: 'tp', harga_satuan: 10000, kategori: 'pokok', jumlah: 4, diskon: 1000 }
-            ]
-        },
-        // Pelanggan 2
-        {
-            profil: { tipe: 'Pria', deskripsi: 'Bapak', gambar: 'assets/customers/pelanggan-2.png' },
-            cart: [
-                { nama: 'Sabun', variabel: 'sb', harga_satuan: 4000, kategori: 'campuran', jumlah: 5, diskon: 500 }
-            ]
-        }
-    ],
-    7: [
-        // Pelanggan 1: Membeli 9 Tempoyak (Masih dalam batas Domain <= 10)
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu Pink', gambar: 'assets/customers/pelanggan-1.png' },
-            cart: [
-                { nama: 'Tempoyak', variabel: 'ty', harga_satuan: 25000, kategori: 'pokok', jumlah: 9, diskon: 0, isGrosir: true }
-            ]
-        },
-        // Pelanggan 2: Membeli 10 Tempoyak (Tepat di batas maksimal Domain)
-        {
-            profil: { tipe: 'Pria', deskripsi: 'Bapak Biru', gambar: 'assets/customers/pelanggan-2.png' },
-            cart: [
-                { nama: 'Tempoyak', variabel: 'ty', harga_satuan: 25000, kategori: 'pokok', jumlah: 10, diskon: 0, isGrosir: true }
-            ]
-        },
-        // Pelanggan 3: Membeli 8 Tempoyak (Masih dalam batas Domain <= 10)
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu Ungu', gambar: 'assets/customers/pelanggan-3.png' },
-            cart: [
-                { nama: 'Tempoyak', variabel: 'ty', harga_satuan: 25000, kategori: 'pokok', jumlah: 8, diskon: 0, isGrosir: true }
-            ]
-        }
-    ],
-    8: [
-        // Pelanggan 1
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu Pink', gambar: 'assets/customers/pelanggan-1.png' },
-            cart: [
-                { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan', jumlah: 5, diskon: 0 }
-            ]
-        },
-        // Pelanggan 2
-        {
-            profil: { tipe: 'Anak SMP', deskripsi: 'Pelajar SMP', gambar: 'assets/customers/pelanggan-2.png' },
-            cart: [
-                { nama: 'Buku', variabel: 'bk', harga_satuan: 5000, kategori: 'alat_tulis', jumlah: 3, diskon: 0 },
-                { nama: 'Pena', variabel: 'pn', harga_satuan: 3000, kategori: 'alat_tulis', jumlah: 2, diskon: 0 }
-            ]
-        },
-        // Pelanggan 3
-        {
-            profil: { tipe: 'Pria', deskripsi: 'Bapak Biru', gambar: 'assets/customers/pelanggan-3.png' },
-            cart: [
-                { nama: 'Sabun', variabel: 'sb', harga_satuan: 4000, kategori: 'campuran', jumlah: 4, diskon: 0 }
-            ]
-        }
-    ],
-    9: [
-        // Pelanggan 1: 3 Apel dan 2 Terong (Persamaan 1: 3a + 2t)
-        {
-            profil: { tipe: 'Ibu-ibu', deskripsi: 'Ibu Pink', gambar: 'assets/customers/pelanggan-1.png' },
-            cart: [
-                { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan', jumlah: 3, diskon: 0 },
-                { nama: 'Terong', variabel: 'tr', harga_satuan: 3000, kategori: 'sayur', jumlah: 2, diskon: 0 }
-            ]
-        },
-        // Pelanggan 2: 4 Apel dan 1 Terong (Persamaan 2: 4a + 1t)
-        {
-            profil: { tipe: 'Anak SMP', deskripsi: 'Pelajar SMP', gambar: 'assets/customers/pelanggan-2.png' },
-            cart: [
-                { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan', jumlah: 4, diskon: 0 },
-                { nama: 'Terong', variabel: 'tr', harga_satuan: 3000, kategori: 'sayur', jumlah: 1, diskon: 0 }
-            ]
-        },
-        // Pelanggan 3: 2 Apel dan 5 Terong (Persamaan 3: 2a + 5t)
-        {
-            profil: { tipe: 'Pria', deskripsi: 'Bapak Biru', gambar: 'assets/customers/pelanggan-3.png' },
-            cart: [
-                { nama: 'Apel', variabel: 'ap', harga_satuan: 5000, kategori: 'camilan', jumlah: 2, diskon: 0 },
-                { nama: 'Terong', variabel: 'tr', harga_satuan: 3000, kategori: 'sayur', jumlah: 5, diskon: 0 }
-            ]
-        }
-    ],
-    10: [
-        // Pelanggan 1: Persamaan 1 (2 Buku + 3 Pena = 17.000)
-        {
-            profil: {
-                tipe: 'Ibu-ibu', deskripsi: 'Ibu Ungu', gambar: 'assets/customers/pelanggan-1.png',
-                dialog: 'Saya bayar pas Rp 17.000 untuk 2 Buku dan 3 Pena!'
-            },
-            cart: [
-                {
-                    nama: 'Paket SPLDV 1', harga_satuan: 17000, jumlah: 1, diskon: 0, isBossBundle: true,
-                    items: [
-                        { nama: 'Buku', variabel: 'bk' }, { nama: 'Buku', variabel: 'bk' },
-                        { nama: 'Pena', variabel: 'pn' }, { nama: 'Pena', variabel: 'pn' }, { nama: 'Pena', variabel: 'pn' }
-                    ]
-                }
-            ]
-        },
-        // Pelanggan 2: Persamaan 2 (1 Buku + 4 Pena = 16.000)
-        {
-            profil: {
-                tipe: 'Pria', deskripsi: 'Bapak Biru', gambar: 'assets/customers/pelanggan-2.png',
-                dialog: 'Saya bayar pas Rp 16.000 untuk 1 Buku dan 4 Pena!'
-            },
-            cart: [
-                {
-                    nama: 'Paket SPLDV 2', harga_satuan: 16000, jumlah: 1, diskon: 0, isBossBundle: true,
-                    items: [
-                        { nama: 'Buku', variabel: 'bk' },
-                        { nama: 'Pena', variabel: 'pn' }, { nama: 'Pena', variabel: 'pn' }, { nama: 'Pena', variabel: 'pn' }, { nama: 'Pena', variabel: 'pn' }
-                    ]
-                }
-            ]
-        },
-        // Pelanggan 3: Eksekusi SPLDV (Pemain mencari harga 1 Buku)
-        {
-            profil: {
-                tipe: 'Anak SMP', deskripsi: 'Pelajar SMP', gambar: 'assets/customers/pelanggan-3.png',
-                dialog: 'Berapa harga 1 buku ini, kak?'
-            },
-            cart: [
-                // Harga diset 4000 di memori sistem agar validasi kuis manual pemain (1 x (4000)) terbaca BENAR.
-                { nama: 'Buku', variabel: 'bk', harga_satuan: 4000, jumlah: 1, diskon: 0, isBossFinal: true }
-            ]
-        }
-    ]
+// --- DATABASE 17 BARANG (a sampai q) ---
+const ITEM_DB = {
+    'a': { name: 'Apel', price: 2000, cost: 1000, img: 'assets/barangbelanja/apel.png' },
+    'b': { name: 'Beras', price: 15000, cost: 12000, img: 'assets/barangbelanja/beras.png' },
+    'c': { name: 'Buku', price: 5000, cost: 3000, img: 'assets/barangbelanja/buku.png' },
+    'd': { name: 'Dodol Nanas', price: 3000, cost: 1500, img: 'assets/barangbelanja/dodolnanas.png' },
+    'e': { name: 'Gandus', price: 1500, cost: 800, img: 'assets/barangbelanja/gandus.png' },
+    'f': { name: 'Gula', price: 12000, cost: 10000, img: 'assets/barangbelanja/gula.png' },
+    'g': { name: 'Jeruk', price: 2500, cost: 1500, img: 'assets/barangbelanja/jeruk.png' },
+    'h': { name: 'Kopi AAA', price: 4000, cost: 2500, img: 'assets/barangbelanja/kopiaaa.png' },
+    'i': { name: 'Minyak Goreng', price: 14000, cost: 12000, img: 'assets/barangbelanja/minyakgoreng.png' },
+    'j': { name: 'Padamaran', price: 2000, cost: 1000, img: 'assets/barangbelanja/padamaran.png' },
+    'k': { name: 'Pena', price: 3000, cost: 1500, img: 'assets/barangbelanja/pena.png' },
+    'l': { name: 'Roti', price: 6000, cost: 4000, img: 'assets/barangbelanja/roti.png' },
+    'm': { name: 'Sabun', price: 4000, cost: 2500, img: 'assets/barangbelanja/sabun.png' },
+    'n': { name: 'Telur', price: 2000, cost: 1200, img: 'assets/barangbelanja/telur.png' },
+    'o': { name: 'Tempoyak', price: 15000, cost: 10000, img: 'assets/barangbelanja/tempoyak.png' },
+    'p': { name: 'Tepung', price: 8000, cost: 6000, img: 'assets/barangbelanja/tepung.png' },
+    'q': { name: 'Terong', price: 3000, cost: 1500, img: 'assets/barangbelanja/terong.png' }
 };
 
-const dataKuisStatis = {
-    1: [
-        // Soal 1
-        {
-            question: "Pelanggan meletakkan 3 buah Apel dan 2 buah Terong di atas meja kasir. Jika Apel dilambangkan dengan a dan Terong dilambangkan dengan t, bentuk aljabar dari belanjaan tersebut adalah...",
-            options: ["3a x 2t", "5at", "3a + 2t", "3t + 2a"],
-            correctIndex: 2 // Opsi C
-        },
-        // Soal 2
-        {
-            question: "Seorang pelanggan membeli 5 botol Minyak Goreng. Bentuk aljabar yang paling tepat untuk menyatakan situasi belanjaan pelanggan tersebut (jika minyak goreng = m) adalah...",
-            options: ["5 + m", "5m", "m^5", "5 / m"],
-            correctIndex: 1 // Opsi B
-        }
-    ],
-    2: [
-        // Soal 3
-        {
-            question: "Pelanggan pertama mengeluarkan 2 Roti (2r) lalu 3 Kopi (3k). Pelanggan kedua mengeluarkan 3 Kopi (3k) lalu 2 Roti (2r). Apakah total harga untuk pelanggan pertama dan pelanggan kedua itu sama?",
-            options: ["Ya, sama (karena sifat komutatif)", "Ya, sama (karena sifat asosiatif)", "Tidak sama, karena urutan barangnya berbeda", "Tidak bisa dihitung"],
-            correctIndex: 0 // Opsi A
-        },
-        // Soal 4
-        {
-            question: "Bentuk aljabar 4b + 2p (4 Buku dan 2 Pena) menghasilkan nilai total yang ekuivalen (sama) dengan bentuk...",
-            options: ["6bp", "4p + 2b", "2p + 4b", "2(b + p)"],
-            correctIndex: 2 // Opsi C
-        }
-    ],
-    3: [
-        // Soal 5
-        {
-            question: "Kasir menghitung 4 bungkus Gula (4g), kemudian menyisihkannya. Tak lama, pelanggan menyodorkan lagi 3 bungkus Gula (3g). Bentuk aljabar paling sederhana dari total Gula yang dihitung kasir adalah...",
-            options: ["4g + 3g", "7g", "12g", "7g²"],
-            correctIndex: 1 // Opsi B
-        },
-        // Soal 6
-        {
-            question: "Di meja terdapat 5 Telur (5t) dan 2 Sabun (2s). Karena uangnya tidak cukup, pelanggan mengembalikan 2 Telur (2t) ke rak. Bentuk ekuivalen dari sisa belanjaan pelanggan adalah...",
-            options: ["3t + 2s", "7t + 2s", "5t", "3t - 2s"],
-            correctIndex: 0 // Opsi A
-        }
-    ],
-    4: [
-        // Soal 7
-        {
-            question: "Toko menjual \"Paket Sembako\" yang setiap paketnya berisi 2 Beras dan 1 Minyak Goreng (2b + 1m). Jika seorang pelanggan membeli 3 paket sekaligus, operasi aljabar yang digunakan kasir untuk menghitung total barang adalah...",
-            options: ["3 + (2b + 1m)", "3 x (2b x 1m)", "3(2b + 1m)", "3b + 2m"],
-            correctIndex: 2 // Opsi C
-        },
-        // Soal 8
-        {
-            question: "Bentuk dari 3(2b + 1m) pada soal sebelumnya sama dengan ...",
-            options: ["5b + 4m", "6b + 3m", "6b + 1m", "2b + 3m"],
-            correctIndex: 1 // Opsi B
-        }
-    ],
-    5: [
-        // Soal 9
-        {
-            question: "Pelanggan memborong 4 bungkus Tepung (4t). Kasir memberitahu bahwa setiap 1 bungkus tepung mendapat potongan harga Rp1.000, sehingga di mesin kasir tertulis 4(t - 1000). Bentuk aljabar yang ekuivalen dengan tulisan tersebut adalah...",
-            options: ["4t - 1000", "4t - 4000", "t - 4000", "4t + 4000"],
-            correctIndex: 1 // Opsi B
-        },
-        // Soal 10
-        {
-            question: "Bentuk aljabar 5(2a - 3b) akan menghasilkan bentuk yang sama dengan ...",
-            options: ["10a - 15b", "10a - 3b", "7a - 8b", "10a + 15b"],
-            correctIndex: 0 // Opsi A
-        }
-    ],
-    6: [
-        // Soal 11
-        {
-            question: "Di layar mesin kasir tercatat total barang 6r + 9s (6 Roti dan 9 Sabun). Kasir menyadari bahwa barang tersebut bisa dihitung sebagai 3 paket belanja. Bentuk aljabar pemfaktoran yang tepat (ekuivalen) untuk 6r + 9s adalah...",
-            options: ["2(3r + 4s)", "3(2r + 3s)", "6(r + 3s)", "3(3r + 6s)"],
-            correctIndex: 1 // Opsi B
-        },
-        // Soal 12
-        {
-            question: "Manakah dari bentuk aljabar berikut yang TIDAK sama dengan 8a + 4b?",
-            options: ["4(2a + b)", "2(4a + 2b)", "4a + 4a + 4b", "4(2a + 4b)"],
-            correctIndex: 3 // Opsi D
-        }
-    ],
-    7: [
-        // Soal 13
-        {
-            question: "Pelanggan pertama membawa 1 paket berisi (2b + 3p) dan pelanggan kedua membawa 2 paket yang sama, ditulis 2(2b + 3p). Jika belanjaan mereka digabungkan, bentuk aljabar paling sederhana dari total seluruh barang adalah...",
-            options: ["6b + 9p", "4b + 6p", "5b + 6p", "6b + 5p"],
-            correctIndex: 0 // Opsi A
-        },
-        // Soal 14
-        {
-            question: "Untuk mempermudah perhitungan, sebuah ekspresi 5m + 3k + 2m - k di layar kasir dihitung dengan mengelompokkan suku sejenisnya. Bentuk yang sama dengan ekspresi tersebut adalah...",
-            options: ["7m + 4k", "7m + 2k", "3m + 4k", "10mk"],
-            correctIndex: 1 // Opsi B
-        }
-    ],
-    8: [
-        // Soal 15
-        {
-            question: "Dalam sistem kasir, sebuah 'Paket Kopi' dilambangkan dengan huruf X. Diketahui bahwa isi paket X = 3k + 2g (3 Kopi dan 2 Gula). Jika pelanggan membeli 4X, berapakah total Kopi dan Gula yang dibeli dalam bentuk aljabar sederhana?",
-            options: ["12k + 8g", "7k + 6g", "12k + 2g", "4k + 8g"],
-            correctIndex: 0 // Opsi A
-        },
-        // Soal 16
-        {
-            question: "Sebuah mesin menghitung transaksi dengan rumus 3(a + 2) + 4a. Bentuk yang sederhana dari rumus mesin kasir tersebut adalah...",
-            options: ["7a + 2", "7a + 6", "12a + 6", "3a + 6"],
-            correctIndex: 1 // Opsi B
-        }
-    ],
-    9: [
-        // Soal 17
-        {
-            question: "Kasir A menghitung belanjaan dengan cara 2(3a + 4b). Kasir B menghitung barang yang sama dengan cara 6a + 8b. Kasir C menghitung dengan cara 2(4b + 3a). Manakah pernyataan yang benar?",
-            options: ["Hanya cara Kasir A dan B yang sama nilainya.", "Hanya cara Kasir B dan C yang sama nilainya.", "Ketiga cara tersebut saling sama nilainya (ekuivalen).", "Tidak ada yang sama nilainya."],
-            correctIndex: 2 // Opsi C
-        },
-        // Soal 18
-        {
-            question: "Di layar kasir tertulis ekspresi panjang: 4(x + 2y) - 2(x - y). Setelah kasir menyederhanakan ekspresi tersebut, bentuk aljabar akhir yang akan dicetak di struk belanja adalah...",
-            options: ["2x + 10y", "2x + 6y", "2x + y", "6x + 6y"],
-            correctIndex: 0 // Opsi A
-        }
-    ],
-    10: [
-        // Soal 19
-        {
-            question: "Pelanggan membeli 3 paket yang masing-masing berisi 2 Apel dan 1 Jeruk, ditulis 3(2a + j). Kemudian pelanggan itu menambah lagi 1 Apel dan 2 Jeruk, ditulis (a + 2j). Bentuk aljabar paling sederhana dari total seluruh belanjaannya adalah...",
-            options: ["7a + 5j", "6a + 5j", "7a + 3j", "3a + 3j"],
-            correctIndex: 0 // Opsi A
-        },
-        // Soal 20
-        {
-            question: "Di layar kasir, total belanjaan seorang pelanggan adalah 5t + 15g (5 Telur dan 15 Gula). Kasir menyadari bahwa barang tersebut dapat dipisahkan secara rapi ke dalam 5 kantong belanja (paket) yang isinya persis sama. Bentuk aljabar yang menyatakan pengelompokan tersebut adalah...",
-            options: ["5(t + 10g)", "5(t + 3g)", "3(5t + 5g)", "5(5t + 15g)"],
-            correctIndex: 1 // Opsi B
-        }
-    ]
-};
+// State Gameplay
+let activeInput = null;
+let tagihanTervalidasi = 0;
+let currentLevelParams = { order: {}, errorCount: 0, startTime: 0, totalCost: 0 };
+let uangDibayarDetail = {};
 
-function generatePayment(cart) {
-    let totalBelanja = cart.reduce((sum, item) => sum + ((item.harga_satuan * item.jumlah) - (item.diskon || 0)), 0);
-
-    // =========================================================
-    // Modifikasi Konstanta Ongkir/Layanan (Level 4, 5, 8)
-    // =========================================================
-    if (currentLevel === 4 || currentLevel === 5) {
-        totalBelanja += 2000;
-    } else if (currentLevel === 8) {
-        totalBelanja += 5000;
-    }
-
-    // =========================================================
-    // Pembayaran untuk nominal di bawah atau sama dengan Rp 100.000
-    // =========================================================
-    if (totalBelanja <= 10000) return { totalUang: 10000, lembaran: [10000] };
-    if (totalBelanja <= 20000) return { totalUang: 20000, lembaran: [20000] };
-    if (totalBelanja <= 30000) return { totalUang: 30000, lembaran: [20000, 10000] };
-    if (totalBelanja <= 50000) return { totalUang: 50000, lembaran: [50000] };
-    if (totalBelanja <= 70000) return { totalUang: 70000, lembaran: [50000, 20000] };
-    if (totalBelanja <= 100000) return { totalUang: 100000, lembaran: [100000] };
-
-    // =========================================================
-    // PERBAIKAN: Pembayaran Dinamis untuk belanja di atas Rp 100.000 (Level 7)
-    // =========================================================
-    // Math.ceil membulatkan ke atas (Contoh: 225.000 / 100.000 = 2.25, dibulatkan jadi 3)
-    let pecahanRatusanRibu = Math.ceil(totalBelanja / 100000);
-
-    let totalUang = pecahanRatusanRibu * 100000; // Contoh: 3 x 100.000 = 300.000
-    let lembaran = [];
-
-    // Memberikan uang pecahan 100.000 sebanyak hasil perhitungan
-    for (let i = 0; i < pecahanRatusanRibu; i++) {
-        lembaran.push(100000);
-    }
-
-    return { totalUang: totalUang, lembaran: lembaran };
-}
-
-// ==========================================
-// 3. STATE VARIABEL SISTEM
-// ==========================================
-let tutorialDone = false; // Merekam apakah pemain sudah melihat tutorial
-// Mengambil data bintang dari memori browser, atau buat baru jika kosong
-let defaultStars = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
-let levelStars = JSON.parse(localStorage.getItem('algebraMartStars')) || defaultStars;
-let currentLevel = 1;
-let maxCustomers = 3;
-let currentCustomerIndex = 0;
-let currentProfil = null;
-let shoppingCart = [];
-let customerPayment = {};
-let purchasedHistory = [];
-let quizData = [];
-
-let currentItemIndex = 0;
-let gamePhase = "scanning";
-let currentInput = "";
-let algebraParts = [];
-let substitutionParts = [];
-let grandTotalHarga = 0;
-let expectedChange = 0;
-let givenChange = [];
-
+let currentLevelIdx = 1;
+let currentCustomerIdx = 0;
+let levelCustomers = [];
+let levelAccumulation = { revenue: 0, cost: 0, profit: 0, errors: 0 };
 let currentQuizIndex = 0;
-let quizScore = 0;
 
 // ==========================================
-// 4. AMBIL ELEMEN DOM HTML
+// --- DATABASE LEVEL (10 Level - 3 Pelanggan/Level) ---
+// ==========================================
+const LEVEL_DATA = {
+    1: [ // Pengenalan Variabel
+        { order: { 'a': 3, 'b': 2 }, text: "Halo, aku mau beli <br><strong>3 Apel (a)</strong> dan <strong>2 Beras (b)</strong>.", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 50000: 1 } },
+        { order: { 'c': 5 }, text: "Aku mau memborong <br><strong>5 Buku (c)</strong> saja.", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 50000: 1 } },
+        { order: { 'f': 1, 'g': 4 }, text: "Tolong siapkan <br><strong>1 Gula (f)</strong> dan <strong>4 Jeruk (g)</strong> ya.", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 20000: 1, 5000: 1 } }
+    ],
+    2: [ // Sifat Komutatif
+        { order: { 'a': 2, 'b': 3 }, text: "Bungkuskan <br><strong>2 Apel (a)</strong> dan <strong>3 Beras (b)</strong> ya.", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 50000: 1 } },
+        { order: { 'b': 3, 'a': 2 }, text: "Kalo aku mau beli <br><strong>3 Beras (b)</strong> dan <strong>2 Apel (a)</strong>.", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 50000: 1 } },
+        { order: { 'a': 4, 'd': 2 }, text: "Beli <strong>4 Apel (a)</strong> dan <strong>2 Dodol (d)</strong>... eh sebut 2 Dodol dulu baru 4 Apel, harganya sama kan?", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 20000: 1 } }
+    ],
+    3: [ // Penjumlahan & Pengurangan Sejenis
+        { order: { 'a': 7 }, text: "Aku bawa <strong>3 Apel</strong>, eh tunggu, aku nambah lagi <strong>4 Apel</strong> deh. Jadinya berapa a?", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 20000: 1 } },
+        { order: { 'c': 5 }, text: "Tolong <strong>5 Buku</strong> dan <strong>2 Dodol</strong>... Oh maaf, Dodolnya gak jadi, kurangi 2 ya.", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 50000: 1 } },
+        { order: { 'g': 5 }, text: "Beli <strong>2 Jeruk</strong>, tambah <strong>1 Jeruk</strong> lagi, dan tambah <strong>2 Jeruk</strong> lagi buat adikku.", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 20000: 1 } }
+    ],
+    4: [ // Pengenalan Koefisien
+        { order: { 'a': 2, 'b': 2, 'c': 2 }, text: "Aku mau beli <strong>masing-masing 2</strong> untuk Apel, Beras, dan Buku.", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 50000: 1 } },
+        { order: { 'a': 2, 'b': 4, 'c': 1 }, text: "Tolong siapkan <br><strong>2 Apel, 4 Beras, dan 1 Buku</strong>.", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 100000: 1 } },
+        { order: { 'f': 5, 'g': 5 }, text: "Aku butuh borongan <br><strong>5 Gula</strong> dan <strong>5 Jeruk</strong>.", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 100000: 1 } }
+    ],
+    5: [ // Substitusi Nilai Variabel 1
+        { order: { 'a': 10 }, text: "Pesanan besar nih, aku mau beli <strong>10 Apel</strong>.", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 20000: 1 } },
+        { order: { 'd': 5 }, text: "Aku mau beli <br><strong>5 Dodol Nanas</strong>.", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 20000: 1 } },
+        { order: { 'c': 10 }, text: "Tolong <strong>10 Buku</strong> ya, uangnya pas nih.", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 50000: 1 } }
+    ],
+    6: [ // Penyederhanaan Ekspresi Gabungan
+        { order: { 'a': 5 }, text: "Awalnya ibu suruh beli <strong>7 Apel</strong>, tapi uangku kurang, batalin <strong>2 Apel</strong> ya.", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 10000: 1 } },
+        { order: { 'a': 5, 'b': 3 }, text: "Keranjangku isinya <strong>4 Apel</strong> & <strong>3 Beras</strong>. Terus aku nambah <strong>1 Apel</strong> lagi di luarnya.", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 100000: 1 } },
+        { order: { 'f': 8, 'g': 2 }, text: "Beli <strong>5 Gula</strong> dan <strong>2 Jeruk</strong>, eh sekalian deh tambah <strong>3 Gula</strong> lagi.", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 100000: 1, 20000: 1 } }
+    ],
+    7: [ // Substitusi Nilai Variabel 2
+        { order: { 'a': 3 }, text: "Uangku 10 Ribu, cukup gak ya beli <strong>3 Apel (a)</strong>?", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 10000: 1 } },
+        { order: { 'a': 3, 'b': 3, 'c': 3 }, text: "Aku mau beli <strong>masing-masing 3</strong> untuk Apel, Beras, dan Buku.", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 100000: 1 } },
+        { order: { 'f': 4, 'g': 4 }, text: "Tolong <strong>masing-masing 4</strong> untuk Gula dan Jeruk.", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 50000: 1, 10000: 1 } }
+    ],
+    8: [ // Evaluasi Persamaan Ekuivalen
+        { order: { 'b': 2, 'c': 4 }, text: "Beli <strong>2 Beras (b)</strong> dan <strong>4 Buku (c)</strong> ya.", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 50000: 1 } },
+        { order: { 'c': 4, 'b': 2 }, text: "Kalau aku maunya dibalik, <strong>4 Buku (c)</strong> dan <strong>2 Beras (b)</strong>.", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 50000: 1 } },
+        { order: { 'a': 6 }, text: "Beli <strong>5 Apel</strong>, eh ketinggalan <strong>1 Apel</strong> lagi, gabungin aja jadinya.", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 20000: 1 } }
+    ],
+    9: [ // Makna Koefisien Nol (0)
+        { order: { 'a': 3, 'c': 2 }, text: "Aku beli <strong>3 Apel, 2 Buku</strong>. Berasnya kosong? Yaudah <strong>0 Beras</strong> (Lewati b).", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 20000: 1 } },
+        { order: { 'd': 5 }, text: "Tadinya mau pesan <strong>5 Dodol</strong> & <strong>2 Apel</strong>, tapi Apelnya gak jadi deh (0 Apel).", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 20000: 1 } },
+        { order: { 'c': 4 }, text: "Beli <strong>4 Buku</strong> ya. Berasnya 0, Apelnya 0.", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 20000: 1 } }
+    ],
+    10: [ // Tantangan Ujian Akhir
+        { order: { 'a': 8, 'b': 8, 'd': 4 }, text: "Pesan paketan hajatan: <br><strong>8 Apel, 8 Beras, dan 4 Dodol</strong>.", image: "assets/customers/pelanggan-1.png", uangDibayarDetail: { 100000: 2 } },
+        { order: { 'a': 8, 'b': 3 }, text: "Belanjaanku digabung adikku. Aku <strong>5 Apel, 2 Beras</strong>. Adikku <strong>3 Apel, 1 Beras</strong>.", image: "assets/customers/pelanggan-2.png", uangDibayarDetail: { 100000: 1 } },
+        { order: { 'a': 10, 'b': 5, 'c': 5, 'd': 2, 'f': 1 }, text: "Borongan besar kelontong!<br><strong>10 Apel, 5 Beras, 5 Buku, 2 Dodol, 1 Gula</strong>.", image: "assets/customers/pelanggan-3.png", uangDibayarDetail: { 100000: 2 } }
+    ]
+};
+
+// ==========================================
+// --- DATA KUIS ---
+// ==========================================
+const QUIZ_DB = {
+    1: [
+        { q: "Pelanggan membeli 3 Apel (a) dan 2 Beras (b). Bentuk aljabarnya adalah...", options: ["A. 3a + 2b", "B. 5ab", "C. 2a + 3b", "D. 3a - 2b"], ans: 0 },
+        { q: "Pelanggan memborong 5 Buku (c). Bentuk aljabarnya adalah...", options: ["A. 5 + c", "B. 5c", "C. c^5", "D. 5 - c"], ans: 1 }
+    ],
+    2: [
+        { q: "Apakah bentuk 2a + 3b menghasilkan total harga yang SAMA dengan 3b + 2a?", options: ["A. Ya (Sifat Komutatif)", "B. Tidak (Beda urutan)", "C. Tergantung harganya", "D. Tidak tahu"], ans: 0 },
+        { q: "Bentuk aljabar 4a + 2d ekuivalen (nilainya persis sama) dengan bentuk...", options: ["A. 6ad", "B. 2d + 4a", "C. 4d + 2a", "D. 4(a+d)"], ans: 1 }
+    ],
+    3: [
+        { q: "Pelanggan membawa 3 Apel (3a) lalu menambah 4 Apel lagi (4a). Jika disederhanakan, 3a + 4a adalah...", options: ["A. 34a", "B. 7a", "C. 12a", "D. a^7"], ans: 1 },
+        { q: "Bentuk sederhana dari suku sejenis 5g + 2d - 2d adalah...", options: ["A. 3g + 2d", "B. 7g + 2d", "C. 5g", "D. 2d"], ans: 2 }
+    ],
+    4: [
+        { q: "Pelanggan membeli masing-masing 2 untuk Apel, Beras, dan Buku. Aljabar yang tepat adalah...", options: ["A. 2a + 2b + 2c", "B. 6abc", "C. 2abc", "D. a + b + c"], ans: 0 },
+        { q: "Berapakah koefisien (angka pengali) dari variabel b pada persamaan 2a + 4b + c?", options: ["A. 2", "B. 4", "C. 1", "D. 0"], ans: 1 }
+    ],
+    5: [
+        { q: "Pelanggan membeli 10 Apel. Penulisannya dalam aljabar adalah...", options: ["A. 10 + a", "B. 10a", "C. a10", "D. 10 / a"], ans: 1 },
+        { q: "Jika harga 1 Dodol (d) adalah Rp 3.000, maka nilai harga total dari 5d adalah...", options: ["A. Rp 3.000", "B. Rp 8.000", "C. Rp 15.000", "D. Rp 5.000"], ans: 2 }
+    ],
+    6: [
+        { q: "Hasil pengurangan dari 7a - 2a adalah...", options: ["A. 9a", "B. 5a", "C. 14a", "D. 5"], ans: 1 },
+        { q: "Bentuk paling sederhana dari gabungan (4a + 3b) + a adalah...", options: ["A. 5a + 3b", "B. 4a + 4b", "C. 7ab", "D. 8ab"], ans: 0 }
+    ],
+    7: [
+        { q: "Jika a (Apel) bernilai Rp 2.000, berapakah nilai uang dari bentuk 3a?", options: ["A. Rp 6.000", "B. Rp 5.000", "C. Rp 2.003", "D. Rp 3.000"], ans: 0 },
+        { q: "Bentuk aljabar untuk masing-masing 3 barang (3 Apel, 3 Beras, 3 Buku) adalah...", options: ["A. 3a + b + c", "B. a + b + 3c", "C. 3a + 3b + 3c", "D. 9abc"], ans: 2 }
+    ],
+    8: [
+        { q: "Bentuk aljabar 2b + 4c ekuivalen (nilainya sama) dengan...", options: ["A. 4c + 2b", "B. 6bc", "C. 4b + 2c", "D. 8bc"], ans: 0 },
+        { q: "Hasil penjumlahan suku sejenis dari ekspresi aljabar 5a + a adalah...", options: ["A. 5a", "B. 6a", "C. 5a^2", "D. a"], ans: 1 }
+    ],
+    9: [
+        { q: "Pelanggan membeli 3a dan 2c, tetapi tidak jadi beli b (0b). Bentuk aljabar sederhananya...", options: ["A. 3a + 0b + 2c", "B. 3a + 2c", "C. 5ac", "D. 3a - 2c"], ans: 1 },
+        { q: "Apa makna dari koefisien angka 0 pada bentuk 0b di dunia nyata?", options: ["A. Barang sangat mahal", "B. Barang gratis", "C. Barang tidak dibeli / dihitung", "D. Barang mendapat diskon"], ans: 2 }
+    ],
+    10: [
+        { q: "Pada struk tertulis 8a + 8b + 4d. Jika harga a = 2.000, berapakah bayaran untuk kelompok Apel (8a) saja?", options: ["A. Rp 10.000", "B. Rp 16.000", "C. Rp 8.000", "D. Rp 24.000"], ans: 1 },
+        { q: "Bentuk paling sederhana dari gabungan belanja 5a + 2b + 3a + b adalah...", options: ["A. 8a + 3b", "B. 10ab", "C. 8a + 2b", "D. 5a + 4b"], ans: 0 }
+    ]
+};
+
+const BADGES_DB = [
+    { id: 'si_teliti', name: 'Si Teliti', icon: 'fa-search', colorClass: 'icon-blue', desc: 'Menyelesaikan level tanpa salah ketik.' },
+    { id: 'si_jujur', name: 'Si Jujur', icon: 'fa-heart', colorClass: 'icon-red', desc: 'Memberikan kembalian dengan tepat.' },
+    { id: 'saudagar', name: 'Saudagar Cilik', icon: 'fa-sack-dollar', colorClass: 'icon-yellow', desc: 'Mengumpulkan laba di atas Rp 50.000.' }
+];
+
+// ==========================================
+// --- UTILS & LOGIN (Tidak Berubah Signifikan) ---
 // ==========================================
 
-const inGameBackBtn = document.getElementById('in-game-back-btn');
-const customerPlaceholder = document.querySelector('.customer-placeholder');
-const mainMenuUI = document.getElementById('main-menu-ui');
-const levelMenuUI = document.getElementById('level-menu-ui');
-const gameWrapper = document.getElementById('game-wrapper');
-
-const floatingZone = document.getElementById('floating-zone');
-const collectedItemsZone = document.getElementById('collected-items-zone');
-
-const startProjectBtn = document.getElementById('start-project-btn');
-const backToMainBtn = document.getElementById('back-to-main-btn');
-const level1Btn = document.getElementById('level-1-btn');
-const level2Btn = document.getElementById('level-2-btn');
-const level3Btn = document.getElementById('level-3-btn');
-
-const tutorialOverlay = document.getElementById('tutorial-overlay');
-const closeTutorialBtn = document.getElementById('close-tutorial-btn');
-
-const mainGameUI = document.getElementById('main-game-ui');
-const deskElement = document.querySelector('.desk');
-
-const screenTable = document.getElementById('screen-table');
-const screenTotalVal = document.getElementById('screen-total-val');
-const screenFormula = document.getElementById('screen-formula');
-const screenPayment = document.getElementById('screen-payment');
-
-const inputLine = document.getElementById('screen-input');
-
-// BUG FIX: Hanya pasang listener pada tombol di dalam kotak Kalkulator
-const buttons = document.querySelectorAll('#calculator-ui .btn');
-const calculatorUI = document.getElementById('calculator-ui');
-const drawerUI = document.getElementById('drawer-ui');
-const drawerGrid = document.getElementById('drawer-grid');
-const finishBtn = document.getElementById('finish-btn');
-const receiptModal = document.getElementById('receipt-modal');
-const receiptContent = document.getElementById('receipt-content');
-const nextCustomerBtn = document.getElementById('next-customer-btn');
-
-const quizUI = document.getElementById('quiz-ui');
-const gameOverUI = document.getElementById('game-over-ui');
-const quizQuestion = document.getElementById('quiz-question');
-const quizOptionsContainer = document.getElementById('quiz-options-container');
-const quizFeedback = document.getElementById('quiz-feedback');
-const nextQuizBtn = document.getElementById('next-quiz-btn');
-const finalScoreText = document.getElementById('final-score');
-const restartGameBtn = document.getElementById('restart-game-btn');
-
-// ==========================================
-// FUNGSI MODERN ALERT (PENGGANTI ALERT JADUL)
-// ==========================================
-function showModernAlert(pesan, targetId) {
-    // 1. Hapus alert lama jika masih ada di layar
-    const existingAlert = document.getElementById('modern-alert-box');
-    if (existingAlert) existingAlert.remove();
-
-    // 2. Buat elemen HTML alert baru
-    const alertBox = document.createElement('div');
-    alertBox.id = 'modern-alert-box';
-    alertBox.className = 'modern-alert';
-    alertBox.innerText = pesan;
-
-    document.body.appendChild(alertBox);
-
-    // 3. Cari elemen target untuk menentukan posisi akurat
-    const targetElement = document.getElementById(targetId);
-    if (targetElement) {
-        // Ambil koordinat elemen target dari layar
-        const rect = targetElement.getBoundingClientRect();
-
-        // Posisikan tepat di atas elemen target (di tengah)
-        alertBox.style.left = (rect.left + (rect.width / 2)) + 'px';
-        alertBox.style.top = (rect.top - alertBox.offsetHeight - 15) + 'px';
-    } else {
-        // Posisi cadangan jika ID target tidak ditemukan (tengah layar)
-        alertBox.style.left = '50%';
-        alertBox.style.top = '50%';
+// Fungsi untuk masuk ke mode Full Screen (F11 Otomatis)
+function requestFullScreen() {
+    // Kita targetkan elemen <body> atau document agar seluruh layar tertutup
+    const elem = document.documentElement; 
+    
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(err => console.warn("Fullscreen diblokir: ", err));
+    } else if (elem.webkitRequestFullscreen) { /* Untuk browser Safari */
+        elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { /* Untuk browser IE/Edge lama */
+        elem.msRequestFullscreen();
     }
-
-    // 4. Jalankan animasi muncul (jeda 10ms agar transisi CSS terbaca)
-    setTimeout(() => alertBox.classList.add('show'), 10);
-
-    // 5. Hilangkan otomatis setelah 3 detik
-    setTimeout(() => {
-        alertBox.classList.remove('show');
-        setTimeout(() => alertBox.remove(), 300); // Hapus dari HTML setelah animasi selesai
-    }, 3000);
 }
 
-// ==========================================
-// 5. FUNGSI SETUP PELANGGAN & VISUAL KASIR
-// ==========================================
-function setupPelangganBaru() {
-    const dataPelangganAktif = dataLevelStatis[currentLevel][currentCustomerIndex];
-
-    currentProfil = dataPelangganAktif.profil;
-    shoppingCart = dataPelangganAktif.cart;
-    customerPayment = generatePayment(shoppingCart);
-    purchasedHistory.push(...shoppingCart);
-
-    // Render Gambar Pelanggan
-    customerPlaceholder.innerHTML = `<img src="${currentProfil.gambar}" alt="${currentProfil.deskripsi}" class="customer-image">`;
-
-    // =========================================================
-    // MODIFIKASI: Render Balon Dialog Jika Ada
-    // =========================================================
-    if (currentProfil.dialog) {
-        const bubble = document.createElement('div');
-        bubble.className = 'customer-bubble';
-        bubble.innerText = currentProfil.dialog;
-        customerPlaceholder.appendChild(bubble);
+// Fungsi untuk keluar dari mode Full Screen
+function exitFullScreen() {
+    // Cek dulu apakah web sedang dalam mode full screen
+    if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { /* Safari */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE/Edge lama */
+            document.msExitFullscreen();
+        }
     }
-    // =========================================================
-
-    customerPlaceholder.style.background = 'transparent';
-    customerPlaceholder.style.color = 'transparent';
-    customerPlaceholder.style.boxShadow = 'none';
 }
 
-function getEmoji(nama) {
-    const emojis = {
-        'Kue Padamaran': '🧁', 'Kopi AAA': '☕', 'Tempoyak': '🥫', 'Kue Gandus': '🥮', 'Tepung': '🥡',
-        'Gula': '🧂', 'Minyak Goreng': '🛢️', 'Beras': '🍚', 'Apel': '🍎', 'Jeruk': '🍊',
-        'Terong': '🍆', 'Telur Ayam': '🥚', 'Roti': '🍞', 'Sabun': '🧼', 'Buku': '📘', 'Pena': '🖊️'
+function showMsg(title, desc, onCloseCallback = null) {
+    document.getElementById('msg-title').innerHTML = title;
+    document.getElementById('msg-desc').innerHTML = desc; // Diubah ke innerHTML agar mendukung <ul>, <li>, <br>
+    
+    const modalMsg = document.getElementById('modal-msg');
+    const btnOk = modalMsg.querySelector('.btn-primary');
+    
+    // Atur tombol OK agar menutup pop-up dan menjalankan perintah lanjutan (jika ada)
+    btnOk.onclick = () => {
+        modalMsg.classList.add('hidden');
+        if (onCloseCallback) onCloseCallback();
     };
-    return emojis[nama] || '📦';
+    
+    modalMsg.classList.remove('hidden');
 }
 
-// Fungsi baru untuk mengambil path gambar barang
-function getGambarBarang(nama) {
-    const gambar = {
-        'Kue Padamaran': 'assets/barangbelanja/padamaran.png',
-        'Kopi AAA': 'assets/barangbelanja/kopiaaa.png',
-        'Tempoyak': 'assets/barangbelanja/tempoyak.png',
-        'Kue Gandus': 'assets/barangbelanja/gandus.png',
-        'Tepung': 'assets/barangbelanja/tepung.png',
-        'Gula': 'assets/barangbelanja/gula.png',
-        'Minyak Goreng': 'assets/barangbelanja/minyakgoreng.png',
-        'Beras': 'assets/barangbelanja/beras.png',
-        'Apel': 'assets/barangbelanja/apel.png',
-        'Jeruk': 'assets/barangbelanja/jeruk.png',
-        'Terong': 'assets/barangbelanja/terong.png',
-        'Telur Ayam': 'assets/barangbelanja/telur.png',
-        'Roti': 'assets/barangbelanja/roti.png',
-        'Sabun': 'assets/barangbelanja/sabun.png',
-        'Buku': 'assets/barangbelanja/buku.png',
-        'Pena': 'assets/barangbelanja/pena.png'
-    };
-    return gambar[nama] || 'assets/barangbelanja/kardus.png'; // Fallback jika tidak ada
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+function switchScreen(screenId) {
+    if (typeof endTutorial === 'function') endTutorial();
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+    if (screenId === 'screen-lobby') renderLobby();
+    if (screenId === 'screen-levels') renderLevels();
 }
 
-// Fungsi baru untuk mengambil path gambar uang Rupiah
-function getGambarUang(nominal) {
-    return `assets/rupiah/rp${nominal}.png`;
+function saveData() { localStorage.setItem('algebraMart_users', JSON.stringify(users)); }
+
+function getTitle(laba) {
+    if (laba > 100000) return "Juragan Pasar";
+    if (laba > 50000) return "Pedagang Ahli";
+    if (laba > 15000) return "Kasir Junior";
+    return "Kasir Magang";
 }
 
-function renderItems() {
-    floatingZone.innerHTML = "";
-
-    if (currentItemIndex >= shoppingCart.length) {
-        floatingZone.innerHTML = "<div class='floating-group' style='color: #2c3e50; font-weight: bold; text-align: center; font-size: 18px; background: rgba(255,255,255,0.8); padding: 15px; border-radius: 10px; border: 3px solid #f1c40f;'>Scan Selesai!<br>Tekan [ = ] untuk Substitusi Rumus.</div>";
+function renderUserList() {
+    const list = document.getElementById('user-list');
+    list.innerHTML = '';
+    if (users.length === 0) {
+        list.innerHTML = '<p style="font-size:0.75rem; color:var(--color-slate-500); text-align:center; font-style:italic;">Belum ada data pemain. Silakan buat baru.</p>';
         return;
     }
-
-    const barang = shoppingCart[currentItemIndex];
-    const floatingGroup = document.createElement('div');
-    floatingGroup.className = 'floating-group fade-enter';
-    floatingGroup.id = 'current-floating-item';
-    const label = document.createElement('div');
-    label.className = 'floating-label';
-
-    // =========================================================
-    // MODIFIKASI: Sembunyikan Harga di Level 10 (Boss Stage)
-    // =========================================================
-    if (currentLevel === 10) {
-        label.style.backgroundColor = '#c0392b';
-        label.style.borderColor = '#e74c3c';
-        label.style.color = '#fff';
-        if (barang.isBossBundle) {
-            // PERBAIKAN: Sembunyikan label ini agar tidak bertumpuk
-            // dan tidak mendorong balon dialog pelanggan ke luar layar
-            label.style.display = 'none';
-        } else if (barang.isBossFinal) {
-            label.innerText = `⚔️ Tantangan Akhir: Berapakah Harga 1 ${barang.nama}?`;
-        }
-    } else if (barang.isPaket) {
-        label.style.backgroundColor = '#8e44ad';
-        label.style.borderColor = '#732d91';
-        label.style.color = '#f1c40f';
-        label.innerText = `📦 Barang Paket: 1 ${barang.nama} = Rp ${barang.harga_satuan.toLocaleString('id-ID')}`;
-    } else if (barang.isGrosir) {
-        label.style.backgroundColor = '#d35400';
-        label.style.borderColor = '#e67e22';
-        label.style.color = '#fff';
-        label.innerHTML = `⚠️ Batas Pembelian Grosir Maks. 10 Item<br>1 ${barang.nama} = Rp ${barang.harga_satuan.toLocaleString('id-ID')}`;
-    } else {
-        label.innerText = `1 ${barang.nama} = Rp ${barang.harga_satuan.toLocaleString('id-ID')}`;
-    }
-    floatingGroup.appendChild(label);
-
-    if (barang.diskon && barang.diskon > 0) {
-        const diskonLabel = document.createElement('div');
-        diskonLabel.className = 'floating-label';
-        diskonLabel.style.backgroundColor = '#e74c3c';
-        diskonLabel.style.color = 'white';
-        diskonLabel.innerText = `Diskon: -Rp ${barang.diskon.toLocaleString('id-ID')}`;
-        floatingGroup.appendChild(diskonLabel);
-    }
-
-    const itemsRow = document.createElement('div');
-    itemsRow.className = 'floating-items-row';
-
-    // =========================================================
-    // MODIFIKASI: Render item campuran untuk "Paket Persamaan" Level 10
-    // =========================================================
-    if (barang.isiPaket) {
-        for (let i = 0; i < barang.jumlah; i++) {
-            const packageBox = document.createElement('div');
-            packageBox.className = 'package-box item-placeholder'; // item-placeholder so it gets selected and moved to bottom
-
-            barang.isiPaket.forEach(subItem => {
-                for (let j = 0; j < subItem.jumlah; j++) {
-                    const singleItemBox = document.createElement('div');
-                    singleItemBox.innerHTML = `
-                        <img src="${getGambarBarang(subItem.nama)}" alt="${subItem.nama}" class="item-image" style="width: 40px; height: 40px; object-fit: contain;">
-                    `;
-                    packageBox.appendChild(singleItemBox);
-                }
-            });
-            itemsRow.appendChild(packageBox);
-        }
-    } else if (barang.isBossBundle) {
-        barang.items.forEach(subItem => {
-            const singleItemBox = document.createElement('div');
-            singleItemBox.className = 'item-placeholder';
-            singleItemBox.innerHTML = `
-                <img src="${getGambarBarang(subItem.nama)}" alt="${subItem.nama}" class="item-image">
-                <span style="font-size: 16px; margin-top: 5px; font-weight: 900; color: #2c3e50; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;">${subItem.variabel}</span>
-            `;
-            itemsRow.appendChild(singleItemBox);
-        });
-    } else {
-        // Render barang reguler
-        for (let i = 0; i < barang.jumlah; i++) {
-            const singleItemBox = document.createElement('div');
-            singleItemBox.className = 'item-placeholder';
-            singleItemBox.style.position = 'relative';
-
-            let discountHtml = "";
-            if (barang.diskon && barang.diskon > 0 && currentLevel === 6) {
-                discountHtml = `<div class="discount-tag">Diskon Rp ${barang.diskon.toLocaleString('id-ID')}</div>`;
-            }
-
-            singleItemBox.innerHTML = `
-                ${discountHtml}
-                <img src="${getGambarBarang(barang.nama)}" alt="${barang.nama}" class="item-image">
-                <span style="font-size: 16px; margin-top: 5px; font-weight: 900; color: #2c3e50; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;">${barang.variabel}</span>
-            `;
-            itemsRow.appendChild(singleItemBox);
-        }
-    }
-
-    floatingGroup.appendChild(itemsRow);
-    floatingZone.appendChild(floatingGroup);
-}
-
-function renderPayment() {
-    const existingPayment = document.getElementById('floating-payment-group');
-    if (existingPayment) existingPayment.remove();
-
-    const floatingGroup = document.createElement('div');
-    floatingGroup.id = 'floating-payment-group';
-
-    // PERBAIKAN: Tambahkan class 'floating-group' agar bentuk dan posisinya rapi
-    floatingGroup.className = 'floating-group fade-enter';
-
-    const label = document.createElement('div');
-    label.className = 'floating-label';
-    label.innerText = `Pembayaran: Rp ${customerPayment.totalUang.toLocaleString('id-ID')}`;
-    floatingGroup.appendChild(label);
-
-    const itemsRow = document.createElement('div');
-    itemsRow.className = 'floating-items-row';
-
-    customerPayment.lembaran.forEach(nominal => {
-        const moneyBill = document.createElement('img');
-        moneyBill.className = nominal <= 500 ? 'floating-coin-img' : 'floating-money-img';
-        moneyBill.src = getGambarUang(nominal);
-        moneyBill.alt = `Rp ${nominal}`;
-        itemsRow.appendChild(moneyBill);
-    });
-
-    floatingGroup.appendChild(itemsRow);
-    floatingZone.appendChild(floatingGroup);
-}
-
-function initCashDrawer() {
-    drawerGrid.innerHTML = "";
-
-    drawerDenominations.forEach(nominal => {
-        const slot = document.createElement('div');
-        slot.className = 'drawer-slot';
-
-        // Menggunakan tag <img> untuk isi laci kasir
-        const moneyStack = document.createElement('img');
-        moneyStack.className = nominal <= 500 ? 'real-money-coin-img' : 'real-money-stack-img';
-        moneyStack.src = getGambarUang(nominal);
-        moneyStack.alt = `Rp ${nominal}`;
-
-        moneyStack.addEventListener('click', () => {
-            givenChange.push(nominal);
-            renderFloatingChange();
-        });
-
-        slot.appendChild(moneyStack);
-        drawerGrid.appendChild(slot);
-    });
-}
-
-function renderFloatingChange() {
-    let changeGroup = document.getElementById('floating-change-group');
-
-    if (!changeGroup) {
-        changeGroup = document.createElement('div');
-        changeGroup.id = 'floating-change-group';
-        changeGroup.className = 'floating-group fade-enter';
-        floatingZone.appendChild(changeGroup);
-    } else {
-        changeGroup.innerHTML = "";
-    }
-
-    const totalGiven = givenChange.reduce((sum, val) => sum + val, 0);
-
-    if (givenChange.length === 0) {
-        changeGroup.remove();
-        return;
-    }
-
-    const label = document.createElement('div');
-    label.className = 'floating-label';
-    label.style.backgroundColor = '#2980b9';
-    label.style.borderColor = '#1f618d';
-    label.innerText = `Kembalian: Rp ${totalGiven.toLocaleString('id-ID')}`;
-    changeGroup.appendChild(label);
-
-    const itemsRow = document.createElement('div');
-    itemsRow.className = 'floating-items-row';
-
-    givenChange.forEach((nominal, index) => {
-        // Menggunakan tag <img> untuk kembalian yang melayang
-        const moneyItem = document.createElement('img');
-        moneyItem.className = nominal <= 500 ? 'floating-coin-img' : 'floating-money-img';
-        moneyItem.src = getGambarUang(nominal);
-        moneyItem.alt = `Rp ${nominal}`;
-        moneyItem.style.cursor = 'pointer';
-        moneyItem.title = "Klik untuk menarik uang kembali ke laci";
-
-        moneyItem.addEventListener('click', () => {
-            givenChange.splice(index, 1);
-            renderFloatingChange();
-        });
-
-        itemsRow.appendChild(moneyItem);
-    });
-
-    changeGroup.appendChild(itemsRow);
-}
-
-// ==========================================
-// 6. LOGIKA VALIDASI ALUR KASIR
-// ==========================================
-function cekHitungan() {
-    const barangAktif = shoppingCart[currentItemIndex];
-    const diskon = barangAktif.diskon || 0;
-
-    // =========================================================
-    // MODIFIKASI LEVEL 10: Validasi bypass untuk Boss Bundle
-    // =========================================================
-    if (barangAktif.isBossBundle) {
-        // Pemain hanya mengetik angka total secara polos (misal: 17000)
-        if (currentInput.trim() !== barangAktif.harga_satuan.toString()) {
-            showModernAlert("Fokus ke Dialog! Ketik langsung nilai Total Persamaan tanpa menggunakan rumus.", "screen-input");
-            currentInput = ""; inputLine.innerText = "0"; return;
-        }
-
-        const subtotal = barangAktif.harga_satuan;
-        grandTotalHarga += subtotal;
-        algebraParts.push(subtotal.toString());
-
-        screenTable.innerHTML += `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 2px;">
-                <span style="flex: 1.2;">Persamaan SPLDV</span>
-                <span style="flex: 2.3; text-align: center;">(Input Manual)</span>
-                <span style="flex: 1; text-align: right;">Rp ${subtotal.toLocaleString('id-ID')}</span>
-            </div>
-        `;
-    }
-    // =========================================================
-    // VALIDASI STANDAR (Level 1-9 & Pelanggan 3 di Level 10)
-    // =========================================================
-    else {
-        if (!currentInput.includes("x") || !currentInput.includes("(") || !currentInput.endsWith(")")) {
-            showModernAlert("Format salah! Ketik [Jumlah] x ([Harga Satuan])", "screen-input");
-            currentInput = ""; inputLine.innerText = "0"; return;
-        }
-
-        const parts = currentInput.split('x');
-        const inputJumlah = parseInt(parts[0].trim());
-        let dalamKurung = parts[1].replace('(', '').replace(')', '').trim();
-        let inputHargaSatuan = 0;
-        let inputDiskon = 0;
-
-        if (dalamKurung.includes('-')) {
-            const hargaParts = dalamKurung.split('-');
-            inputHargaSatuan = parseInt(hargaParts[0].replace(/\./g, '').trim()) || 0;
-            inputDiskon = parseInt(hargaParts[1].replace(/\./g, '').trim()) || 0;
-        } else {
-            inputHargaSatuan = parseInt(dalamKurung.replace(/\./g, '').trim()) || 0;
-        }
-
-        if (inputJumlah !== barangAktif.jumlah || inputHargaSatuan !== barangAktif.harga_satuan || inputDiskon !== diskon) {
-            let pesan = diskon > 0 ? "Format/hitungan salah! Ketik [Jumlah] x ([Harga Satuan] - [Diskon])" : "Format/hitungan salah! Ketik [Jumlah] x ([Harga Satuan])";
-            showModernAlert(pesan, "screen-input");
-            currentInput = ""; inputLine.innerText = "0"; return;
-        }
-
-        const subtotal = inputJumlah * (inputHargaSatuan - inputDiskon);
-        grandTotalHarga += subtotal;
-
-        // --- LEVEL 5 & 6 DISTRIBUTIVE LOGIC ---
-        if (currentLevel === 5 && barangAktif.isiPaket) {
-            let distParts = barangAktif.isiPaket.map(b => `${inputJumlah * b.jumlah} ${b.nama}`);
-            algebraParts.push(distParts.join(" + "));
-        } else if (currentLevel === 6 && diskon > 0) {
-            let totalDiskon = inputJumlah * diskon;
-            algebraParts.push(`${inputJumlah} ${barangAktif.nama} - ${totalDiskon}`);
-        } else {
-            algebraParts.push(inputJumlah + " " + barangAktif.nama);
-        }
-
-        let formatHargaText = diskon > 0
-            ? `${inputJumlah} x (Rp ${inputHargaSatuan.toLocaleString('id-ID')} - Rp ${inputDiskon.toLocaleString('id-ID')})`
-            : `${inputJumlah} x (Rp ${inputHargaSatuan.toLocaleString('id-ID')})`;
-
-        let uniqueId = `item-row-${currentItemIndex}`;
-        let textAwal = `${inputJumlah} ${barangAktif.nama}`;
-
-        if (currentLevel === 5 && barangAktif.isiPaket) {
-            let innerText = barangAktif.isiPaket.map(b => `${b.jumlah} ${b.nama}`).join(" + ");
-            textAwal = `${inputJumlah}(${innerText})`;
-        } else if (currentLevel === 6 && diskon > 0) {
-            textAwal = `${inputJumlah}(1 ${barangAktif.nama} - ${diskon})`;
-        }
-
-        screenTable.innerHTML += `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 2px;">
-                <span class="item-name-cell" id="${uniqueId}" style="flex: 1.2; transition: all 0.5s ease;">${textAwal}</span>
-                <span style="flex: 2.3; text-align: center;">${formatHargaText}</span>
-                <span style="flex: 1; text-align: right;">Rp ${subtotal.toLocaleString('id-ID')}</span>
-            </div>
-        `;
-    }
-
-    // PEMINDAHAN BARANG KE MEJA BAWAH & LANJUT KE ITEM BERIKUTNYA
-    let currentAlgebraText = algebraParts.join(" + ");
-
-    // Khusus Level 4, tampilkan tanda kurung asosiatif di cekHitungan juga
-    if (currentLevel === 4) {
-        let group1 = [];
-        let group2 = [];
-        let noGroup = [];
-
-        shoppingCart.forEach((item, idx) => {
-            if (idx <= currentItemIndex) {
-                let text = item.jumlah + " " + item.nama;
-                if (item.kantong === 1) group1.push(text);
-                else if (item.kantong === 2) group2.push(text);
-                else noGroup.push(text);
-            }
-        });
-
-        let partsFormatted = [];
-        if (group1.length > 0) partsFormatted.push("(" + group1.join(" + ") + ")");
-        if (group2.length > 0) partsFormatted.push("(" + group2.join(" + ") + ")");
-        if (noGroup.length > 0) partsFormatted.push(noGroup.join(" + "));
-
-        currentAlgebraText = partsFormatted.join(" + ");
-    }
-
-    screenFormula.innerText = "Rumus = " + currentAlgebraText;
-
-    const activeFloatingGroup = document.getElementById('current-floating-item');
-    if (activeFloatingGroup) {
-        const physicalItems = activeFloatingGroup.querySelectorAll('.item-placeholder');
-
-        physicalItems.forEach(itemBox => {
-            if (currentLevel === 4 && shoppingCart[currentItemIndex].kantong) {
-                let kantongId = "kantong-" + shoppingCart[currentItemIndex].kantong;
-                let kantongEl = document.getElementById(kantongId);
-                if (!kantongEl) {
-                    kantongEl = document.createElement('div');
-                    kantongEl.id = kantongId;
-                    kantongEl.className = 'plastic-bag';
-                    collectedItemsZone.appendChild(kantongEl);
-                }
-                kantongEl.appendChild(itemBox);
-            } else {
-                collectedItemsZone.appendChild(itemBox);
-            }
-        });
-        activeFloatingGroup.remove();
-    }
-
-    currentInput = "";
-    inputLine.innerText = "0";
-    currentItemIndex++;
-    renderItems();
-}
-
-function prosesTotalAkhir() {
-    if (currentItemIndex < shoppingCart.length) {
-        showModernAlert("Scan semua barang!", "screen-input");
-        return;
-    }
-
-    // =========================================================
-    // MODIFIKASI: Deteksi Level 4 (Tambahan Biaya Konstanta)
-    // =========================================================
-    if (currentLevel === 4 || currentLevel === 5) {
-        const biayaKonstanta = 2000;
-        grandTotalHarga += biayaKonstanta;
-
-        screenTable.innerHTML += `
-            <div style="display: flex; justify-content: space-between; margin-top: 5px; border-top: 1px dashed rgba(0,0,0,0.2); padding-top: 5px; color: #d35400; font-weight: bold;">
-                <span style="flex: 1.2;">Kantong/Ongkir</span>
-                <span style="flex: 2.3; text-align: center;">(+ Konstanta)</span>
-                <span style="flex: 1; text-align: right;">Rp 2.000</span>
-            </div>
-        `;
-        algebraParts.push("2000");
-    } else if (currentLevel === 8) {
-        const biayaLayanan = 5000;
-        grandTotalHarga += biayaLayanan;
-
-        screenTable.innerHTML += `
-            <div style="display: flex; justify-content: space-between; margin-top: 5px; border-top: 1px dashed rgba(0,0,0,0.2); padding-top: 5px; color: #8e44ad; font-weight: bold;">
-                <span style="flex: 1.2;">Layanan Toko</span>
-                <span style="flex: 2.3; text-align: center;">(+ Konstanta c)</span>
-                <span style="flex: 1; text-align: right;">Rp 5.000</span>
-            </div>
-        `;
-        algebraParts.push("5000");
-    }
-    // =========================================================
-
-    // Perbarui nilai pada UI layar kasir baru
-    screenTotalVal.innerText = "Rp " + grandTotalHarga.toLocaleString('id-ID');
-
-    if (currentLevel === 3) {
-        screenFormula.innerText = "Rumus = " + algebraParts.join(" + ");
-
-        let itemMap = {};
-        shoppingCart.forEach(item => {
-            if (itemMap[item.nama]) itemMap[item.nama] += item.jumlah;
-            else itemMap[item.nama] = item.jumlah;
-        });
-
-        let partsSimplified = [];
-        for (let nama in itemMap) {
-            partsSimplified.push(itemMap[nama] + " " + nama);
-        }
-        let finalFormula = partsSimplified.join(" + ");
-
-        setTimeout(() => {
-            screenFormula.classList.add('algebra-glow');
-            setTimeout(() => {
-                screenFormula.innerText = "Rumus = " + finalFormula + " = Rp " + grandTotalHarga.toLocaleString('id-ID');
-                screenFormula.classList.remove('algebra-glow');
-                screenFormula.classList.add('algebra-text');
-            }, 500);
-        }, 1500);
-
-    } else if (currentLevel === 4) {
-        let group1 = [];
-        let group2 = [];
-        let noGroup = [];
-
-        shoppingCart.forEach((item) => {
-            let text = item.jumlah + " " + item.nama;
-            if (item.kantong === 1) group1.push(text);
-            else if (item.kantong === 2) group2.push(text);
-            else noGroup.push(text);
-        });
-
-        let partsFormatted = [];
-        if (group1.length > 0) partsFormatted.push("(" + group1.join(" + ") + ")");
-        if (group2.length > 0) partsFormatted.push("(" + group2.join(" + ") + ")");
-        if (noGroup.length > 0) partsFormatted.push(noGroup.join(" + "));
-
-        if (algebraParts[algebraParts.length - 1] === "2000") {
-            partsFormatted.push("2000");
-        }
-
-        let finalFormula = partsFormatted.join(" + ");
-        screenFormula.innerText = "Rumus = " + finalFormula + " = Rp " + grandTotalHarga.toLocaleString('id-ID');
-    } else {
-        screenFormula.innerText = "Rumus = " + algebraParts.join(" + ") + " = Rp " + grandTotalHarga.toLocaleString('id-ID');
-    }
-
-    // Ubah status input untuk menunggu pembayaran
-    inputLine.innerText = "Tunggu Pembayaran";
-    inputLine.style.color = '#e74c3c';
-    gamePhase = "payment";
-
-    renderPayment();
-}
-
-function prosesPembayaran() {
-    if (gamePhase !== "payment") return;
-
-    if (parseInt(currentInput) === customerPayment.totalUang) {
-        gamePhase = "give_change";
-        expectedChange = customerPayment.totalUang - grandTotalHarga;
-
-        // Tampilkan nominal pembayaran pelanggan di layar LCD kasir
-        screenPayment.innerText = "Pembayaran = Rp " + customerPayment.totalUang.toLocaleString('id-ID') + ", -";
-
-        // Ubah layar input menjadi target kembalian
-        inputLine.innerText = "Rp " + expectedChange.toLocaleString('id-ID');
-        inputLine.style.color = '#2980b9';
-
-        calculatorUI.style.display = 'none';
-        drawerUI.style.display = 'flex'; // Laci uang muncul dari bawah
-
-        initCashDrawer();
-        renderFloatingChange(); // <--- Ganti baris ini
-    } else {
-        alert("Jumlah uang salah!");
-        currentInput = "";
-        inputLine.innerText = "0";
-    }
-}
-
-function tampilkanStruk() {
-    let rincianBarang = "";
-    shoppingCart.forEach(item => {
-        rincianBarang += `<div class="receipt-row"><span>${item.jumlah}x ${item.nama}</span><span>${(item.harga_satuan * item.jumlah).toLocaleString('id-ID')}</span></div>`;
-    });
-
-    // Modifikasi: Tampilkan Ongkir di Struk
-    if (currentLevel === 4 || currentLevel === 5) {
-        rincianBarang += `<div class="receipt-row" style="color: #d35400; font-style: italic; margin-top: 5px;"><span>Biaya Kantong/Ongkir</span><span>2.000</span></div>`;
-    } else if (currentLevel === 8) {
-        rincianBarang += `<div class="receipt-row" style="color: #8e44ad; font-style: italic; margin-top: 5px;"><span>Biaya Layanan Toko</span><span>5.000</span></div>`;
-    }
-    receiptContent.innerHTML = `
-        <div class="receipt-title">Daftar Barang:</div>
-        ${rincianBarang}
-        <div class="receipt-title">Riwayat Aljabar:</div>
-        <div style="font-size: 12px;">Total = ${algebraParts.join(" + ")}</div>
-        <br>
-        <div class="receipt-row"><strong>TOTAL BELANJA</strong><strong>Rp ${grandTotalHarga.toLocaleString('id-ID')}</strong></div>
-        <div class="receipt-row"><span>TUNAI</span><span>Rp ${customerPayment.totalUang.toLocaleString('id-ID')}</span></div>
-        <div class="receipt-row"><span>KEMBALIAN</span><span>Rp ${expectedChange.toLocaleString('id-ID')}</span></div>
-    `;
-    receiptModal.style.display = 'flex';
-}
-
-// ==========================================
-// 7. KONTROL EVENT LISTENER KASIR
-// ==========================================
-buttons.forEach(button => {
-    button.addEventListener('click', () => {
-        const txt = button.innerText;
-
-        if (txt === 'C') {
-            currentInput = "";
-            inputLine.innerText = "0";
-        }
-        else if (txt === '⌫') {
-            if (currentInput === "" || currentInput === "0") {
-                currentInput = "";
-                inputLine.innerText = "0";
-                return;
-            }
-
-            // Jika menghapus tepat saat posisi kurung kosong "jumlah x ()"
-            if (currentInput.endsWith(" x ()")) {
-                currentInput = currentInput.replace(" x ()", "");
-            }
-            // Jika menghapus angka yang berada di dalam kurung "jumlah x (harga)"
-            else if (currentInput.includes(" x (") && currentInput.endsWith(")")) {
-                let leftPart = currentInput.slice(0, currentInput.indexOf(" x (") + 4);
-                let core = currentInput.slice(currentInput.indexOf(" x (") + 4, -1); // Ambil teks di dalam ()
-
-                if (core.endsWith(" - ")) {
-                    core = core.slice(0, -3); // Hapus operator minus diskon beserta spasinya
-                } else {
-                    core = core.slice(0, -1); // Hapus satu angka terakhir
-
-                    // Format ulang sisa angka agar tanda titik ribuan tetap benar setelah dihapus
-                    if (core.includes(" - ")) {
-                        let parts = core.split(" - ");
-                        let p1 = parts[0].replace(/\./g, '');
-                        let p2 = parts[1].replace(/\./g, '');
-                        let f1 = p1 ? parseInt(p1).toLocaleString('id-ID') : "";
-                        let f2 = p2 ? parseInt(p2).toLocaleString('id-ID') : "";
-                        core = f1 + " - " + f2;
-                    } else {
-                        let p = core.replace(/\./g, '');
-                        core = p ? parseInt(p).toLocaleString('id-ID') : "";
-                    }
-                }
-                currentInput = leftPart + core + ")";
-            }
-            // Jika menghapus angka jumlah/kuantitas biasa di depan sebelum tanda x
-            else {
-                currentInput = currentInput.slice(0, -1);
-            }
-
-            inputLine.innerText = currentInput === "" ? "0" : currentInput;
-        }
-        else if (txt === 'x') {
-            // Jika belum ada perkalian, otomatis buat sepasang kurung lengkap " x ()"
-            if (!currentInput.includes('x') && currentInput !== "" && currentInput !== "-") {
-                currentInput += " x ()";
-            }
-            inputLine.innerText = currentInput;
-        }
-        else if (txt === '-') {
-            if (currentInput.includes('x')) {
-                // Jika berada di dalam kurung, sisipkan operator minus untuk diskon " - "
-                let core = currentInput.slice(currentInput.indexOf(" x (") + 4, -1);
-                if (core !== "" && !core.includes(" - ")) {
-                    currentInput = currentInput.slice(0, -1) + " - )";
-                }
-            } else {
-                // Logika minus standar jika ditekan di awal kuantitas
-                if (currentInput === "") currentInput = "-";
-                else if (!currentInput.includes("-")) currentInput += "-";
-            }
-            inputLine.innerText = currentInput === "" ? "0" : currentInput;
-        }
-        else if (txt === '+') {
-            if (currentInput !== "" && currentInput !== "-" && gamePhase === "scanning") cekHitungan();
-        }
-        else if (txt === '=') {
-            if (gamePhase === "scanning") prosesTotalAkhir();
-        }
-        else if (txt === 'Bayar') {
-            if (currentInput !== "" && currentInput !== "-") prosesPembayaran();
-        }
-        else {
-            // KONDISI MENGETIK ANGKA (0 - 9)
-            if (currentInput.includes(' x (')) {
-                // Otomatis mengetik dan menyisip di dalam kurung langsung
-                let leftPart = currentInput.slice(0, currentInput.indexOf(" x (") + 4);
-                let core = currentInput.slice(currentInput.indexOf(" x (") + 4, -1);
-
-                if (core.includes(" - ")) {
-                    let parts = core.split(" - ");
-                    let hargaStr = parts[0];
-                    let diskonStr = parts[1] + txt;
-
-                    // Bersihkan titik lama lalu format ulang dengan titik ribuan baru
-                    diskonStr = diskonStr.replace(/\./g, '');
-                    let diskonFormatted = parseInt(diskonStr).toLocaleString('id-ID');
-                    currentInput = leftPart + hargaStr + " - " + diskonFormatted + ")";
-                } else {
-                    let hargaStr = core + txt;
-
-                    // Bersihkan titik lama lalu format ulang dengan titik ribuan baru
-                    hargaStr = hargaStr.replace(/\./g, '');
-                    let hargaFormatted = parseInt(hargaStr).toLocaleString('id-ID');
-                    currentInput = leftPart + hargaFormatted + ")";
-                }
-            } else {
-                // Mengetik angka jumlah di luar kurung seperti biasa
-                if (currentInput === "0") currentInput = txt;
-                else currentInput += txt;
-            }
-            inputLine.innerText = currentInput;
-        }
-    });
-});
-
-finishBtn.addEventListener('click', () => {
-    const totalDiberikan = givenChange.reduce((total, nominal) => total + nominal, 0);
-
-    if (totalDiberikan === expectedChange) {
-        gamePhase = "done";
-        tampilkanStruk();
-    } else {
-        showModernAlert(`Kembalian salah!\nKamu memberikan Rp ${totalDiberikan.toLocaleString('id-ID')}, seharusnya Rp ${expectedChange.toLocaleString('id-ID')}.`, "finish-btn");
-    }
-});
-
-// --- LEVEL 2 COMMUTATIVE MODAL ---
-function tampilkanModalKomutatif() {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.id = 'commutative-modal';
-    modal.style.display = 'flex';
-    modal.style.zIndex = '300';
-    modal.innerHTML = `
-        <div class="commutative-container">
-            <h2 style="color: #2c3e50; margin-bottom: 20px;">Membuktikan Sifat Komutatif</h2>
-            <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 20px; gap: 10px;">
-                <div class="receipt-paper" style="transform: scale(0.9); padding: 15px; margin: 0; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: auto;">
-                    <div class="receipt-subtitle">Pelanggan 1</div>
-                    <hr>
-                    <div style="font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; text-align: center; padding: 10px 0;">
-                        2 Roti + 3 Kopi AAA = Rp 61.000
-                    </div>
-                </div>
-                <div id="commutative-equals" style="font-size: 40px; font-weight: bold; color: #e74c3c; opacity: 0; transition: opacity 1.5s, transform 1.5s; transform: scale(0.5);">
-                    ===
-                </div>
-                <div class="receipt-paper" style="transform: scale(0.9); padding: 15px; margin: 0; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: auto;">
-                    <div class="receipt-subtitle">Pelanggan 2</div>
-                    <hr>
-                    <div style="font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; text-align: center; padding: 10px 0;">
-                        3 Kopi AAA + 2 Roti = Rp 61.000
-                    </div>
-                </div>
-            </div>
-            <p style="color: #34495e; font-size: 16px; margin-bottom: 20px; font-weight: bold;">Sifat Komutatif: Menukar urutan barang tidak mengubah total harga.</p>
-            <button id="btn-komutatif-lanjut" class="btn primary-btn" style="width: 100%; font-size: 18px; margin-top: 10px;">Konfirmasi Kesamaan</button>
-        </div>
-    `;
-
-    document.getElementById('main-game-ui').appendChild(modal);
-
-    setTimeout(() => {
-        const eq = document.getElementById('commutative-equals');
-        if (eq) {
-            eq.style.opacity = '1';
-            eq.style.transform = 'scale(1)';
-        }
-    }, 1500);
-
-    document.getElementById('btn-komutatif-lanjut').addEventListener('click', () => {
-        modal.remove(); // Tutup modal
-
-        receiptModal.style.display = 'none';
-        document.getElementById('main-game-ui').style.display = 'none';
-        quizUI.style.display = 'flex';
-        mulaiKuis();
-    });
-}
-
-// --- LEVEL 4 ASSOCIATIVE MODAL ---
-function tampilkanModalAsosiatif() {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.id = 'associative-modal';
-    modal.style.display = 'flex';
-    modal.style.zIndex = '300';
-    modal.innerHTML = `
-        <div class="commutative-container">
-            <h2 style="color: #2c3e50; margin-bottom: 20px;">Membuktikan Sifat Asosiatif</h2>
-            <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 20px; gap: 10px;">
-                <div class="receipt-paper" style="transform: scale(0.9); padding: 15px; margin: 0; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: auto;">
-                    <div class="receipt-subtitle">Pelanggan 1</div>
-                    <hr>
-                    <div style="font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; text-align: center; padding: 10px 0;">
-                        (1 Apel + 1 Jeruk) + 1 Terong = Rp 10.500
-                    </div>
-                </div>
-                <div id="associative-equals" style="font-size: 40px; font-weight: bold; color: #e74c3c; opacity: 0; transition: opacity 1.5s, transform 1.5s; transform: scale(0.5);">
-                    ===
-                </div>
-                <div class="receipt-paper" style="transform: scale(0.9); padding: 15px; margin: 0; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: auto;">
-                    <div class="receipt-subtitle">Pelanggan 2</div>
-                    <hr>
-                    <div style="font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; text-align: center; padding: 10px 0;">
-                        1 Apel + (1 Jeruk + 1 Terong) = Rp 10.500
-                    </div>
-                </div>
-            </div>
-            <p style="color: #34495e; font-size: 16px; margin-bottom: 20px; font-weight: bold;">Sifat Asosiatif: Mengubah kelompok kantong (tanda kurung) tidak mengubah total harga.</p>
-            <button id="btn-asosiatif-lanjut" class="btn primary-btn" style="width: 100%; font-size: 18px; margin-top: 10px;">Konfirmasi Kesamaan</button>
-        </div>
-    `;
-
-    document.getElementById('main-game-ui').appendChild(modal);
-
-    setTimeout(() => {
-        const eq = document.getElementById('associative-equals');
-        if (eq) {
-            eq.style.opacity = '1';
-            eq.style.transform = 'scale(1)';
-        }
-    }, 1000);
-
-    document.getElementById('btn-asosiatif-lanjut').addEventListener('click', () => {
-        modal.remove(); // Tutup modal
-
-        receiptModal.style.display = 'none';
-        document.getElementById('main-game-ui').style.display = 'none';
-        quizUI.style.display = 'flex';
-        mulaiKuis();
-    });
-}
-
-nextCustomerBtn.addEventListener('click', () => {
-    currentCustomerIndex++;
-    if (currentCustomerIndex >= maxCustomers) {
-        if (currentLevel === 2) {
-            tampilkanModalKomutatif();
-            return;
-        }
-        if (currentLevel === 4) {
-            tampilkanModalAsosiatif();
-            return;
-        }
-
-        receiptModal.style.display = 'none';
-        mainGameUI.style.display = 'none';
-        quizUI.style.display = 'flex';
-        mulaiKuis();
-        return;
-    }
-
-    // Kosongkan area melayang dan meja bawah
-    floatingZone.innerHTML = "";
-    collectedItemsZone.innerHTML = "";
-
-    setupPelangganBaru();
-    currentItemIndex = 0;
-    gamePhase = "scanning";
-    currentInput = "";
-    algebraParts = [];
-    substitutionParts = [];
-    grandTotalHarga = 0;
-    expectedChange = 0;
-    givenChange = [];
-
-    receiptModal.style.display = 'none';
-    drawerUI.style.display = 'none';
-    calculatorUI.style.display = 'grid';
-
-    // Reset elemen UI layar kasir baru
-    screenTable.innerHTML = "";
-    screenTotalVal.innerText = "";
-    screenFormula.innerText = "";
-    screenPayment.innerText = "";
-    inputLine.innerText = "0";
-    inputLine.style.color = '#e74c3c'; // Kembalikan ke warna default merah
-
-    renderItems();
-});
-
-// ==========================================
-// 8. LOGIKA KUIS EVALUASI (DINAMIS)
-// ==========================================
-function generateKuis(level) {
-    // Mengambil tepat 2 soal dari data statis berdasarkan level saat ini
-    quizData = dataKuisStatis[level] || [];
-}
-
-function mulaiKuis() {
-    generateKuis(currentLevel);
-    currentQuizIndex = 0; quizScore = 0;
-    renderSoalKuis();
-}
-
-function renderSoalKuis() {
-    nextQuizBtn.style.display = 'none'; quizFeedback.innerText = ""; quizOptionsContainer.innerHTML = "";
-    const soal = quizData[currentQuizIndex];
-    quizQuestion.innerText = soal.question;
-
-    soal.options.forEach((opsi, index) => {
+    users.forEach(u => {
         const btn = document.createElement('button');
-        btn.className = 'quiz-btn'; btn.innerText = opsi;
-        btn.addEventListener('click', () => cekJawabanKuis(index, btn));
-        quizOptionsContainer.appendChild(btn);
+        btn.className = 'user-btn';
+        btn.innerHTML = `
+            <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
+            <div class="user-info">
+                <div class="user-name">${u.name}</div>
+                <div class="user-meta">${u.kelas} | Rp ${u.money.toLocaleString('id-ID')}</div>
+            </div>
+            <i class="fa-solid fa-chevron-right"></i>
+        `;
+        btn.onclick = () => login(u.id);
+        list.appendChild(btn);
     });
 }
 
-function cekJawabanKuis(selectedIndex, btnElement) {
-    const soal = quizData[currentQuizIndex];
-    const allQuizBtns = document.querySelectorAll('.quiz-btn');
-    allQuizBtns.forEach(btn => btn.disabled = true);
+function createUser() {
+    const name = document.getElementById('new-username').value.trim();
+    const gender = document.getElementById('new-gender').value;
+    const kelas = document.getElementById('new-class').value.trim();
+    if (!name || !kelas) return showMsg('Error', 'Nama dan Kelas harus diisi!');
 
-    if (selectedIndex === soal.correctIndex) {
-        btnElement.classList.add('correct');
-        quizFeedback.innerText = "Jawaban Benar! 🎉"; quizFeedback.style.color = "#2ecc71";
-        quizScore++;
-    } else {
-        btnElement.classList.add('wrong');
-        quizFeedback.innerText = "Jawaban Salah."; quizFeedback.style.color = "#e74c3c";
-        allQuizBtns[soal.correctIndex].classList.add('correct');
-    }
-    nextQuizBtn.style.display = 'block';
+    const newUser = {
+        id: Date.now().toString(), name, gender, kelas,
+        money: 0, revenue: 0, cost: 0, maxLevel: 0,
+        badges: [], history: [], createdAt: new Date().toISOString()
+    };
+    users.push(newUser); saveData();
+    document.getElementById('new-username').value = '';
+    document.getElementById('new-class').value = '';
+    login(newUser.id);
 }
 
-nextQuizBtn.addEventListener('click', () => {
-    currentQuizIndex++;
-    if (currentQuizIndex < quizData.length) {
-        renderSoalKuis();
+function login(id) {
+    currentUser = users.find(u => u.id === id);
+    if (currentUser) {
+        requestFullScreen(); // Memaksa browser Full Screen saat profil diklik
+        switchScreen('screen-lobby');
+    }
+}
+
+function logout() { 
+    currentUser = null; 
+    renderUserList(); 
+    
+    // ==========================================
+    // --- TAMBAHAN: SAPU BERSIH OVERLAY & MODAL ---
+    // ==========================================
+    
+    // 1. Matikan status tutorial dan sembunyikan overlay-nya
+    isTutorialActive = false;
+    const tutorialOverlay = document.getElementById('tutorial-overlay');
+    if (tutorialOverlay) {
+        tutorialOverlay.classList.add('hidden');
+        tutorialOverlay.style.pointerEvents = "none";
+    }
+    
+    // 2. Sembunyikan semua pop-up (modal) lain yang mungkin sedang terbuka saat ESC ditekan
+    const receiptModal = document.getElementById('receipt-modal');
+    if (receiptModal) receiptModal.style.display = "none";
+    
+    const quizModal = document.getElementById('quiz-modal');
+    if (quizModal) quizModal.classList.add('hidden');
+    
+    const msgModal = document.getElementById('modal-msg');
+    if (msgModal) msgModal.classList.add('hidden');
+
+    // ==========================================
+    
+    exitFullScreen(); // Mengembalikan layar browser ke normal
+    switchScreen('screen-login'); // Pindah ke halaman login
+}
+function renderLobby() {
+    document.getElementById('lobby-name').innerText = currentUser.name;
+    document.getElementById('lobby-gender').innerText = currentUser.gender;
+    document.getElementById('lobby-class').innerText = currentUser.kelas;
+    const title = getTitle(currentUser.money);
+    document.getElementById('lobby-title').innerText = title;
+    document.getElementById('lobby-id-name').innerText = currentUser.name;
+    document.getElementById('lobby-id-title').innerText = title;
+    currentUser.token = `${currentUser.name.substring(0, 3).toUpperCase()}${currentUser.money}-${currentUser.maxLevel}LV`;
+
+    // ========================================================
+    // --- GANTI AVATAR & FULL BODY SESUAI GENDER SISWA ---
+    // ========================================================
+    const avatarMini = document.getElementById('lobby-avatar-mini');
+    const characterFull = document.getElementById('lobby-character');
+
+    if (currentUser.gender === "Perempuan") {
+        avatarMini.src = "assets/character/avatar-female.svg";
+        characterFull.src = "assets/character/character-female.svg";
     } else {
-        quizUI.style.display = 'none';
-        gameOverUI.style.display = 'flex';
-        finalScoreText.innerText = `${quizScore} / ${quizData.length}`;
+        avatarMini.src = "assets/character/avatar-male.svg";
+        characterFull.src = "assets/character/character-male.svg";
+    }
+}
 
-        // Kalkulasi Bintang
-        let earnedStars = 0;
-        if (quizScore === quizData.length) earnedStars = 3;
-        else if (quizScore > 0) earnedStars = 2;
-        else earnedStars = 1;
-
-        if (earnedStars > levelStars[currentLevel]) {
-            levelStars[currentLevel] = earnedStars;
-            localStorage.setItem('algebraMartStars', JSON.stringify(levelStars));
-            updateStarsUI();
-        }
-
-        let unlockMsg = document.getElementById('unlock-message');
-        if (!unlockMsg) {
-            unlockMsg = document.createElement('div');
-            unlockMsg.id = 'unlock-message';
-            unlockMsg.style.fontSize = '22px';
-            unlockMsg.style.marginTop = '15px';
-            unlockMsg.style.fontWeight = 'bold';
-            finalScoreText.parentNode.appendChild(unlockMsg);
-        }
-
-        // Logika Unlocking Level Dinamis (1 sampai 10)
-        if (quizScore === quizData.length) {
-            unlockMsg.style.color = '#f1c40f';
-            if (currentLevel < 10) {
-                const nextLevelBtn = document.getElementById(`level-${currentLevel + 1}-btn`);
-                if (nextLevelBtn) {
-                    nextLevelBtn.classList.remove('locked');
-                    nextLevelBtn.disabled = false;
-                }
-                unlockMsg.innerText = `🌟 Sempurna! Level ${currentLevel + 1} Terbuka.`;
+function renderLevels() {
+    const container = document.getElementById('level-grid-container');
+    container.innerHTML = '';
+    for (let i = 1; i <= 10; i++) { // Render 10 Level Utama
+        const isUnlocked = i <= (currentUser.maxLevel + 1);
+        const btn = document.createElement('button');
+        if (isUnlocked) {
+            const hist = currentUser.history.find(h => h.level === i);
+            let starsHTML = '';
+            if (hist) {
+                const stars = hist.errors === 0 ? 3 : (hist.errors <= 2 ? 2 : 1);
+                for (let s = 0; s < 3; s++) starsHTML += `<i class="fa-solid fa-star ${s < stars ? 'star-active' : 'star-inactive'}"></i>`;
             } else {
-                unlockMsg.innerText = "🏆 Luar Biasa! Kamu Menamatkan Game Ini.";
+                starsHTML = `<i class="fa-regular fa-star star-inactive"></i><i class="fa-regular fa-star star-inactive"></i><i class="fa-regular fa-star star-inactive"></i>`;
             }
+            btn.className = "btn-level-unlocked";
+            btn.innerHTML = `<span>${i}</span><div class="level-stars">${starsHTML}</div>`;
+            btn.onclick = () => startLevel(i);
         } else {
-            unlockMsg.style.color = '#fff';
-            unlockMsg.innerText = "Skor belum sempurna. Coba lagi untuk membuka level berikutnya!";
+            btn.className = "btn-level-locked";
+            btn.innerHTML = `<span>${i}</span><i class="fa-solid fa-lock"></i>`;
         }
-    }
-});
-
-// Fungsi mengubah skor angka menjadi tampilan Bintang (★ / ☆)
-function updateStarsUI() {
-    for (let level = 1; level <= 10; level++) {
-        let starsCount = levelStars[level] || 0;
-        let starString = "";
-        for (let i = 0; i < 3; i++) {
-            starString += (i < starsCount) ? "★" : "☆";
-        }
-        const starElement = document.getElementById(`stars-level-${level}`);
-        if (starElement) starElement.innerText = starString;
+        container.appendChild(btn);
     }
 }
 
-// Tutup tutorial saat tombol ditekan
-closeTutorialBtn.addEventListener('click', () => {
-    tutorialOverlay.style.display = 'none';
-    tutorialDone = true;
-});
+function bukaMenuLevel() {
+    switchScreen('screen-levels');
+    showMsg("🎯 Capaian Pembelajaran", 
+        "<ul style='text-align: left; padding-left: 20px; font-size: 0.85rem; line-height: 1.5; color: #334155; margin-top: 10px;'>" +
+        "<li>Mengenali, memprediksi dan menggeneralisasi pola dalam bentuk susunan benda dan bilangan.</li>" +
+        "<li>Menyatakan suatu situasi ke dalam bentuk aljabar.</li>" +
+        "<li>Menggunakan sifat-sifat operasi (komutatif, asosiatif, dan distributif) untuk menghasilkan bentuk aljabar yang ekuivalen.</li>" +
+        "</ul>"
+    );
+}
 
-// Panggil fungsi bintang saat game pertama kali dimuat
-updateStarsUI();
+const LEVEL_OBJECTIVES = {
+    1: "Pengenalan Variabel",
+    2: "Sifat Komutatif",
+    3: "Penjumlahan & Pengurangan Sejenis",
+    4: "Pengenalan Koefisien",
+    5: "Substitusi Nilai Variabel 1",
+    6: "Penyederhanaan Ekspresi Gabungan",
+    7: "Substitusi Nilai Variabel 2",
+    8: "Evaluasi Persamaan Ekuivalen",
+    9: "Makna Koefisien Nol",
+    10: "Tantangan Terakhir"
+};
 
 // ==========================================
-// 9. MENU NAVIGASI & MEMULAI GAME
+// --- GAMEPLAY CORE (LOGIKA DINAMIS a-q) ---
 // ==========================================
-// ==========================================
-// 9. MENU NAVIGASI & MEMULAI GAME
-// ==========================================
+function initGameListeners() {
+    const formulaInput = document.getElementById("formula-box");
+    const paidInput = document.getElementById("paid-box");
+    const inputButtons = document.querySelectorAll(".numpad-grid .btn-num, .numpad-grid .btn-op");
+    const backspaceBtn = document.querySelector(".btn-backspace");
+    const clearBtn = document.querySelector(".btn-clear");
+    const calcBtn = document.querySelector(".btn-calc");
+    const confirmBtn = document.getElementById("btn-final-checkout");
+    const btnCloseModal = document.getElementById("btn-close-modal");
 
-// Status deteksi mode
-let isFacilitatorMode = false;
+    if (!formulaInput) return;
 
-// Fungsi untuk memperbarui status gembok level (Fasilitator & Normal)
-function updateLevelLocks() {
-    const menuTitle = document.querySelector('.menu-title');
+    formulaInput.onclick = () => {
+        if (isTutorialActive) {
+            if (tutorialSteps[currentTutorialStep].target !== '#formula-box') return;
+            nextTutorialStep();
+        }
+        setFocus(formulaInput);
+    };
 
-    if (isFacilitatorMode) {
-        // JIKA FASILITATOR: Ubah judul dan BUKA SEMUA GEMBOK
-        if (menuTitle) menuTitle.innerHTML = "Pilih Tingkat Kesulitan <br><span style='color:#f1c40f; font-size:18px;'>[ Mode Fasilitator ]</span>";
-
-        for (let i = 1; i <= 10; i++) {
-            const btn = document.getElementById(`level-${i}-btn`);
-            if (btn) {
-                btn.classList.remove('locked');
-                btn.disabled = false;
+    if (paidInput) {
+        paidInput.onclick = () => {
+            if (isTutorialActive) {
+                if (tutorialSteps[currentTutorialStep].target !== '#paid-box') return;
+                paidInput.value = "50.000"; // Bantuan auto isi
+                paidInput.style.color = "#1a1a1a";
+                nextTutorialStep();
             }
-        }
-    } else {
-        // JIKA PEMAIN NORMAL: Buka berdasarkan sistem Bintang (Progression)
-        if (menuTitle) menuTitle.innerHTML = "Pilih Tingkat Kesulitan";
+            setFocus(paidInput);
+        };
+    }
 
-        // Level 1 selalu bisa dimainkan
-        const btnLevel1 = document.getElementById('level-1-btn');
-        if (btnLevel1) {
-            btnLevel1.classList.remove('locked');
-            btnLevel1.disabled = false;
-        }
+    inputButtons.forEach(btn => {
+        btn.onclick = () => {
+            if (isTutorialActive) {
+                if (!btn.matches(tutorialSteps[currentTutorialStep].target)) return;
+                nextTutorialStep();
+            }
+            if (!activeInput) activeInput = formulaInput;
+            if (activeInput.id === "paid-box") {
+                if (btn.classList.contains('btn-num')) {
+                    let currentVal = activeInput.value.replace(/\./g, '');
+                    let newVal = currentVal + btn.textContent;
+                    activeInput.value = parseInt(newVal, 10).toLocaleString('id-ID');
+                }
+            } else {
+                activeInput.value += btn.textContent;
+            }
+            activeInput.style.color = "#1a1a1a";
+        };
+    });
 
-        // Level 2 sampai 10 hanya terbuka jika level sebelumnya punya minimal 3 bintang
-        for (let i = 2; i <= 10; i++) {
-            const btn = document.getElementById(`level-${i}-btn`);
-            if (btn) {
-                if (levelStars[i - 1] >= 3) {
-                    btn.classList.remove('locked');
-                    btn.disabled = false;
+    
+
+    if (backspaceBtn) {
+        backspaceBtn.onclick = () => {
+            if (isTutorialActive) return;
+            
+            if (activeInput && activeInput.value.length > 0) {
+                if (activeInput.id === "formula-box") {
+                    // Menghapus satu suku aljabar, angka, atau tanda operasi di akhir string
+                    activeInput.value = activeInput.value.replace(/(\d*[a-q]|[+-]|\d+)$/i, '');
+                    
+                    // Reset tampilan harga karena rumus telah berubah
+                    document.getElementById("harga-display").textContent = "";
+                    tagihanTervalidasi = 0;
+                    document.getElementById("tray-items").innerHTML = "";
+                    
+                } else if (activeInput.id === "paid-box") {
+                    // Untuk kotak uang, hapus digit terakhir dan format ulang titik ribuannya
+                    let currentVal = activeInput.value.replace(/\./g, '');
+                    currentVal = currentVal.slice(0, -1);
+                    
+                    if (currentVal.length > 0) {
+                        activeInput.value = parseInt(currentVal, 10).toLocaleString('id-ID');
+                    } else {
+                        activeInput.value = "";
+                    }
                 } else {
-                    btn.classList.add('locked');
-                    btn.disabled = true;
+                    activeInput.value = activeInput.value.slice(0, -1);
                 }
             }
+        };
+    }
+
+    if (clearBtn) {
+        clearBtn.onclick = () => {
+            if (isTutorialActive) return;
+            if (activeInput) {
+                activeInput.value = "";
+                if (activeInput.id === "formula-box") {
+                    document.getElementById("harga-display").textContent = "";
+                    tagihanTervalidasi = 0;
+                    document.getElementById("tray-items").innerHTML = "";
+                } else if (activeInput.id === "paid-box") {
+                    // Reset opacity uang pelanggan jika kasir membersihkan kotak "Dibayar"
+                    const dompetItems = document.querySelectorAll("#wallet-container-dynamic .img-placeholder");
+                    dompetItems.forEach(item => {
+                        item.style.opacity = "1";
+                    });
+                }
+            }
+        };
+    }
+
+    if (calcBtn) {
+        calcBtn.onclick = () => {
+            if (isTutorialActive) {
+                if (tutorialSteps[currentTutorialStep].target !== '.btn-calc') return;
+                nextTutorialStep();
+            }
+            calculateFormula();
+        };
+    }
+
+    if (confirmBtn) {
+        confirmBtn.onclick = () => {
+            if (isTutorialActive) {
+                if (tutorialSteps[currentTutorialStep].target !== '#btn-final-checkout') return;
+                nextTutorialStep();
+            }
+            // Jika dalam mode kembalian, tombol centang berfungsi untuk mensubmit uang
+            if (kembalianModeActive) {
+                validasiUangKembalian();
+            } else {
+                processCheckout(); // Jika tidak, proses struk biasa
+            }
+        };
+    }
+
+    if (btnCloseModal) btnCloseModal.onclick = finishCustomerOrLevel;
+}
+
+function addVariable(varName) {
+    if (isTutorialActive) {
+        const target = tutorialSteps[currentTutorialStep].target;
+        if (!target.includes(varName)) return;
+        nextTutorialStep();
+    }
+
+    const formulaInput = document.getElementById("formula-box");
+    if (!activeInput) activeInput = formulaInput;
+
+    if (activeInput.id === "formula-box") {
+        // Hilangkan spasi sementara untuk mempermudah pengecekan logika
+        let currentValue = activeInput.value.replace(/\s+/g, '');
+
+        if (currentValue === "") {
+            // KONDISI 1: Kotak masih kosong, langsung masukkan variabel (misal: "a")
+            activeInput.value = varName;
+        } 
+        else if (new RegExp(`(\\d*)(${varName})$`).test(currentValue)) {
+            // KONDISI 2: Klik variabel yang SAMA berturut-turut.
+            // Jika sebelumnya "a", diklik lagi jadi "2a", diklik lagi jadi "3a".
+            let match = currentValue.match(new RegExp(`(\\d*)(${varName})$`));
+            let currentNum = match[1] === "" ? 1 : parseInt(match[1]);
+            let newNum = currentNum + 1;
+            activeInput.value = currentValue.replace(new RegExp(`(\\d*)(${varName})$`), newNum + varName);
+        } 
+        else if (/\d+$/.test(currentValue)) {
+            // KONDISI 3: Pemain sudah mengetik angka dari Numpad (misal: "3").
+            // Saat klik barang "a", otomatis gabung menjadi "3a".
+            activeInput.value = currentValue + varName;
+        } 
+        else if (/[+\-]$/.test(currentValue)) {
+            // KONDISI 4: Diakhiri tanda operasi (misal: "3a+").
+            // Saat klik "b", langsung gabung menjadi "3a+b".
+            activeInput.value = currentValue + varName;
+        } 
+        else {
+            // KONDISI 5: Variabel berbeda diklik tanpa tanda tambah sebelumnya.
+            // Misal kotak berisi "3a", lalu pemain klik "b". Otomatis ditambahkan '+' menjadi "3a+b".
+            activeInput.value = currentValue + "+" + varName;
+        }
+
+        activeInput.style.color = "#1a1a1a";
+    }
+}
+
+function tambahUangPelanggan(nominal, element) {
+    // Abaikan jika sedang dalam mode tutorial
+    if (isTutorialActive) return;
+
+    const paidInput = document.getElementById("paid-box");
+    if (!paidInput) return;
+
+    // Ambil nilai yang sudah ada di kotak (jika ada), hapus titik, lalu konversi ke angka
+    let currentVal = paidInput.value.replace(/\./g, '');
+    currentVal = parseInt(currentVal, 10) || 0;
+
+    // CEK KONDISI UANG SAAT INI
+    if (element.style.opacity === "0.2") {
+        // KONDISI 1: Uang sudah di dalam mesin (transparan), lalu diklik lagi untuk DITARIK KEMBALI
+        element.style.opacity = "1"; // Kembalikan ke warna aslinya
+        
+        let newVal = currentVal - nominal;
+        
+        // Jika ditarik semua dan sisa 0, kosongkan kotak
+        if (newVal <= 0) {
+            paidInput.value = "";
+        } else {
+            paidInput.value = newVal.toLocaleString('id-ID');
+        }
+    } else {
+        // KONDISI 2: Uang belum di dalam mesin (jelas), lalu diklik untuk DIMASUKKAN
+        element.style.opacity = "0.2"; // Buat jadi transparan
+        
+        let newVal = currentVal + nominal;
+        paidInput.value = newVal.toLocaleString('id-ID');
+    }
+
+    paidInput.style.color = "#1a1a1a";
+    
+    // Pindahkan fokus kasir aktif ke kotak "Dibayar"
+    setFocus(paidInput);
+}
+
+function setFocus(inputElement) {
+    const formulaInput = document.getElementById("formula-box");
+    const paidInput = document.getElementById("paid-box");
+    activeInput = inputElement;
+    formulaInput.classList.remove("input-active");
+    paidInput.classList.remove("input-active");
+    inputElement.classList.add("input-active");
+}
+
+function loadCustomer() {
+    const customer = levelCustomers[currentCustomerIdx];
+    currentLevelParams.order = customer.order || {};
+    currentLevelParams.errorCount = 0;
+    uangDibayarDetail = customer.uangDibayarDetail;
+
+    const speechBubble = document.querySelector('.speech-bubble');
+    if (speechBubble) {
+        speechBubble.innerHTML = customer.text;
+    }
+
+    const npcImage = document.querySelector('.npc-image');
+    if (npcImage && customer.image) npcImage.src = customer.image;
+
+    const formulaInput = document.getElementById("formula-box");
+    const paidInput = document.getElementById("paid-box");
+    const hargaDisplay = document.getElementById("harga-display");
+    const trayItems = document.getElementById("tray-items");
+
+    if (formulaInput) formulaInput.value = "";
+    if (paidInput) paidInput.value = "";
+    if (hargaDisplay) { hargaDisplay.textContent = ""; hargaDisplay.style.color = "#a5d6a7"; }
+    if (trayItems) trayItems.innerHTML = "";
+
+    // Render Dompet (Memakai Folder assets/rupiah)
+    const walletContainer = document.getElementById("wallet-container-dynamic");
+    if (walletContainer) {
+        walletContainer.innerHTML = "";
+        const daftarPecahan = Object.keys(uangDibayarDetail).map(Number).sort((a, b) => b - a);
+
+        daftarPecahan.forEach(pecahan => {
+            let jumlahLembar = uangDibayarDetail[pecahan];
+            for (let i = 0; i < jumlahLembar; i++) {
+                let imgSrc = `assets/rupiah/rp${pecahan}.png`;
+                let fallbackImg = `https://placehold.co/200x60/c8e6c9/2e7d32?text=Rp+${pecahan.toLocaleString('id-ID')}`;
+                let randomRotate = (Math.random() * 6 - 3).toFixed(1);
+                walletContainer.innerHTML += `
+                    <div class="img-placeholder money-5k" 
+                         style="transform: rotate(${randomRotate}deg); margin-bottom: -45px; background: transparent; border: none; cursor: pointer; transition: opacity 0.2s;" 
+                         onclick="tambahUangPelanggan(${pecahan}, this)">
+                        <img src="${imgSrc}" class="money" onerror="this.src='${fallbackImg}'" alt="Uang Rp${pecahan}">
+                    </div>
+                `;
+            }
+        });
+
+        kembalianModeActive = false;
+        document.getElementById("numpad-container").classList.remove("hidden");
+        document.getElementById("laci-kasir").classList.add("hidden");
+        document.querySelector(".tray-title-label").innerText = "Pesanan";
+
+        tagihanTervalidasi = 0;
+        targetKembalian = 0;
+        arrayUangKembalian = [];
+
+        if (formulaInput) setFocus(formulaInput);
+    }
+
+    
+}
+
+function startLevel(lvl) {
+    if (!LEVEL_DATA[lvl]) return showMsg("Level Terkunci", "Level sedang dikembangkan.");
+    
+    currentLevelIdx = lvl;
+    levelCustomers = LEVEL_DATA[lvl];
+    currentCustomerIdx = 0;
+    currentQuizCorrect = 0;
+    levelAccumulation = { revenue: 0, cost: 0, profit: 0, errors: 0 };
+    currentLevelParams.startTime = Date.now();
+    
+    loadCustomer();
+    switchScreen('screen-game');
+
+    // Tampilkan pop-up target/misi spesifik per level
+    const misiLevel = LEVEL_OBJECTIVES[lvl];
+    showMsg(`🚩 Tujuan Level ${lvl}`, 
+        `<strong style="color: #2563eb; font-size: 1.1rem;">${misiLevel}</strong><br><br>Selesaikan pesanan pelanggan dengan teliti!`, 
+        () => {
+            // Callback: Pemicu Tutorial Fase 1 berjalan SETELAH pemain menekan "OK" pada pop-up Tujuan (khusus Level 1)
+            if (lvl === 1) {
+                setTimeout(() => triggerTutorialPhase(1), 300);
+            }
+        }
+    );
+}
+
+// LOGIKA KALKULATOR ALJABAR SUPER (Deteksi a sampai q)
+function calculateFormula() {
+    const formulaInput = document.getElementById("formula-box");
+    if (activeInput !== formulaInput) return;
+
+    let rumusBersih = formulaInput.value.replace(/\s+/g, '').toLowerCase();
+    let userTerms = rumusBersih.split('+');
+
+    let isRumusBenar = true;
+    let expectedTermCount = 0;
+    let calculatedTagihan = 0;
+    let calculatedCost = 0;
+
+    // Loop semua 17 barang dari ITEM_DB
+    for (let key in ITEM_DB) {
+        let qty = currentLevelParams.order[key] || 0;
+
+        if (qty > 0) {
+            expectedTermCount++;
+            let term1 = `${qty}${key}`;
+            let term2 = (qty === 1) ? `${key}` : term1; // Jika 1, bisa 'a' saja
+
+            // Cek apakah pemain memasukkan potongan ini
+            if (!userTerms.includes(term1) && !userTerms.includes(term2)) {
+                isRumusBenar = false;
+            } else {
+                calculatedTagihan += qty * ITEM_DB[key].price;
+                calculatedCost += qty * ITEM_DB[key].cost;
+            }
+        }
+    }
+
+    // Bersihkan dari variabel berawalan 0 jika ada (misal pemain ngetik 0b, anggap diabaikan)
+    let strictUserTerms = userTerms.filter(t => !t.startsWith('0'));
+
+    if (isRumusBenar && strictUserTerms.length === expectedTermCount) {
+        tagihanTervalidasi = calculatedTagihan;
+        currentLevelParams.totalCost = calculatedCost;
+
+        const priceDisplay = document.getElementById("harga-display");
+        priceDisplay.textContent = "Rp " + tagihanTervalidasi.toLocaleString('id-ID');
+        priceDisplay.style.color = "#a5d6a7";
+
+        munculkanKueDiNampan();
+        setFocus(document.getElementById("paid-box"));
+    } else {
+        currentLevelParams.errorCount++;
+        const priceDisplay = document.getElementById("harga-display");
+        priceDisplay.textContent = "Rumus Salah!";
+        priceDisplay.style.color = "#ef9a9a";
+        tagihanTervalidasi = 0;
+        document.getElementById("tray-items").innerHTML = "";
+
+        const panel = document.querySelector('.green-indicator-screen');
+        if (panel) {
+            panel.classList.add('error-flash');
+            setTimeout(() => panel.classList.remove('error-flash'), 300);
         }
     }
 }
 
-// Tombol Mulai Proyek (Mode Siswa/Normal)
-startProjectBtn.addEventListener('click', () => {
-    isFacilitatorMode = false; // Matikan hak akses fasilitator
-    updateLevelLocks();        // Terapkan sistem gembok normal
-    mainMenuUI.style.display = 'none';
-    levelMenuUI.style.display = 'flex';
-});
+function munculkanKueDiNampan() {
+    const tray = document.getElementById("tray-items");
+    tray.innerHTML = ""; 
+    
+    // Pastikan nampan kembali ke layout normal (menyamping dari kiri ke kanan)
+    tray.style.flexDirection = "row";
+    tray.style.flexWrap = "wrap";
+    tray.style.alignItems = "flex-end";
+    tray.style.paddingTop = "0";
 
-// Tombol Masuk Fasilitator (Mode Guru/Pemantau)
-const fasilitatorBtn = document.getElementById('fasilitator-btn');
-if (fasilitatorBtn) {
-    fasilitatorBtn.addEventListener('click', () => {
-        // Meminta kata sandi (menggunakan browser prompt bawaan)
-        const sandi = prompt("Masukkan Sandi Fasilitator:");
-
-        if (sandi === "1234") {
-            isFacilitatorMode = true; // Berikan hak akses
-            updateLevelLocks();       // Buka paksa semua gembok level
-
-            // Tampilkan notifikasi melayang
-            showModernAlert("Mode Fasilitator Aktif! Semua level dapat diakses.", "main-menu-ui");
-
-            // Pindah ke halaman level
-            mainMenuUI.style.display = 'none';
-            levelMenuUI.style.display = 'flex';
-        } else if (sandi !== null && sandi !== "") {
-            // Jika sandi salah dan tidak menekan 'Cancel'
-            alert("Akses Ditolak: Sandi salah!");
+    // Loop dinamis berdasarkan order
+    let delayCounter = 0;
+    for (let key in currentLevelParams.order) {
+        let qty = currentLevelParams.order[key];
+        if (qty > 0) {
+            for (let i = 0; i < qty; i++) {
+                let delay = delayCounter * 0.05;
+                tray.innerHTML += `<div class="tray-product" style="animation-delay:${delay}s">
+                    <span class="tray-label">${key}</span>
+                    <img src="${ITEM_DB[key].img}" class="tray-img" alt="${ITEM_DB[key].name}">
+                </div>`;
+                delayCounter++;
+            }
         }
+    }
+}
+
+function tentukanPecahanUang(uangDetail = uangDibayarDetail) {
+    let hasilTeks = [];
+    if (!uangDetail) return "(Tidak ada rincian)";
+    const daftarPecahan = Object.keys(uangDetail).map(Number).sort((a, b) => b - a);
+    for (let pecahan of daftarPecahan) {
+        let jumlahLembar = uangDetail[pecahan];
+        if (jumlahLembar > 0) hasilTeks.push(`${jumlahLembar} Lbr Rp${pecahan.toLocaleString('id-ID')}`);
+    }
+    if (hasilTeks.length === 0) return "(Tidak ada rincian)";
+    return "(" + hasilTeks.join(" + ") + ")";
+}
+
+function processCheckout() {
+    if (tagihanTervalidasi === 0) return showMsg("Peringatan", "Hitung total harga aljabar dahulu (=).");
+
+    const paidInput = document.getElementById("paid-box");
+    let uangDibayar = parseInt(paidInput.value.replace(/[^0-9]/g, ''));
+
+    const totalUangFisik = Object.keys(uangDibayarDetail).reduce((total, pecahan) => total + (pecahan * uangDibayarDetail[pecahan]), 0);
+    const maksimalDompet = totalUangFisik > 0 ? totalUangFisik : 100000;
+
+    if (isNaN(uangDibayar) || uangDibayar < tagihanTervalidasi) {
+        currentLevelParams.errorCount++;
+        paidInput.value = "Kurang!";
+        paidInput.style.color = "red";
+        return showMsg("Uang Kurang", "Nominal pembayaran kurang/kosong!");
+    }
+
+    if (uangDibayar > maksimalDompet) {
+        currentLevelParams.errorCount++;
+        paidInput.value = "Tdk Logis!";
+        paidInput.style.color = "red";
+        return showMsg("Tidak Logis", `Pelanggan maksimal hanya punya Rp ${maksimalDompet.toLocaleString('id-ID')}.`);
+    }
+
+    let kembalian = uangDibayar - tagihanTervalidasi;
+    let profit = tagihanTervalidasi - currentLevelParams.totalCost;
+
+    // --- RENDER STRUK DINAMIS ---
+    let rumusArr = [], prosesArr = [], rincianArr = [];
+    for (let key in currentLevelParams.order) {
+        let qty = currentLevelParams.order[key];
+        if (qty > 0) {
+            rumusArr.push(`${qty}${key}`);
+            prosesArr.push(`${qty}(Rp ${ITEM_DB[key].price.toLocaleString('id-ID')})`);
+            rincianArr.push(`Rp ${(qty * ITEM_DB[key].price).toLocaleString('id-ID')}`);
+        }
+    }
+
+    document.getElementById("struk-rumus").textContent = rumusArr.join(" + ");
+    document.getElementById("struk-proses").textContent = prosesArr.join(" + ");
+    document.getElementById("struk-rincian").textContent = rincianArr.join(" + ");
+    document.getElementById("struk-total").textContent = "Rp " + tagihanTervalidasi.toLocaleString('id-ID');
+    document.getElementById("struk-bayar-total").textContent = "Rp " + uangDibayar.toLocaleString('id-ID');
+    document.getElementById("struk-bayar-rincian").textContent = tentukanPecahanUang();
+    document.getElementById("struk-kembalian-hitung").textContent = `Rp ${uangDibayar.toLocaleString('id-ID')} - Rp ${tagihanTervalidasi.toLocaleString('id-ID')} = Rp ${kembalian.toLocaleString('id-ID')}`;
+    document.getElementById("struk-kembalian-final").textContent = "Rp " + kembalian.toLocaleString('id-ID');
+
+    levelAccumulation.revenue += tagihanTervalidasi;
+    levelAccumulation.cost += currentLevelParams.totalCost;
+    levelAccumulation.profit += profit;
+    levelAccumulation.errors += currentLevelParams.errorCount;
+
+    const btnCloseModal = document.getElementById("btn-close-modal");
+    
+    if (kembalian > 0) {
+        btnCloseModal.textContent = "Berikan Kembalian";
+        btnCloseModal.onclick = () => {
+            document.getElementById("receipt-modal").style.display = "none";
+            mulaiModeKembalian(kembalian);
+        };
+    } else {
+        btnCloseModal.textContent = "Uang Pas (Lanjut)";
+        btnCloseModal.onclick = finishCustomerOrLevel;
+    }
+
+    document.getElementById("receipt-modal").style.display = "flex";
+
+    if (currentLevelIdx === 1) {
+        setTimeout(() => triggerTutorialPhase(5, '.final-receipt-card'), 500);
+    }
+    
+} // Penutup fungsi processCheckout
+
+function mulaiModeKembalian(jumlahKembalian) {
+    kembalianModeActive = true;
+    targetKembalian = jumlahKembalian;
+    arrayUangKembalian = [];
+
+    // Ubah Tampilan Layar Hijau
+    const priceDisplay = document.getElementById("harga-display");
+    priceDisplay.textContent = "Kembalikan: Rp " + targetKembalian.toLocaleString('id-ID');
+    priceDisplay.style.color = "#ffb74d"; // Warna oranye
+    
+    // Kosongkan kotak rumus untuk menampung hitungan uang yang akan diserahkan
+    document.getElementById("formula-box").value = "Rp 0";
+    document.getElementById("paid-box").value = "-"; // Nonaktifkan paid-box
+
+    // Ubah UI Kalkulator jadi Laci Kasir
+    document.getElementById("numpad-container").classList.add("hidden");
+    document.getElementById("laci-kasir").classList.remove("hidden");
+
+    // Ubah UI Nampan
+    document.querySelector(".tray-title-label").innerText = "Kembalian";
+    document.getElementById("tray-items").innerHTML = ""; // Bersihkan nampan dari kue
+
+    // BARIS YANG BIKIN ERROR SEBELUMNYA DIHAPUS DARI SINI
+
+    // Pemicu Fase 4 (Kini akan berhasil jalan)
+    if (currentLevelIdx === 1) {
+        setTimeout(() => triggerTutorialPhase(4), 500);
+    }
+}
+
+function tambahUangKembalian(nominal) {
+    arrayUangKembalian.push(nominal);
+    renderUangDiNampan();
+}
+
+function tarikUangKembalian(index) {
+    // Menarik kembali uang dari nampan ke laci (menghapus dari array)
+    arrayUangKembalian.splice(index, 1);
+    renderUangDiNampan();
+}
+
+function renderUangDiNampan() {
+    const tray = document.getElementById("tray-items");
+    tray.innerHTML = "";
+    
+    let totalDiberikan = 0;
+    
+    // Pastikan nampan mengatur uang secara menyamping (dari kiri ke kanan)
+    tray.style.flexDirection = "row";
+    tray.style.flexWrap = "wrap";
+    tray.style.alignItems = "center";
+    tray.style.paddingTop = "10px";
+    
+    arrayUangKembalian.forEach((nominal, index) => {
+        totalDiberikan += nominal;
+        
+        // Tambahkan rotasi acak kecil agar tumpukan uang menyamping terlihat natural
+        let randomRotate = (Math.random() * 10 - 5).toFixed(1);
+        
+        // Tampilkan gambar uang di nampan menggunakan aset rupiah dari folder
+        tray.innerHTML += `<img src="assets/rupiah/rp${nominal}.png" class="tray-money-item" style="transform: rotate(${randomRotate}deg);" alt="Rp ${nominal}" onclick="tarikUangKembalian(${index})">`;
+    });
+    
+    // Tampilkan jumlah uang sementara yang disiapkan di nampan ke kotak rumus
+    document.getElementById("formula-box").value = "Rp " + totalDiberikan.toLocaleString('id-ID');
+}
+
+function validasiUangKembalian() {
+    let totalDiberikan = arrayUangKembalian.reduce((a, b) => a + b, 0);
+    
+    if (totalDiberikan === targetKembalian) {
+        showMsg("Tepat Sekali!", "Uang kembalian yang Anda berikan pas. Pelanggan senang!");
+        finishCustomerOrLevel();
+    } else {
+        currentLevelParams.errorCount++; // Dihitung sebagai kesalahan
+        showMsg("Oops! Kembalian Salah", `Seharusnya Anda memberikan Rp ${targetKembalian.toLocaleString('id-ID')}, tetapi Anda malah menyiapkan Rp ${totalDiberikan.toLocaleString('id-ID')}. Ayo hitung lagi!`);
+    }
+}
+
+
+// ==========================================
+// --- MANAJEMEN ANTREAN & KUIS ---
+// ==========================================
+function finishCustomerOrLevel() {
+    document.getElementById("receipt-modal").style.display = "none";
+
+    if (currentCustomerIdx < levelCustomers.length - 1) {
+        currentCustomerIdx++;
+        isTutorialActive = false;
+        loadCustomer();
+    } else {
+        // Tampilkan Kuis Jika Level Selesai
+        if (QUIZ_DB[currentLevelIdx]) {
+            currentQuizIndex = 0;
+            showQuizQuestion();
+        } else {
+            completeLevelAndSave();
+        }
+    }
+}
+
+function showQuizQuestion() {
+    const quizModal = document.getElementById("quiz-modal");
+    const quizData = QUIZ_DB[currentLevelIdx][currentQuizIndex];
+
+    document.getElementById("quiz-level-title").innerText = `Kuis Level ${currentLevelIdx}`;
+    document.getElementById("quiz-counter").innerText = `Soal ${currentQuizIndex + 1} / ${QUIZ_DB[currentLevelIdx].length}`;
+    document.getElementById("quiz-question").innerHTML = quizData.q;
+
+    const optionsContainer = document.getElementById("quiz-options");
+    optionsContainer.innerHTML = "";
+    document.getElementById("quiz-feedback").classList.add("hidden");
+    document.getElementById("btn-next-quiz").classList.add("hidden");
+
+    quizData.options.forEach((opt, index) => {
+        const btn = document.createElement("button");
+        btn.className = "btn-quiz-option";
+        btn.innerText = opt;
+        btn.onclick = () => checkQuizAnswer(index, btn, quizData.ans);
+        optionsContainer.appendChild(btn);
+    });
+
+    quizModal.classList.remove("hidden");
+
+    if (currentLevelIdx === 1 && currentQuizIndex === 0) {
+        setTimeout(() => triggerTutorialPhase(5, '.quiz-card'), 500);
+    }
+}
+
+function checkQuizAnswer(selectedIndex, btnElement, correctIndex) {
+    const allButtons = document.querySelectorAll(".btn-quiz-option");
+    allButtons.forEach(btn => btn.disabled = true);
+    
+    const feedbackBox = document.getElementById("quiz-feedback");
+    feedbackBox.classList.remove("hidden", "feedback-correct", "feedback-wrong");
+    
+    if (selectedIndex === correctIndex) {
+        currentQuizCorrect++; // TAMBAHAN: Simpan jika benar
+        btnElement.classList.add("correct");
+        feedbackBox.classList.add("feedback-correct");
+        feedbackBox.innerText = "Jawaban Tepat! Luar biasa!";
+    } else {
+        btnElement.classList.add("wrong");
+        allButtons[correctIndex].classList.add("correct");
+        feedbackBox.classList.add("feedback-wrong");
+        feedbackBox.innerText = "Ups, kurang tepat. Konsep ini sempat dibahas oleh pelanggan tadi.";
+    }
+
+    document.getElementById("btn-next-quiz").classList.remove("hidden");
+}
+
+function nextQuizQuestion() {
+    currentQuizIndex++;
+    if (currentQuizIndex < QUIZ_DB[currentLevelIdx].length) {
+        showQuizQuestion();
+    } else {
+        document.getElementById("quiz-modal").classList.add("hidden");
+        completeLevelAndSave();
+    }
+}
+
+function completeLevelAndSave() {
+    let duration = Math.floor((Date.now() - currentLevelParams.startTime) / 1000);
+    if (currentUser.maxLevel < currentLevelIdx) currentUser.maxLevel = currentLevelIdx;
+    
+    let existLog = currentUser.history.find(h => h.level === currentLevelIdx);
+    if (!existLog) {
+        currentUser.history.push({
+            level: currentLevelIdx, 
+            revenue: levelAccumulation.revenue, 
+            cost: levelAccumulation.cost, 
+            profit: levelAccumulation.profit,
+            duration: duration, 
+            errors: levelAccumulation.errors,
+            quizCorrect: currentQuizCorrect, // TAMBAHAN: Simpan Jawaban Benar
+            quizTotal: QUIZ_DB[currentLevelIdx].length, // TAMBAHAN: Simpan Total Soal
+            timestamp: new Date().toISOString()
+        });
+
+        currentUser.revenue += levelAccumulation.revenue;
+        currentUser.cost += levelAccumulation.cost;
+        currentUser.money += levelAccumulation.profit;
+
+        if (levelAccumulation.errors === 0 && !currentUser.badges.includes('si_teliti')) {
+            currentUser.badges.push('si_teliti');
+        }
+    }
+    saveData();
+    switchScreen('screen-levels');
+}
+
+// ==========================================
+// --- MENU BUKU KAS & PRESTASI (Bawahnya sama seperti sebelumnya) ---
+// ==========================================
+function openBukuKas() {
+    switchScreen('screen-bukukas');
+    document.getElementById('bk-kotor').innerText = "Rp " + currentUser.revenue.toLocaleString('id-ID');
+    document.getElementById('bk-modal').innerText = "Rp " + currentUser.cost.toLocaleString('id-ID');
+    document.getElementById('bk-bersih').innerText = "Rp " + currentUser.money.toLocaleString('id-ID');
+
+    let totalLevels = currentUser.history.length;
+    let zeroErrors = currentUser.history.filter(h => h.errors === 0).length;
+    let accuracy = totalLevels === 0 ? 0 : Math.round((zeroErrors / totalLevels) * 100);
+
+    document.getElementById('bk-akurasi').innerText = accuracy + "%";
+    document.getElementById('bk-akurasi-bar').style.width = accuracy + "%";
+
+    const histList = document.getElementById('bk-history-list');
+    histList.innerHTML = '';
+    if (totalLevels === 0) {
+        histList.innerHTML = '<div style="text-align:center; color:var(--color-slate-400); font-style:italic; padding:1rem;">Belum ada riwayat permainan.</div>';
+    } else {
+        currentUser.history.forEach(h => {
+            let d = new Date(h.timestamp);
+            histList.innerHTML += `
+                <div class="history-item">
+                    <div class="history-header">
+                        <span>Level ${h.level}</span>
+                        <span>${d.toLocaleDateString('id-ID')}</span>
+                    </div>
+                    <div class="history-stats">
+                        <span><i class="fa-regular fa-clock"></i> ${h.duration}s</span>
+                        <span><i class="fa-solid fa-triangle-exclamation ${h.errors > 0 ? 'text-error' : 'text-success'}"></i> ${h.errors} Salah</span>
+                        <span class="text-success">+Rp ${h.profit.toLocaleString('id-ID')}</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    const ctx = document.getElementById('financeChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    let labels = currentUser.history.map(h => `Lvl ${h.level}`);
+    let dataProfit = currentUser.history.map(h => h.profit);
+    if (labels.length === 0) { labels = ['-']; dataProfit = [0]; }
+
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: [{ label: 'Laba (Rp)', data: dataProfit, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.2)', borderWidth: 3, pointBackgroundColor: '#1e3a8a', fill: true, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
     });
 }
 
-// Fungsi kembali ke menu utama
-backToMainBtn.addEventListener('click', () => {
-    levelMenuUI.style.display = 'none';
-    mainMenuUI.style.display = 'flex';
-});
+function openPrestasi() {
+    switchScreen('screen-prestasi');
+    const badgeContainer = document.getElementById('badges-container');
+    badgeContainer.innerHTML = '';
+    BADGES_DB.forEach(b => {
+        const hasBadge = currentUser.badges.includes(b.id);
+        badgeContainer.innerHTML += `
+            <div class="badge-card ${hasBadge ? 'badge-unlocked' : 'badge-locked'}">
+                <div class="badge-icon-wrapper"><i class="fa-solid badge-icon ${b.icon} ${hasBadge ? b.colorClass : 'icon-disabled'}"></i></div>
+                <h4>${b.name}</h4>
+            </div>
+        `;
+    });
 
-backToMainBtn.addEventListener('click', () => {
-    levelMenuUI.style.display = 'none'; mainMenuUI.style.display = 'flex';
-});
+    document.getElementById('token-display').innerText = currentUser.token;
+    const tbody = document.getElementById('leaderboard-body');
+    tbody.innerHTML = '';
 
-function mulaiGame(level) {
-    currentLevel = level;
-    currentCustomerIndex = 0;
-    purchasedHistory = [];
+    let sortedUsers = [...users].sort((a, b) => b.money - a.money);
+    sortedUsers.forEach((u, idx) => {
+        let rankIcon = idx === 0 ? '<i class="fa-solid fa-trophy rank-1"></i>' : (idx === 1 ? '<i class="fa-solid fa-medal rank-2"></i>' : (idx === 2 ? '<i class="fa-solid fa-medal rank-3"></i>' : `${idx + 1}`));
+        let isMeClass = u.id === currentUser.id ? 'table-row-me' : '';
+        tbody.innerHTML += `
+            <tr class="table-row ${isMeClass}">
+                <td>${rankIcon}</td>
+                <td><span class="rank-name">${u.name}</span><span class="rank-title">${getTitle(u.money)}</span></td>
+                <td class="text-right font-mono">Rp ${u.money.toLocaleString('id-ID')}</td>
+            </tr>
+        `;
+    });
+}
+function copyToken() { navigator.clipboard.writeText(currentUser.token).then(() => showMsg('Berhasil', 'Disalin!')); }
 
-    // Tentukan jumlah maksimal pelanggan berdasarkan jumlah data statis di level tersebut
-    maxCustomers = dataLevelStatis[level].length;
+// ==========================================
+// --- FASILITATOR ---
+// ==========================================
+function showFasilitatorLogin() {
+    document.getElementById('pin-input').value = '';
+    document.getElementById('modal-pin').classList.remove('hidden');
+}
+function checkPIN() {
+    if (document.getElementById('pin-input').value === '1234') { closeModal('modal-pin'); openFasilitator(); }
+    else { showMsg('Akses Ditolak', 'PIN salah.'); }
+}
+function openFasilitator() {
+    switchScreen('screen-fasilitator');
+    const tbody = document.getElementById('fasil-table-body');
+    const ewsList = document.getElementById('fasil-ews-list');
+    tbody.innerHTML = ''; ewsList.innerHTML = '';
 
-    levelMenuUI.style.display = 'none';
-    gameWrapper.style.display = 'flex';
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Belum ada data.</td></tr>';
+    } else {
+        users.forEach(u => {
+            let totalLvl = u.history.length;
+            let acc = totalLvl === 0 ? '-' : Math.round((u.history.filter(h => h.errors === 0).length / totalLvl) * 100) + '%';
+            
+            // --- KALKULASI DATA KUIS ---
+            let totalQuizCorrect = u.history.reduce((sum, h) => sum + (h.quizCorrect || 0), 0);
+            let totalQuizCount = u.history.reduce((sum, h) => sum + (h.quizTotal || 0), 0);
+            let quizStr = totalQuizCount > 0 ? `${totalQuizCorrect}/${totalQuizCount}` : '-';
 
-    // Pastikan layar kasir tampil (Jika kamu menggunakan perbaikan tombol kembali sebelumnya)
-    mainGameUI.style.display = 'flex';
+            tbody.innerHTML += `
+                <tr class="fasil-tr">
+                    <td class="fasil-td">${u.name}</td><td class="fasil-td">${u.kelas}</td>
+                    <td class="fasil-td text-center">Lvl ${u.maxLevel}</td>
+                    <td class="fasil-td text-right">${u.money.toLocaleString('id-ID')}</td>
+                    <td class="fasil-td text-center">${acc}</td>
+                    <td class="fasil-td text-center font-bold" style="color:#1976d2;">${quizStr}</td> <td class="fasil-td text-center"><button onclick="deleteUser('${u.id}')" class="btn-delete-user"><i class="fa-solid fa-trash"></i></button></td>
+                </tr>
+            `;
+        });
+    }
+}
+function exportCSV() { /* Sama seperti sebelumnya */ }
+function deleteUser(id) { if (confirm("Hapus?")) { users = users.filter(u => u.id !== id); saveData(); openFasilitator(); } }
+function resetAllData() { if (confirm("Hapus Semua?")) { users = []; localStorage.removeItem('algebraMart_users'); openFasilitator(); } }
+// ==========================================
+// --- SISTEM TUTORIAL PBL KHUSUS LEVEL 1 ---
+// ==========================================
+let currentTutorialStep = 0; 
+let isTutorialActive = false; 
 
-    setupPelangganBaru();
-    renderItems();
+const PBL_STEPS = {
+    1: { target: '.speech-bubble', title: 'Identifikasi Masalah', msg: 'Halo Kasir! Perhatikan baik-baik pesanan pelanggan. Apa saja barang yang mereka beli dan berapa jumlahnya?', nextPhase: 2 },
+    2: { target: '.wooden-shelf', title: 'Identifikasi Informasi', msg: 'Kumpulkan informasinya! Cek rak untuk mengetahui variabel setiap barang dan perhatikan uang yang dibawa pelanggan. Pastikan kamu paham data yang tersedia sebelum mulai menghitung.', nextPhase: 3 },
+    3: { target: '.cash-register', title: 'Selidiki dan susun rumusnya', msg: 'Mari selidiki rumusnya! Susun model aljabar dari pesanan tadi menggunakan tombol angka dan klik barang di rak. Tekan "=" untuk memeriksa apakah rumusmu sudah tepat.', nextPhase: null },
+    4: { target: '#laci-kasir', title: 'Berikan kembalian', msg: 'Sajikan solusimu! Selesaikan transaksi dengan mengalkulasi kembalian pelanggan dan berikan pecahan uang fisik yang akurat dari laci kasir.', nextPhase: null },
+    5: { target: '.final-receipt-card', title: 'Evaluasi', msg: 'Evaluasi hasil kerjamu! Periksa rincian rumus pada struk ini, lalu buktikan pemahamanmu dengan menjawab kuis evaluasi. Cek juga Rapor Performa untuk melihat kinerjamu!', nextPhase: null }
+};
 
-    if (level === 1 && !tutorialDone) {
-        tutorialOverlay.style.display = 'flex';
+function triggerTutorialPhase(phaseId, dynamicTarget = null) {
+    if (currentLevelIdx !== 1) return; // Selalu muncul di Level 1, tidak peduli sudah pernah tamat atau belum
+
+    const step = PBL_STEPS[phaseId];
+    if (!step) return;
+
+    const overlay = document.getElementById('tutorial-overlay');
+    const highlight = document.getElementById('tutorial-highlight');
+    const tooltip = document.getElementById('tutorial-tooltip');
+    
+    let targetSelector = dynamicTarget || step.target;
+    const targetEl = document.querySelector(targetSelector);
+
+    // Jika elemen target belum dirender (seperti laci kasir/kuis), tunggu sejenak lalu coba lagi
+    if (!targetEl || targetEl.offsetParent === null) {
+        setTimeout(() => triggerTutorialPhase(phaseId, dynamicTarget), 200);
+        return;
     }
 
-    if (level === 8) {
-        // Tampilkan di tengah layar (karena ID target 'main-game-ui' mencakup area luas)
-        showModernAlert("Aturan Level: Setiap transaksi dikenakan Biaya Layanan Toko Rp 5.000", "main-game-ui");
+    // Tampilkan overlay dan KUNCI layar agar pemain tidak bisa mengklik elemen di belakangnya
+    overlay.classList.remove('hidden');
+    overlay.style.pointerEvents = "auto";
+
+    // Desain teks Pop-up dengan judul fase
+    document.getElementById('tutorial-text').innerHTML = `<strong style="color: #2563eb; font-size: 1rem;">${step.title}</strong><br><br>${step.msg}`;
+
+    // Sorotan elemen (Highlight)
+    const rect = targetEl.getBoundingClientRect();
+    highlight.style.top = `${rect.top - 4}px`; 
+    highlight.style.left = `${rect.left - 4}px`;
+    highlight.style.width = `${rect.width + 8}px`; 
+    highlight.style.height = `${rect.height + 8}px`;
+
+    // Posisi Pop-up (Tooltip)
+    let tooltipTop = rect.bottom + 15;
+    let tooltipLeft = rect.left + (rect.width / 2) - 150;
+    if (tooltipTop > window.innerHeight - 120) tooltipTop = rect.top - 120;
+    if (tooltipLeft < 10) tooltipLeft = 10;
+
+    tooltip.style.top = `${tooltipTop}px`; 
+    tooltip.style.left = `${tooltipLeft}px`;
+
+    const btn = document.getElementById('tutorial-btn');
+    
+    // Ubah teks tombol: jika masih ada kelanjutannya bertuliskan "Lanjut", jika selesai bertuliskan "Paham!"
+    btn.innerText = step.nextPhase ? "Lanjut" : "Paham!";
+    btn.style.display = 'block';
+    
+    // Hilang HANYA jika ditekan tombolnya
+    btn.onclick = () => {
+        overlay.classList.add('hidden');
+        overlay.style.pointerEvents = "none"; // Buka kembali kunci layar untuk bermain
+        
+        // Jika ada fase berikutnya yang berurutan (Fase 1 -> 2 -> 3), panggil langsung
+        if (step.nextPhase) {
+            setTimeout(() => triggerTutorialPhase(step.nextPhase), 300);
+        }
+    };
+}
+
+function closeTutorialPhase(phaseId) {
+    document.getElementById('tutorial-overlay').classList.add('hidden');
+    
+    // Transisi berurutan otomatis untuk Fase 1 -> Fase 2 -> Fase 3 di awal permainan
+    if (phaseId === 1) {
+        setTimeout(() => triggerTutorialPhase(2), 300);
+    } else if (phaseId === 2) {
+        setTimeout(() => triggerTutorialPhase(3), 300);
+    }
+}
+window.onload = () => { renderUserList(); initGameListeners(); }
+
+// ==========================================
+// --- SINKRONISASI FULL SCREEN (TOMBOL ESC / SILANG) ---
+// ==========================================
+function handleFullscreenChange() {
+    // Mengecek apakah browser sudah TIDAK dalam mode fullscreen lagi
+    const isFullscreenNow = document.fullscreenElement || 
+                            document.webkitFullscreenElement || 
+                            document.mozFullScreenElement || 
+                            document.msFullscreenElement;
+
+    if (!isFullscreenNow) {
+        // Jika layar kembali normal DAN kebetulan masih ada user yang login (berada di lobi/game)
+        if (currentUser !== null) {
+            // Paksa keluar ke menu login
+            logout(); 
+        }
     }
 }
 
-// Daftarkan event listener untuk ke-10 level
-for (let i = 1; i <= 10; i++) {
-    const btn = document.getElementById(`level-${i}-btn`);
-    if (btn) {
-        btn.addEventListener('click', () => mulaiGame(i));
-    }
-}
-
-// BUG FIX: Hapus variabel 'allCustomers' yang bikin game macet saat Restart
-// ==========================================
-// FUNGSI RESET TOTAL KE MENU UTAMA
-// ==========================================
-function resetKeMenuUtama() {
-    gameWrapper.style.display = 'none';
-    mainGameUI.style.display = 'none';
-    quizUI.style.display = 'none';
-    gameOverUI.style.display = 'none';
-    receiptModal.style.display = 'none';
-    drawerUI.style.display = 'none';
-    mainMenuUI.style.display = 'flex';
-
-    shoppingCart = [];
-    customerPayment = {};
-    purchasedHistory = [];
-    quizData = [];
-    currentItemIndex = 0;
-    gamePhase = "scanning";
-    currentInput = "";
-    algebraParts = [];
-    substitutionParts = [];
-    grandTotalHarga = 0;
-    expectedChange = 0;
-    givenChange = [];
-    currentQuizIndex = 0;
-    quizScore = 0;
-
-    // Bersihkan seluruh sub-area meja
-    floatingZone.innerHTML = "";
-    collectedItemsZone.innerHTML = "";
-    calculatorUI.style.display = 'grid';
-    // Reset elemen UI layar kasir baru
-    screenTable.innerHTML = "";
-    screenTotalVal.innerText = "";
-    screenFormula.innerText = "";
-    screenPayment.innerText = "";
-    inputLine.innerText = "0";
-    inputLine.style.color = '#e74c3c';
-}
-
-// ==========================================
-// FUNGSI KEMBALI KE MENU LEVEL
-// ==========================================
-function kembaliKeMenuLevel() {
-    // Sembunyikan semua UI Game
-    gameWrapper.style.display = 'none';
-    mainGameUI.style.display = 'none';
-    quizUI.style.display = 'none';
-    gameOverUI.style.display = 'none';
-    receiptModal.style.display = 'none';
-    drawerUI.style.display = 'none';
-
-    // TAMPILKAN MENU LEVEL (Bukan Menu Utama)
-    levelMenuUI.style.display = 'flex';
-
-    // Reset state variabel
-    shoppingCart = [];
-    customerPayment = {};
-    purchasedHistory = [];
-    quizData = [];
-    currentItemIndex = 0;
-    gamePhase = "scanning";
-    currentInput = "";
-    algebraParts = [];
-    substitutionParts = [];
-    grandTotalHarga = 0;
-    expectedChange = 0;
-    givenChange = [];
-    currentQuizIndex = 0;
-    quizScore = 0;
-
-    // Bersihkan area animasi atas dan meja kumpul
-    floatingZone.innerHTML = "";
-    collectedItemsZone.innerHTML = "";
-    calculatorUI.style.display = 'grid';
-
-    // Reset elemen UI layar kasir
-    screenTable.innerHTML = "";
-    screenTotalVal.innerText = "";
-    screenFormula.innerText = "";
-    screenPayment.innerText = "";
-    inputLine.innerText = "0";
-    inputLine.style.color = '#e74c3c';
-}
-
-// Pasang event listener ke kedua tombol
-restartGameBtn.addEventListener('click', resetKeMenuUtama);
-inGameBackBtn.addEventListener('click', kembaliKeMenuLevel);
+// Pasang pendeteksi untuk semua jenis browser
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // Safari/Chrome lama
+document.addEventListener('mozfullscreenchange', handleFullscreenChange);    // Firefox
+document.addEventListener('MSFullscreenChange', handleFullscreenChange);     // IE/Edge
