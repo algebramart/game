@@ -1924,21 +1924,18 @@
 }
 
 /* =========================================
-   MODAL: KUIS (Deep Midnight Glassmorphism)
+   MODAL: KUIS (Warm Pearl White & Golden Amber)
    ========================================= */
 .quiz-card {
-    background: rgba(15, 23, 42, 0.92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    padding: 2rem;
+    background: linear-gradient(180deg, #ffffff 0%, #fffbf5 100%);
+    border: none;
+    padding: 2.25rem 2rem;
     border-radius: 20px;
-    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    box-shadow: 0 25px 50px -12px rgba(180, 83, 9, 0.25), 0 0 0 1px rgba(251, 191, 36, 0.2);
     width: 92%;
     max-width: 520px;
-    color: #f8fafc;
+    color: #1e293b;
     animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    border: none;
 }
 
 .quiz-header {
@@ -1946,32 +1943,32 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(251, 191, 36, 0.25);
     padding-bottom: 0.85rem;
 }
 .quiz-header h3 {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
     font-weight: 900;
-    color: #60a5fa;
-    text-shadow: 0 0 12px rgba(96, 165, 250, 0.4);
+    color: #78350f;
     letter-spacing: 0.3px;
+    margin: 0;
 }
 #quiz-counter {
-    background: rgba(59, 130, 246, 0.18);
-    color: #93c5fd;
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
     padding: 0.25rem 0.85rem;
     border-radius: 999px;
     font-size: 0.85rem;
     font-weight: 800;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(180, 83, 9, 0.1);
 }
 .quiz-question-text {
     font-size: 1.15rem;
     font-weight: 700;
-    line-height: 1.6;
+    line-height: 1.65;
     margin-bottom: 1.5rem;
-    color: #f8fafc;
+    color: #1e293b;
 }
 .quiz-options-container {
     display: flex;
@@ -1980,72 +1977,117 @@
     margin-bottom: 1.5rem;
 }
 
-/* Opsi Jawaban Kuis (Sudut Membulat 12px & Efek Membal) */
+/* Opsi Jawaban Kuis (Rata Kiri, Badge Abjad & Spasi Rapat Natural) */
 .btn-quiz-option {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 1.1rem 1.25rem;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    padding: 0.95rem 1.25rem;
     border-radius: 12px;
     text-align: left;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    color: #e2e8f0;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    color: #1e293b;
+    box-shadow: 0 2px 5px rgba(180, 83, 9, 0.05);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
 }
 .btn-quiz-option:hover:not(:disabled) {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(96, 165, 250, 0.4);
-    transform: translateY(-2px) scale(1.01);
-    color: #ffffff;
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+    background: #fffbeb;
+    border-color: #f59e0b;
+    transform: translateY(-2px);
+    color: #78350f;
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.18);
+}
+.quiz-option-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 6px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 800;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+.btn-quiz-option:hover:not(:disabled) .quiz-option-letter {
+    background: #fef3c7;
+    color: #b45309;
+}
+.quiz-option-text {
+    flex: 1;
+    text-align: left;
+    line-height: 1.5;
+    color: inherit;
 }
 .btn-quiz-option.selected {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(59, 130, 246, 0.25)) !important;
-    border-color: #60a5fa !important;
-    box-shadow: 0 0 0 2px #60a5fa, 0 6px 18px rgba(37, 99, 235, 0.4) !important;
-    color: #ffffff !important;
+    background: #fffbeb !important;
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 0 2px #f59e0b, 0 6px 18px rgba(245, 158, 11, 0.25) !important;
+    color: #78350f !important;
     transform: translateY(-2px);
     font-weight: 800;
 }
-.btn-quiz-option.correct {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.25)) !important;
-    border-color: #10b981 !important;
+.btn-quiz-option.selected .quiz-option-letter {
+    background: #f59e0b !important;
     color: #ffffff !important;
-    box-shadow: 0 0 0 2px #10b981, 0 6px 18px rgba(16, 185, 129, 0.4) !important;
+}
+.btn-quiz-option.correct {
+    background: #ecfdf5 !important;
+    border-color: #10b981 !important;
+    color: #065f46 !important;
+    box-shadow: 0 0 0 2px #10b981, 0 6px 18px rgba(16, 185, 129, 0.25) !important;
     font-weight: 800;
+}
+.btn-quiz-option.correct .quiz-option-letter {
+    background: #10b981 !important;
+    color: #ffffff !important;
 }
 .btn-quiz-option.wrong {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(220, 38, 38, 0.25)) !important;
+    background: #fef2f2 !important;
     border-color: #ef4444 !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 0 2px #ef4444, 0 6px 18px rgba(239, 68, 68, 0.4) !important;
+    color: #991b1b !important;
+    box-shadow: 0 0 0 2px #ef4444, 0 6px 18px rgba(239, 68, 68, 0.25) !important;
     font-weight: 800;
 }
+.btn-quiz-option.wrong .quiz-option-letter {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+}
+.btn-quiz-option:disabled {
+    cursor: default;
+}
+
+/* Feedback Box Kuis */
 .quiz-feedback {
     text-align: center;
     font-weight: 800;
-    font-size: 1.1rem;
-    padding: 1rem;
+    font-size: 1.05rem;
+    padding: 0.9rem 1.25rem;
     border-radius: 12px;
     margin-bottom: 1.25rem;
-    border: 1px solid transparent;
+    border: 1.5px solid transparent;
 }
 .feedback-correct {
-    background: rgba(16, 185, 129, 0.18);
-    border-color: rgba(16, 185, 129, 0.35);
-    color: #34d399;
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #065f46;
 }
 .feedback-wrong {
-    background: rgba(239, 68, 68, 0.18);
-    border-color: rgba(239, 68, 68, 0.35);
-    color: #f87171;
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
 }
 
+/* Tombol Aksi Kuis (Golden/Amber Harmonis) */
 .quiz-actions {
     display: flex;
     gap: 0.75rem;
@@ -2053,54 +2095,39 @@
     margin-top: 1rem;
     width: 100%;
 }
-#btn-confirm-quiz {
+#btn-confirm-quiz,
+#btn-next-quiz {
     flex: 1;
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #f59e0b, #d97706);
     color: #ffffff;
     font-weight: 800;
+    font-size: 1.05rem;
     letter-spacing: 0.5px;
     padding: 0.9rem 1.75rem;
     border-radius: 12px;
-    box-shadow: 0 4px 0 #047857, 0 6px 16px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 4px 0 #b45309, 0 8px 18px rgba(245, 158, 11, 0.35);
     transition: all 0.15s ease;
     cursor: pointer;
     border: none;
 }
-#btn-confirm-quiz:hover:not(:disabled) {
-    background: linear-gradient(135deg, #34d399, #059669);
-    transform: translateY(-1px);
-    box-shadow: 0 5px 0 #047857, 0 8px 20px rgba(16, 185, 129, 0.45);
+#btn-confirm-quiz:hover:not(:disabled),
+#btn-next-quiz:hover {
+    background: linear-gradient(135deg, #fbbf24, #ea580c);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #b45309, 0 12px 22px rgba(245, 158, 11, 0.45);
 }
-#btn-confirm-quiz:active:not(:disabled) {
-    transform: translateY(3px);
-    box-shadow: 0 1px 0 #047857, 0 2px 6px rgba(16, 185, 129, 0.35);
+#btn-confirm-quiz:active:not(:disabled),
+#btn-next-quiz:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #b45309, 0 2px 6px rgba(245, 158, 11, 0.25);
 }
 #btn-confirm-quiz:disabled {
-    opacity: 0.4;
+    opacity: 0.45;
+    background: #e2e8f0;
+    color: #94a3b8;
+    box-shadow: none;
     cursor: not-allowed;
     transform: none;
-    box-shadow: none;
-}
-#btn-next-quiz {
-    flex: 1;
-    padding: 0.9rem 1.75rem;
-    border-radius: 12px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    color: white;
-    box-shadow: 0 4px 0 #1e40af, 0 6px 16px rgba(37, 99, 235, 0.35);
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-#btn-next-quiz:hover {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-    transform: translateY(-1px);
-    box-shadow: 0 5px 0 #1e40af, 0 8px 20px rgba(37, 99, 235, 0.45);
-}
-#btn-next-quiz:active {
-    transform: translateY(3px);
-    box-shadow: 0 1px 0 #1e40af, 0 2px 6px rgba(37, 99, 235, 0.35);
 }
 
 /* =========================================

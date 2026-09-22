@@ -293,10 +293,11 @@ export function formatMathText(text) {
         return s.replace(/\(([a-q])\)/gi, '(<span class="math-var">$1</span>)');
     });
 
-    // 3. Ganti suku aljabar dengan koefisien atau ekspresi, misal 3a -> 3<span class="math-var">a</span>
+    // 3. Ganti suku aljabar dengan koefisien atau ekspresi, misal 3a -> 3<span class="math-var">a</span> atau 5ab -> 5<span class="math-var">ab</span>
     formatted = processNonHtmlParts(formatted, (s) => {
-        return s.replace(/(^|[\s+=\-(])(\d*)([a-q])(?=[\s+=\-)<,]|$)/gi, (match, prefix, num, v) => {
+        return s.replace(/(^|[\s+=\-\(\/])(?:(\d+)([a-q]+)|([a-q]))(?=[\s+=\-\)<,\/]|$)/gi, (match, prefix, num, varsMulti, varsSingle) => {
             let numHtml = num ? `<span class="math-num">${num}</span>` : "";
+            let v = varsMulti || varsSingle;
             return `${prefix}${numHtml}<span class="math-var">${v}</span>`;
         });
     });

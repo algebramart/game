@@ -416,7 +416,17 @@ export function showQuizQuestion() {
     quizData.options.forEach((opt, index) => {
         const btn = document.createElement("button");
         btn.className = "btn-quiz-option";
-        btn.innerHTML = formatMathText(opt);
+
+        // Pisahkan label abjad (A., B., C., D.) dengan isi opsi agar rapi dan rapat di kiri
+        const match = opt.match(/^([A-Za-z0-9]+[\.\)])\s*(.*)$/);
+        if (match) {
+            const letter = match[1];
+            const textContent = match[2];
+            btn.innerHTML = `<span class="quiz-option-letter">${letter}</span><span class="quiz-option-text">${formatMathText(textContent)}</span>`;
+        } else {
+            btn.innerHTML = `<span class="quiz-option-text">${formatMathText(opt)}</span>`;
+        }
+
         btn.addEventListener('click', () => {
             const allButtons = optionsContainer.querySelectorAll(".btn-quiz-option");
             allButtons.forEach(b => b.classList.remove("selected"));
