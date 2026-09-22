@@ -6,17 +6,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Algebra-Mart</title>
 
+    <!-- External Libraries -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
-    <link rel="stylesheet" href="style.css">
+    <!-- Firebase Realtime Database SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js"></script>
+
+    <!-- Modular CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
 </head>
 
 <body class="app-body">
     <div id="app-container">
-        <div id="screen-login" class="screen active login-screen">
+
+        <!-- Tombol Pengaturan Universal (Melayang Anti-Blocking) -->
+        <button id="btn-universal-settings" class="btn-universal-settings hidden" title="Pengaturan">
+            <i class="fa-solid fa-gear"></i>
+        </button>
+
+        <!-- ==============================
+             LAYAR: GERBANG AWAL (WELCOME GATEWAY)
+             ============================== -->
+        <div id="screen-welcome" class="screen active welcome-screen">
+            <div class="welcome-card">
+                <div class="welcome-badge">
+                    <i class="fa-solid fa-store"></i> ALGEBRA-MART 2.0
+                </div>
+                <h1 class="main-title welcome-title">ALGEBRA-MART</h1>
+                <p class="welcome-subtitle">Gim Edukasi Literasi Matematika & Keuangan</p>
+                <div class="welcome-features">
+                    <span><i class="fa-solid fa-calculator"></i> Aljabar Kontekstual</span>
+                    <span><i class="fa-solid fa-coins"></i> Simulasi Kasir</span>
+                    <span><i class="fa-solid fa-award"></i> 20 Lencana Prestasi</span>
+                </div>
+                <button id="btn-start-game-gateway" class="btn-primary btn-gateway">
+                    <i class="fa-solid fa-play"></i> Mulai Game
+                </button>
+            </div>
+        </div>
+
+        <!-- ==============================
+             LAYAR: LOGIN / DAFTAR KASIR
+             ============================== -->
+        <div id="screen-login" class="screen login-screen">
             <div class="login-header">
                 <h1 class="main-title">ALGEBRA-MART</h1>
             </div>
@@ -24,8 +64,7 @@
             <div class="login-card">
                 <h2 class="card-title"><i class="fa-solid fa-user-circle"></i> Siapa Kasir Kita Hari Ini?</h2>
 
-                <div id="user-list" class="user-list-container">
-                </div>
+                <div id="user-list" class="user-list-container"></div>
 
                 <div class="new-profile-form">
                     <h3>Buat Profil Baru</h3>
@@ -37,24 +76,17 @@
                         </select>
                         <input type="text" id="new-class" placeholder="Kelas (mis. 7A)" class="form-input">
                     </div>
-                    <button onclick="createUser()" class="btn-primary btn-add-user">
+                    <button class="btn-primary btn-add-user">
                         <i class="fa-solid fa-plus"></i> Tambah Kasir
                     </button>
                 </div>
             </div>
-
-            <button onclick="showFasilitatorLogin()" class="btn-settings">
-                <i class="fa-solid fa-cog"></i>
-            </button>
         </div>
 
+        <!-- ==============================
+             LAYAR: LOBI
+             ============================== -->
         <div id="screen-lobby" class="screen lobby-screen">
-            <div class="lobby-nav">
-                <button onclick="logout()" class="btn-logout">
-                    <i class="fa-solid fa-sign-out-alt"></i> Keluar
-                </button>
-            </div>
-
             <div class="lobby-layout">
                 <div class="lobby-info-panel">
                     <h2 class="info-label">Profil Saya</h2>
@@ -72,23 +104,22 @@
                             </tr>
                             <tr>
                                 <td>Gelar</td>
-                                <td class="player-title"><i class="fa-solid fa-medal"></i> <span
-                                        id="lobby-title">...</span>
-                                </td>
+                                <td class="player-title"><i class="fa-solid fa-medal"></i> <span id="lobby-title">...</span></td>
                             </tr>
                         </table>
                     </div>
 
                     <div class="lobby-actions">
-                        <button onclick="bukaMenuLevel()" class="btn-start-game">
-                            Mulai Permainan
-                        </button>
+                        <button class="btn-start-game">Mulai Permainan</button>
                         <div class="secondary-actions">
-                            <button onclick="openBukuKas()" class="btn-secondary">
+                            <button class="btn-secondary">
                                 <i class="fa-solid fa-book"></i> Buku Kas
                             </button>
-                            <button onclick="openPrestasi()" class="btn-secondary">
+                            <button class="btn-secondary">
                                 <i class="fa-solid fa-trophy"></i> Prestasi
+                            </button>
+                            <button class="btn-secondary btn-join-room" id="btn-open-join-room" title="Gabung Kelas Guru">
+                                <i class="fa-solid fa-chalkboard-user"></i> <span id="lobby-room-label">Gabung Kelas</span>
                             </button>
                         </div>
                     </div>
@@ -108,8 +139,11 @@
             </div>
         </div>
 
+        <!-- ==============================
+             LAYAR: PILIH LEVEL
+             ============================== -->
         <div id="screen-levels" class="screen levels-screen">
-            <button onclick="switchScreen('screen-lobby')" class="btn-back">
+            <button class="btn-back">
                 <i class="fa-solid fa-arrow-left"></i> Kembali ke Lobi
             </button>
 
@@ -117,112 +151,97 @@
 
             <div class="level-grid-wrapper">
                 <div class="level-tabs">
-                    <button class="tab-active">Tantangan Mudah (C1-C3)</button>
-                    <button class="tab-disabled">Tantangan Sulit (C4-C6) <i class="fa-solid fa-lock"></i></button>
+                    <button id="tab-level-easy" class="tab-active">Tantangan Mudah (C1-C3)</button>
+                    <button id="tab-level-hard" class="tab-disabled">Tantangan Sulit (C4-C6) <i class="fa-solid fa-lock"></i></button>
                 </div>
-                <div class="level-grid" id="level-grid-container">
-                </div>
+                <div class="level-grid" id="level-grid-container"></div>
             </div>
         </div>
 
+        <!-- ==============================
+             LAYAR: GAME
+             ============================== -->
         <div id="screen-game" class="screen game-screen">
-            <div class="game-container" style="margin: 0 auto; margin-top: 0rem;">
+            <div class="game-container">
 
-                <button id="btn-back-menu" class="btn-back" onclick="switchScreen('screen-levels')">⬅ Kembali</button>
+                <button id="btn-back-menu" class="btn-back">⬅ Kembali</button>
 
                 <div class="shop-background">
 
                     <div class="wooden-shelf wide-shelf">
                         <div class="shelf-tier">
-                            <div class="product-item clickable-item" onclick="addVariable('a')">
-                                <div class="item-labels"><span class="product-name">Apel</span><span
-                                        class="variable-label">a</span></div>
+                            <div class="product-item clickable-item" data-var="a">
+                                <div class="item-labels"><span class="product-name">Apel</span><span class="variable-label">a</span></div>
                                 <img src="assets/barangbelanja/apel.png" alt="Apel" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('b')">
-                                <div class="item-labels"><span class="product-name">Beras</span><span
-                                        class="variable-label">b</span></div>
+                            <div class="product-item clickable-item" data-var="b">
+                                <div class="item-labels"><span class="product-name">Beras</span><span class="variable-label">b</span></div>
                                 <img src="assets/barangbelanja/beras.png" alt="Beras" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('c')">
-                                <div class="item-labels"><span class="product-name">Buku</span><span
-                                        class="variable-label">c</span></div>
+                            <div class="product-item clickable-item" data-var="c">
+                                <div class="item-labels"><span class="product-name">Buku</span><span class="variable-label">c</span></div>
                                 <img src="assets/barangbelanja/buku.png" alt="Buku" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('d')">
-                                <div class="item-labels"><span class="product-name">Dodol</span><span
-                                        class="variable-label">d</span></div>
+                            <div class="product-item clickable-item" data-var="d">
+                                <div class="item-labels"><span class="product-name">Dodol</span><span class="variable-label">d</span></div>
                                 <img src="assets/barangbelanja/dodolnanas.png" alt="Dodol" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('e')">
-                                <div class="item-labels"><span class="product-name">Gandus</span><span
-                                        class="variable-label">e</span></div>
+                            <div class="product-item clickable-item" data-var="e">
+                                <div class="item-labels"><span class="product-name">Gandus</span><span class="variable-label">e</span></div>
                                 <img src="assets/barangbelanja/gandus.png" alt="Gandus" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('f')">
-                                <div class="item-labels"><span class="product-name">Gula</span><span
-                                        class="variable-label">f</span></div>
+                            <div class="product-item clickable-item" data-var="f">
+                                <div class="item-labels"><span class="product-name">Gula</span><span class="variable-label">f</span></div>
                                 <img src="assets/barangbelanja/gula.png" alt="Gula" class="product-size">
                             </div>
                         </div>
 
                         <div class="shelf-tier">
-                            <div class="product-item clickable-item" onclick="addVariable('g')">
-                                <div class="item-labels"><span class="product-name">Jeruk</span><span
-                                        class="variable-label">g</span></div>
+                            <div class="product-item clickable-item" data-var="g">
+                                <div class="item-labels"><span class="product-name">Jeruk</span><span class="variable-label">g</span></div>
                                 <img src="assets/barangbelanja/jeruk.png" alt="Jeruk" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('h')">
-                                <div class="item-labels"><span class="product-name">Kopi</span><span
-                                        class="variable-label">h</span></div>
+                            <div class="product-item clickable-item" data-var="h">
+                                <div class="item-labels"><span class="product-name">Kopi</span><span class="variable-label">h</span></div>
                                 <img src="assets/barangbelanja/kopiaaa.png" alt="Kopi" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('i')">
-                                <div class="item-labels"><span class="product-name">Minyak</span><span
-                                        class="variable-label">i</span></div>
+                            <div class="product-item clickable-item" data-var="i">
+                                <div class="item-labels"><span class="product-name">Minyak</span><span class="variable-label">i</span></div>
                                 <img src="assets/barangbelanja/minyakgoreng.png" alt="Minyak" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('j')">
-                                <div class="item-labels"><span class="product-name">Padamaran</span><span
-                                        class="variable-label">j</span></div>
+                            <div class="product-item clickable-item" data-var="j">
+                                <div class="item-labels"><span class="product-name">Padamaran</span><span class="variable-label">j</span></div>
                                 <img src="assets/barangbelanja/padamaran.png" alt="Padamaran" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('k')">
-                                <div class="item-labels"><span class="product-name">Pena</span><span
-                                        class="variable-label">k</span></div>
+                            <div class="product-item clickable-item" data-var="k">
+                                <div class="item-labels"><span class="product-name">Pena</span><span class="variable-label">k</span></div>
                                 <img src="assets/barangbelanja/pena.png" alt="Pena" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('l')">
-                                <div class="item-labels"><span class="product-name">Roti</span><span
-                                        class="variable-label">l</span></div>
+                            <div class="product-item clickable-item" data-var="l">
+                                <div class="item-labels"><span class="product-name">Roti</span><span class="variable-label">l</span></div>
                                 <img src="assets/barangbelanja/roti.png" alt="Roti" class="product-size">
                             </div>
                         </div>
 
                         <div class="shelf-tier">
-                            <div class="product-item clickable-item" onclick="addVariable('m')">
-                                <div class="item-labels"><span class="product-name">Sabun</span><span
-                                        class="variable-label">m</span></div>
+                            <div class="product-item clickable-item" data-var="m">
+                                <div class="item-labels"><span class="product-name">Sabun</span><span class="variable-label">m</span></div>
                                 <img src="assets/barangbelanja/sabun.png" alt="Sabun" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('n')">
-                                <div class="item-labels"><span class="product-name">Telur</span><span
-                                        class="variable-label">n</span></div>
+                            <div class="product-item clickable-item" data-var="n">
+                                <div class="item-labels"><span class="product-name">Telur</span><span class="variable-label">n</span></div>
                                 <img src="assets/barangbelanja/telur.png" alt="Telur" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('o')">
-                                <div class="item-labels"><span class="product-name">Tempoyak</span><span
-                                        class="variable-label">o</span></div>
+                            <div class="product-item clickable-item" data-var="o">
+                                <div class="item-labels"><span class="product-name">Tempoyak</span><span class="variable-label">o</span></div>
                                 <img src="assets/barangbelanja/tempoyak.png" alt="Tempoyak" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('p')">
-                                <div class="item-labels"><span class="product-name">Tepung</span><span
-                                        class="variable-label">p</span></div>
+                            <div class="product-item clickable-item" data-var="p">
+                                <div class="item-labels"><span class="product-name">Tepung</span><span class="variable-label">p</span></div>
                                 <img src="assets/barangbelanja/tepung.png" alt="Tepung" class="product-size">
                             </div>
-                            <div class="product-item clickable-item" onclick="addVariable('q')">
-                                <div class="item-labels"><span class="product-name">Terong</span><span
-                                        class="variable-label">q</span></div>
+                            <div class="product-item clickable-item" data-var="q">
+                                <div class="item-labels"><span class="product-name">Terong</span><span class="variable-label">q</span></div>
                                 <img src="assets/barangbelanja/terong.png" alt="Terong" class="product-size">
                             </div>
                         </div>
@@ -240,18 +259,13 @@
                     <div class="cash-register">
                         <div class="register-display-panel">
                             <div class="green-indicator-screen">
-                                <div class="screen-row"><span class="screen-label">Harga:</span> <span
-                                        id="harga-display" class="screen-value"></span></div>
-                                <div class="screen-row"><span class="screen-label">Rumus:</span> <input type="text"
-                                        id="formula-box" class="kasir-input input-active" readonly></div>
+                                <div class="screen-row"><span class="screen-label">Harga:</span> <span id="harga-display" class="screen-value"></span></div>
+                                <div class="screen-row"><span class="screen-label">Rumus:</span> <input type="text" id="formula-box" class="kasir-input input-active" readonly></div>
                                 <div class="screen-row">
                                     <span class="screen-label">Dibayar:</span>
-                                    <div
-                                        style="display: flex; align-items: center; width: 60%; justify-content: flex-end;">
-                                        <span
-                                            style="color: #c8e6c9; font-weight: bold; margin-right: 6px; font-size: 0.85rem;">Rp</span>
-                                        <input type="text" id="paid-box" class="kasir-input" style="width: 100%;"
-                                            readonly>
+                                    <div style="display: flex; align-items: center; width: 60%; justify-content: flex-end;">
+                                        <span style="color: #c8e6c9; font-weight: bold; margin-right: 6px; font-size: 0.85rem;">Rp</span>
+                                        <input type="text" id="paid-box" class="kasir-input" style="width: 100%;" readonly>
                                     </div>
                                 </div>
                             </div>
@@ -281,26 +295,16 @@
                             </div>
 
                             <div class="laci-grid hidden" id="laci-kasir">
-                                <button class="btn-uang" onclick="tambahUangKembalian(100000)"><img
-                                        src="assets/rupiah/rp100000.png" alt="100rb"></button>
-                                <button class="btn-uang" onclick="tambahUangKembalian(50000)"><img
-                                        src="assets/rupiah/rp50000.png" alt="50rb"></button>
-                                <button class="btn-uang" onclick="tambahUangKembalian(20000)"><img
-                                        src="assets/rupiah/rp20000.png" alt="20rb"></button>
-                                <button class="btn-uang" onclick="tambahUangKembalian(10000)"><img
-                                        src="assets/rupiah/rp10000.png" alt="10rb"></button>
-                                <button class="btn-uang" onclick="tambahUangKembalian(5000)"><img
-                                        src="assets/rupiah/rp5000.png" alt="5rb"></button>
-                                <button class="btn-uang" onclick="tambahUangKembalian(2000)"><img
-                                        src="assets/rupiah/rp2000.png" alt="2rb"></button>
-                                <button class="btn-uang" onclick="tambahUangKembalian(1000)"><img
-                                        src="assets/rupiah/rp1000.png" alt="1rb"></button>
-                                <button class="btn-uang" onclick="tambahUangKembalian(500)"><img
-                                        src="assets/rupiah/rp500.png" alt="500"></button>
-                                <button class="btn-uang" onclick="tambahUangKembalian(200)"><img
-                                        src="assets/rupiah/rp200.png" alt="200"></button>
-                                <button class="btn-uang" onclick="tambahUangKembalian(100)"><img
-                                        src="assets/rupiah/rp100.png" alt="100"></button>
+                                <button class="btn-uang btn-kertas" data-nominal="100000"><img src="assets/rupiah/rp100000.png" alt="100rb"></button>
+                                <button class="btn-uang btn-kertas" data-nominal="50000"><img src="assets/rupiah/rp50000.png" alt="50rb"></button>
+                                <button class="btn-uang btn-kertas" data-nominal="20000"><img src="assets/rupiah/rp20000.png" alt="20rb"></button>
+                                <button class="btn-uang btn-kertas" data-nominal="10000"><img src="assets/rupiah/rp10000.png" alt="10rb"></button>
+                                <button class="btn-uang btn-kertas" data-nominal="5000"><img src="assets/rupiah/rp5000.png" alt="5rb"></button>
+                                <button class="btn-uang btn-kertas" data-nominal="2000"><img src="assets/rupiah/rp2000.png" alt="2rb"></button>
+                                <button class="btn-uang btn-kertas" data-nominal="1000"><img src="assets/rupiah/rp1000.png" alt="1rb"></button>
+                                <button class="btn-uang btn-koin" data-nominal="500"><img src="assets/rupiah/rp500.png" alt="500"></button>
+                                <button class="btn-uang btn-koin" data-nominal="200"><img src="assets/rupiah/rp200.png" alt="200"></button>
+                                <button class="btn-uang btn-koin" data-nominal="100"><img src="assets/rupiah/rp100.png" alt="100"></button>
                             </div>
                         </div>
                     </div>
@@ -312,8 +316,7 @@
 
                     <div class="customer-wallet">
                         <div class="wallet-title">Uang Pelanggan</div>
-                        <div class="wallet-money-layout" id="wallet-container-dynamic">
-                        </div>
+                        <div class="wallet-money-layout" id="wallet-container-dynamic"></div>
                     </div>
                 </div>
 
@@ -323,18 +326,10 @@
                         <div class="receipt-divider">======================================</div>
 
                         <div class="receipt-section-title">-- KALKULASI HARGA --</div>
-                        <div class="receipt-row">
-                            <span>Rumus:</span> <span id="struk-rumus"></span>
-                        </div>
-                        <div class="receipt-row">
-                            <span>Proses:</span> <span id="struk-proses"></span>
-                        </div>
-                        <div class="receipt-row">
-                            <span>Rincian:</span> <span id="struk-rincian"></span>
-                        </div>
-                        <div class="receipt-row total-row">
-                            <span>Total Harga:</span> <strong id="struk-total"></strong>
-                        </div>
+                        <div class="receipt-row"><span>Rumus:</span> <span id="struk-rumus"></span></div>
+                        <div class="receipt-row"><span>Proses:</span> <span id="struk-proses"></span></div>
+                        <div class="receipt-row"><span>Rincian:</span> <span id="struk-rincian"></span></div>
+                        <div class="receipt-row total-row"><span>Total Harga:</span> <strong id="struk-total"></strong></div>
 
                         <div class="receipt-divider">--------------------------------------</div>
 
@@ -365,8 +360,11 @@
             </div>
         </div>
 
+        <!-- ==============================
+             LAYAR: BUKU KAS
+             ============================== -->
         <div id="screen-bukukas" class="screen bukukas-screen">
-            <button onclick="switchScreen('screen-lobby')" class="btn-back">
+            <button class="btn-back">
                 <i class="fa-solid fa-arrow-left"></i> Kembali
             </button>
 
@@ -389,14 +387,25 @@
                             <p>Total Laba Bersih = Total Pendapatan - Total Modal</p>
                             <h3 id="bk-bersih" style="font-size: .7rem;">Rp 0</h3>
                         </div>
+                    </div>
 
-                        <div class="stat-box stat-profit">
-                            <p>Total Sumbangan = </p>
+                    <!-- Kotak Sumbangan Kasir (Dimensi Hati & Karakter) -->
+                    <div class="charity-box">
+                        <div class="charity-header">
+                            <div>
+                                <h4><i class="fa-solid fa-hand-holding-heart text-pink"></i> Kotak Sumbangan Sosial</h4>
+                                <p>Sisihkan laba bersih kasir untuk infaq dan kemanusiaan.</p>
+                            </div>
+                            <div class="charity-total">
+                                <span>Akumulasi Donasi:</span>
+                                <strong id="bk-sumbangan">Rp 0</strong>
+                            </div>
                         </div>
-                        <div class="stat-box stat-profit">
-                            <p>Reputasi Toko = </p>
+                        <div class="charity-actions">
+                            <button class="btn-charity" data-nominal="1000"><i class="fa-solid fa-plus"></i> Rp 1.000</button>
+                            <button class="btn-charity" data-nominal="5000"><i class="fa-solid fa-plus"></i> Rp 5.000</button>
+                            <button class="btn-charity" data-nominal="10000"><i class="fa-solid fa-plus"></i> Rp 10.000</button>
                         </div>
-
                     </div>
                 </div>
 
@@ -413,14 +422,16 @@
                     </div>
 
                     <h3 class="history-title"><i class="fa-solid fa-list-ul"></i> Riwayat Level</h3>
-                    <div class="history-list" id="bk-history-list">
-                    </div>
+                    <div class="history-list" id="bk-history-list"></div>
                 </div>
             </div>
         </div>
 
+        <!-- ==============================
+             LAYAR: PRESTASI
+             ============================== -->
         <div id="screen-prestasi" class="screen prestasi-screen">
-            <button onclick="switchScreen('screen-lobby')" class="btn-back">
+            <button class="btn-back">
                 <i class="fa-solid fa-arrow-left"></i> Kembali
             </button>
 
@@ -439,23 +450,24 @@
                                     <th class="text-right">Laba Bersih</th>
                                 </tr>
                             </thead>
-                            <tbody id="leaderboard-body">
-                            </tbody>
+                            <tbody id="leaderboard-body"></tbody>
                         </table>
                     </div>
                 </div>
 
                 <div class="badges-token-panel">
                     <div class="badges-panel">
-                        <h2><i class="fa-solid fa-medal"></i> Galeri Lencana</h2>
-                        <div class="badges-grid" id="badges-container">
+                        <div class="badges-panel-header">
+                            <h2><i class="fa-solid fa-medal"></i> Galeri Lencana</h2>
+                            <span id="badges-counter" class="badges-counter-badge">0 / 20 Terbuka</span>
                         </div>
+                        <div class="badges-grid" id="badges-container"></div>
                     </div>
 
                     <div class="token-panel">
                         <h3>Kode Prestasi</h3>
                         <div class="token-display" id="token-display">------</div>
-                        <button onclick="copyToken()" class="btn-copy">
+                        <button class="btn-copy">
                             <i class="fa-solid fa-copy"></i> Salin Kode
                         </button>
                     </div>
@@ -463,20 +475,36 @@
             </div>
         </div>
 
+        <!-- ==============================
+             LAYAR: FASILITATOR
+             ============================== -->
         <div id="screen-fasilitator" class="screen fasilitator-screen">
             <div class="fasil-topbar">
                 <div>
                     <h1><i class="fa-solid fa-user-tie"></i> RUANG FASILITATOR</h1>
-                    <p>Mode Luring - Data Perangkat Lokal</p>
+                    <p id="fasil-mode-desc">Mode Luring - Data Perangkat Lokal</p>
                 </div>
-                <button onclick="switchScreen('screen-login')" class="btn-exit-fasil">Keluar Mode</button>
+                <div class="fasil-topbar-actions">
+                    <div id="fasil-room-badge" class="room-session-badge hidden">
+                        <span class="live-dot"></span>
+                        <span class="room-label">Sesi Live:</span>
+                        <span id="fasil-room-code-display" class="room-code">------</span>
+                        <button id="btn-copy-room-code" class="btn-icon-mini" title="Salin Kode Ruang">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+                    <button id="btn-create-room" class="btn-primary btn-room-action">
+                        <i class="fa-solid fa-tower-broadcast"></i> Buat Sesi Kelas Online
+                    </button>
+                    <button class="btn-exit-fasil">Keluar Mode</button>
+                </div>
             </div>
 
             <div class="fasil-layout">
                 <div class="fasil-main-panel">
                     <div class="panel-header">
                         <h2>Daftar Peserta Didik Aktif</h2>
-                        <button onclick="exportCSV()" class="btn-export">
+                        <button class="btn-export">
                             <i class="fa-solid fa-file-csv"></i> Ekspor CSV
                         </button>
                     </div>
@@ -493,8 +521,7 @@
                                     <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody id="fasil-table-body">
-                            </tbody>
+                            <tbody id="fasil-table-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -502,12 +529,11 @@
                 <div class="fasil-sidebar">
                     <div class="ews-panel">
                         <h2><i class="fa-solid fa-bell"></i> Peringatan Dini</h2>
-                        <div class="ews-list" id="fasil-ews-list">
-                        </div>
+                        <div class="ews-list" id="fasil-ews-list"></div>
                     </div>
                     <div class="admin-panel">
                         <h2>Administrasi</h2>
-                        <button onclick="resetAllData()" class="btn-reset-data">
+                        <button class="btn-reset-data">
                             <i class="fa-solid fa-trash-can"></i> Reset Semua Data Perangkat
                         </button>
                     </div>
@@ -515,35 +541,162 @@
             </div>
         </div>
 
+        <!-- ==============================
+             MODAL: PIN FASILITATOR
+             ============================== -->
         <div id="modal-pin" class="modal-overlay hidden">
             <div class="modal-card modal-pin-card">
                 <h3><i class="fa-solid fa-lock"></i> PIN Fasilitator</h3>
                 <p>Masukkan PIN (default: 1234)</p>
                 <input type="password" id="pin-input" class="form-input text-center font-mono">
                 <div class="modal-actions">
-                    <button onclick="closeModal('modal-pin')" class="btn-secondary">Batal</button>
-                    <button onclick="checkPIN()" class="btn-primary">Masuk</button>
+                    <button class="btn-secondary">Batal</button>
+                    <button class="btn-primary">Masuk</button>
                 </div>
             </div>
         </div>
 
+        <!-- ==============================
+             MODAL: GABUNG KELAS ONLINE
+             ============================== -->
+        <div id="modal-join-room" class="modal-overlay hidden">
+            <div class="modal-card modal-join-room-card">
+                <h3><i class="fa-solid fa-chalkboard-user"></i> Gabung Kelas Guru</h3>
+                <p>Masukkan 6 karakter Kode Ruang dari fasilitator/guru untuk menyinkronkan progres belajarmu secara daring.</p>
+                <div class="room-input-container">
+                    <input type="text" id="input-room-code" maxlength="6" placeholder="Contoh: ALJ7A1" class="form-input text-center font-mono room-code-input" autocomplete="off" spellcheck="false">
+                </div>
+                <p id="join-room-status" class="room-status-text"></p>
+                <div class="modal-actions">
+                    <button id="btn-cancel-join-room" class="btn-secondary">Batal</button>
+                    <button id="btn-leave-room" class="btn-danger hidden">Keluar Kelas</button>
+                    <button id="btn-submit-join-room" class="btn-primary">Gabung</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             MODAL: PESAN UMUM
+             ============================== -->
         <div id="modal-msg" class="modal-overlay hidden">
             <div class="modal-card text-center">
                 <h3 id="msg-title">Pesan</h3>
-                <p id="msg-desc">Deskripsi</p>
-                <button onclick="closeModal('modal-msg')" class="btn-primary btn-full">OK</button>
+                <div id="msg-desc">Deskripsi</div>
+                <button class="btn-primary btn-full">OK</button>
             </div>
         </div>
 
+        <!-- ==============================
+             TUTORIAL OVERLAY & WALKTHROUGH
+             ============================== -->
         <div id="tutorial-overlay" class="tutorial-overlay hidden">
             <div id="tutorial-highlight" class="tutorial-highlight"></div>
+        </div>
 
-            <div id="tutorial-tooltip" class="tutorial-tooltip">
-                <p id="tutorial-text">Teks panduan akan muncul di sini.</p>
-                <button id="tutorial-btn" class="tutorial-btn" onclick="nextTutorialStep()">Paham!</button>
+        <div id="tutorial-tooltip" class="tutorial-tooltip hidden">
+            <p id="tutorial-text">Teks panduan akan muncul di sini.</p>
+            <div class="tutorial-actions">
+                <button id="tutorial-btn-skip" class="tutorial-btn-skip">Lewati Panduan</button>
+                <button id="tutorial-btn" class="tutorial-btn hidden">Paham!</button>
             </div>
         </div>
 
+        <div id="tutorial-hand-container" class="tutorial-hand-container hidden">
+            <div class="pulse-ring pulse-left"></div>
+            <img id="tutorial-hand-img" class="tutorial-hand-img hand-left" src="image/indexfingerleft.svg" alt="Petunjuk">
+        </div>
+
+        <!-- ==============================
+             MODAL: PENGATURAN TERPADU
+             ============================== -->
+        <div id="modal-settings" class="modal-overlay hidden">
+            <div class="modal-card modal-settings-card">
+                <div class="settings-modal-header">
+                    <h3 class="settings-modal-title"><i class="fa-solid fa-gear"></i> Pengaturan Game</h3>
+                    <button id="btn-close-settings-x" class="settings-close-x" title="Tutup">&times;</button>
+                </div>
+
+                <div class="settings-modal-body">
+                    <!-- Kontrol Audio: BGM -->
+                    <div class="settings-section">
+                        <div class="settings-row-label">
+                            <span class="settings-label-text"><i class="fa-solid fa-music"></i> Musik Latar (BGM)</span>
+                            <span id="bgm-volume-label" class="settings-val-badge">35%</span>
+                        </div>
+                        <div class="settings-row-controls">
+                            <input type="range" id="slider-bgm-volume" min="0" max="100" value="35" class="settings-slider">
+                            <button id="btn-mute-bgm" class="btn-settings-mute" title="Bisukan BGM">
+                                <i class="fa-solid fa-volume-high"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Kontrol Audio: SFX -->
+                    <div class="settings-section">
+                        <div class="settings-row-label">
+                            <span class="settings-label-text"><i class="fa-solid fa-volume-high"></i> Efek Suara (SFX)</span>
+                            <span id="sfx-volume-label" class="settings-val-badge">70%</span>
+                        </div>
+                        <div class="settings-row-controls">
+                            <input type="range" id="slider-sfx-volume" min="0" max="100" value="70" class="settings-slider">
+                            <button id="btn-mute-sfx" class="btn-settings-mute" title="Bisukan SFX">
+                                <i class="fa-solid fa-volume-high"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Layar Penuh -->
+                    <div class="settings-section">
+                        <button id="btn-toggle-fullscreen" class="btn-settings-action btn-fullscreen-toggle">
+                            <i class="fa-solid fa-expand"></i> <span id="fullscreen-btn-text">Layar Penuh (Fullscreen)</span>
+                        </button>
+                    </div>
+
+                    <!-- Aksi Kontekstual Dinamis Berdasarkan Layar Aktif -->
+                    <div id="settings-context-actions" class="settings-section settings-context-group">
+                        <!-- Khusus Layar Login: Buka Ruang Fasilitator -->
+                        <button id="btn-settings-fasil" class="btn-settings-action btn-context-fasil hidden">
+                            <i class="fa-solid fa-user-tie"></i> Buka Ruang Fasilitator
+                        </button>
+                        <!-- Khusus Layar Lobi: Ganti Akun / Ganti Pemain -->
+                        <button id="btn-settings-switch-user" class="btn-settings-action btn-context-user hidden">
+                            <i class="fa-solid fa-users"></i> Ganti Akun / Ganti Pemain
+                        </button>
+                        <!-- Khusus Layar Permainan Kasir: Keluar ke Menu Level -->
+                        <button id="btn-settings-exit-game" class="btn-settings-action btn-context-exit hidden">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar ke Menu Level
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-actions settings-modal-actions">
+                    <button id="btn-close-settings" class="btn-secondary btn-full">Tutup Pengaturan</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             MODAL: KONFIRMASI KELUAR GAME
+             ============================== -->
+        <div id="modal-confirm-exit" class="modal-overlay hidden">
+            <div class="modal-card text-center">
+                <div class="confirm-icon-wrap">
+                    <i class="fa-solid fa-circle-question"></i>
+                </div>
+                <h3 id="confirm-exit-title">Keluar Permainan?</h3>
+                <p id="confirm-exit-desc">
+                    Pesanan pelanggan saat ini belum selesai. Jika kembali ke menu, transaksi level ini akan diulang dari awal.
+                </p>
+                <div class="confirm-actions">
+                    <button id="btn-cancel-exit-game">Batal</button>
+                    <button id="btn-confirm-exit-game">Ya, Keluar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             MODAL: KUIS
+             ============================== -->
         <div id="quiz-modal" class="modal-overlay hidden">
             <div class="quiz-card">
                 <div class="quiz-header">
@@ -551,17 +704,24 @@
                     <span id="quiz-counter">Soal 1/2</span>
                 </div>
                 <p id="quiz-question" class="quiz-question-text">Pertanyaan akan muncul di sini...</p>
-                <div id="quiz-options" class="quiz-options-container">
+                <div id="quiz-options" class="quiz-options-container"></div>
+                <div id="quiz-feedback" class="quiz-feedback hidden"></div>
+                <div class="quiz-actions" style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button id="btn-confirm-quiz" class="btn-primary hidden">Yakin</button>
+                    <button id="btn-next-quiz" class="btn-primary hidden">Lanjut</button>
                 </div>
-                <div id="quiz-feedback" class="quiz-feedback hidden">
-                </div>
-                <button id="btn-next-quiz" class="btn-primary hidden" onclick="nextQuizQuestion()">Lanjut</button>
             </div>
         </div>
+
+        <!-- ==============================
+             NOTIFIKASI LENCANA DIBUKA (TOAST / POP-UP)
+             ============================== -->
+        <div id="badge-toast-container" class="badge-toast-container"></div>
+
     </div>
 
-
-    <script src="script.js"></script>
+    <!-- ES Module Entry Point -->
+    <script type="module" src="js/app.js"></script>
 </body>
 
 </html>
