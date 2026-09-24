@@ -197,6 +197,15 @@ export function checkPIN() {
 
 export function openFasilitator() {
     switchScreen('screen-fasilitator');
+
+    // Tugas 2: Jika sudah ada sesi room dari localStorage/state,
+    // otomatis jalankan ulang listener Firebase tanpa membuat kode baru
+    if (state.hostedRoomCode) {
+        startHostRoom(() => {
+            renderFasilTableAndEWS();
+        }, false);
+    }
+
     updateFasilTopBarUI();
     renderFasilTableAndEWS();
 }
@@ -223,13 +232,14 @@ export function updateFasilTopBarUI() {
 }
 
 /**
- * Guru membuat sesi kelas online / membuka ruang.
+ * Guru membuat sesi kelas online / membuka ruang baru.
  */
 export function handleCreateHostRoom() {
+    // forceNew = true: menghasilkan kode baru saat guru sengaja klik Buat / Ganti Ruang
     const code = startHostRoom(() => {
         // Callback realtime saat progres murid masuk
         renderFasilTableAndEWS();
-    });
+    }, true);
     updateFasilTopBarUI();
     renderFasilTableAndEWS();
     showMsg('Sesi Kelas Aktif', `Kode Ruang Kelas: ${code}\nBagikan kode 6 digit ini kepada murid-murid.`);
@@ -510,6 +520,7 @@ export function deleteUser(id) {
 
 export function resetAllData() {
     if (confirm("Hapus SEMUA data di perangkat ini? Tindakan ini tidak dapat dibatalkan.")) {
+        stopHostRoom();
         state.users = [];
         localStorage.removeItem('algebraMart_users');
         openFasilitator();

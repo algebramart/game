@@ -6,6 +6,22 @@ import { state } from './state.js';
 let syncChannel = null;
 let fbDbRef = null;
 let isFirebaseReady = false;
+let storageEventHandler = null;
+
+// =========================================================================
+// KONFIGURASI FIREBASE REALTIME DATABASE (TUGAS 1)
+// Ganti nilai di bawah ini dengan konfigurasi dari Firebase Console proyek Anda:
+// Firebase Console -> Project Settings -> General -> Your apps -> Web app (</>)
+// =========================================================================
+export const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAlgebraMartFallbackKey2026",
+    authDomain: "algebra-mart.firebaseapp.com",
+    databaseURL: "https://algebra-mart-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "algebra-mart",
+    storageBucket: "algebra-mart.appspot.com",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:abcdef123456"
+};
 
 // Inisialisasi BroadcastChannel untuk komunikasi antar-tab/perangkat luring instan
 try {
@@ -30,15 +46,7 @@ export function initFirebase() {
 
     try {
         if (!window.firebase.apps || window.firebase.apps.length === 0) {
-            // Konfigurasi default / fallback RTDB
-            const firebaseConfig = {
-                apiKey: "AIzaSyAlgebraMartFallbackKey2026",
-                authDomain: "algebra-mart.firebaseapp.com",
-                databaseURL: "https://algebra-mart-default-rtdb.asia-southeast1.firebasedatabase.app",
-                projectId: "algebra-mart",
-                storageBucket: "algebra-mart.appspot.com"
-            };
-            window.firebase.initializeApp(firebaseConfig);
+            window.firebase.initializeApp(FIREBASE_CONFIG);
         }
         isFirebaseReady = true;
         console.log('[Sync] Firebase Realtime Database berhasil disiapkan.');
@@ -68,19 +76,36 @@ export function generateRoomCode() {
  * Mendengarkan data murid secara realtime baik melalui Firebase RTDB maupun BroadcastChannel luring.
  * 
  * @param {Function} onStudentsUpdate Callback saat ada pembaruan data murid: (studentsMap) => void
+ * @param {boolean} [forceNew=false] Jika true, paksa membuat kode ruang baru meskipun sudah ada sesi aktif
  * @returns {string} Kode ruang yang di-host
  */
-export function startHostRoom(onStudentsUpdate) {
+export function startHostRoom(onStudentsUpdate, forceNew = false) {
     initFirebase();
 
-    // Hasilkan kode baru jika belum ada
-    if (!state.hostedRoomCode) {
+    // Hasilkan kode baru hanya jika diminta membuat baru atau belum ada sesi tersimpan
+    if (forceNew || !state.hostedRoomCode) {
         state.hostedRoomCode = generateRoomCode();
     }
     const roomCode = state.hostedRoomCode;
+
+    // Simpan kode ruang fasilitator ke localStorage agar persisten saat refresh (Tugas 2)
+    try {
+        localStorage.setItem('algebraMart_hostedRoom', roomCode);
+    } catch (e) {
+        console.warn('[Sync] Gagal menyimpan algebraMart_hostedRoom ke localStorage:', e);
+    }
+
     state.onlineStudents = {};
 
     console.log(`[Sync] Fasilitator membuka sesi kelas: ${roomCode}`);
+
+    // Lepas listener Firebase sebelumnya jika sudah ada agar tidak ganda saat re-attach
+    if (fbDbRef) {
+        try {
+            fbDbRef.off();
+        } catch (e) { /* ignore */ }
+        fbDbRef = null;
+    }
 
     // 1. Kanal Lokal / Luring (BroadcastChannel & Storage Event)
     if (syncChannel) {
@@ -101,7 +126,10 @@ export function startHostRoom(onStudentsUpdate) {
     }
 
     if (typeof window !== 'undefined') {
-        window.addEventListener('storage', (event) => {
+        if (storageEventHandler) {
+            window.removeEventListener('storage', storageEventHandler);
+        }
+        storageEventHandler = (event) => {
             if (event.key === 'algebramart_sync_msg' && event.newValue) {
                 try {
                     const msg = JSON.parse(event.newValue);
@@ -113,12 +141,13 @@ export function startHostRoom(onStudentsUpdate) {
                     }
                 } catch (e) { /* ignore parse error */ }
             }
-        });
+        };
+        window.addEventListener('storage', storageEventHandler);
     }
 
     // 2. Kanal Daring (Firebase RTDB)
     try {
-        if (isFirebaseReady && window.firebase && window.firebase.database && navigator.onLine) {
+        if (isFirebaseReady && window.firebase && window.firebase.database) {
             fbDbRef = window.firebase.database().ref(`rooms/${roomCode}/students`);
             fbDbRef.on('value', (snapshot) => {
                 const data = snapshot.val() || {};
@@ -139,7 +168,7 @@ export function startHostRoom(onStudentsUpdate) {
 }
 
 /**
- * Menghentikan sesi hosting fasilitator.
+ * Menghentikan sesi hosting fasilitator dan membersihkan penyimpanan serta listener.
  */
 export function stopHostRoom() {
     if (fbDbRef) {
@@ -148,8 +177,18 @@ export function stopHostRoom() {
         } catch (e) { /* ignore */ }
         fbDbRef = null;
     }
+    if (typeof window !== 'undefined' && storageEventHandler) {
+        window.removeEventListener('storage', storageEventHandler);
+        storageEventHandler = null;
+    }
     state.hostedRoomCode = null;
     state.onlineStudents = {};
+    try {
+        localStorage.removeItem('algebraMart_hostedRoom');
+    } catch (e) {
+        console.warn('[Sync] Gagal menghapus algebraMart_hostedRoom dari localStorage:', e);
+    }
+    console.log('[Sync] Sesi host fasilitator telah dihentikan.');
 }
 
 /**
@@ -221,7 +260,7 @@ export function sendStudentProgress(user, levelIdx, errors = 0, quizCorrect = 0,
         gender: user.gender || 'Laki-laki',
         level: levelIdx || 1,
         maxLevel: Math.max(user.maxLevel || 1, levelIdx || 1),
-        laba: user.laba || 0,
+        laba: user.money !== undefined ? user.money : (user.laba || 0),
         accuracy: accuracy,
         errorCount: Number(errors) || 0,
         quizScore: `${quizCorrect}/${quizTotal}`,
@@ -255,7 +294,7 @@ export function sendStudentProgress(user, levelIdx, errors = 0, quizCorrect = 0,
     // 3. Kirim via Firebase Realtime Database jika daring
     try {
         initFirebase();
-        if (isFirebaseReady && window.firebase && window.firebase.database && navigator.onLine) {
+        if (isFirebaseReady && window.firebase && window.firebase.database) {
             const db = window.firebase.database();
             db.ref(`rooms/${roomCode}/students/${studentId}`).set(payload)
                 .then(() => {

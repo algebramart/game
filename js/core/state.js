@@ -42,7 +42,7 @@ export const state = {
 
     // --- Sinkronisasi Kelas (Hybrid Offline + Realtime) ---
     /** @type {string|null} */ activeRoomCode: localStorage.getItem('algebraMart_roomCode') || null,
-    /** @type {string|null} */ hostedRoomCode: null,
+    /** @type {string|null} */ hostedRoomCode: localStorage.getItem('algebraMart_hostedRoom') || null,
     /** @type {Object} */ onlineStudents: {},
 };
 
