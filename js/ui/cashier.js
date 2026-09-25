@@ -91,6 +91,11 @@ export function startLevel(lvl) {
     if (!LEVEL_DATA[lvl]) return showMsg("Level Terkunci", "Level sedang dikembangkan.");
 
     state.currentLevelIdx      = lvl;
+    state.activePlayingLevel   = lvl;
+    try {
+        sendStudentProgress(state.currentUser, lvl, 0, 0, 0);
+    } catch (err) { console.warn(err); }
+
     state.levelCustomers       = LEVEL_DATA[lvl];
     state.currentCustomerIdx   = 0;
     state.currentQuizCorrect   = 0;
@@ -550,6 +555,9 @@ export function completeLevelAndSave() {
         quizCorrect: state.currentQuizCorrect,
         quizTotal: QUIZ_DB[state.currentLevelIdx]?.length || 0
     });
+
+    // Kosongkan penanda level aktif saat level selesai
+    state.activePlayingLevel = null;
 
     saveData();
 

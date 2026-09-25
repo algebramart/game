@@ -7,7 +7,7 @@ import { saveData, requestFullScreen, exitFullScreen } from './core/engine.js';
 import { switchScreen, renderUserList, showMsg, closeModal, renderLevels, updateUniversalSettingsContext } from './ui/screens.js';
 import { initGameListeners, startLevel, addVariable, tambahUangKembalian, nextQuizQuestion, confirmQuizAnswer } from './ui/cashier.js';
 import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleDonate } from './ui/reports.js';
-import { joinRoom, leaveRoom } from './core/sync.js';
+import { joinRoom, leaveRoom, sendStudentProgress } from './core/sync.js';
 import { startTutorial, skipTutorial, endTutorial, updateTutorialPosition, initTutorialEvents } from './core/tutorial.js';
 import {
     initAudio,
@@ -307,6 +307,12 @@ function handleConfirmExitExecute() {
         if (formulaInput) formulaInput.value = "";
         const paidInput = document.getElementById("paid-box");
         if (paidInput) paidInput.value = "";
+        state.activePlayingLevel = null;
+        try {
+            if (state.currentUser) {
+                sendStudentProgress(state.currentUser, state.currentLevelIdx);
+            }
+        } catch (err) { console.warn(err); }
         switchScreen('screen-levels');
     }
 }

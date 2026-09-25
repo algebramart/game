@@ -326,6 +326,7 @@ export function renderFasilTableAndEWS() {
             gender: u.gender || 'Laki-laki',
             maxLevel: u.maxLevel || 1,
             level: lastHistory ? lastHistory.level : (u.maxLevel || 1),
+            activeLevel: null,
             money: u.money || 0,
             accuracyNum: accNum,
             accuracyStr: accStr,
@@ -361,6 +362,7 @@ export function renderFasilTableAndEWS() {
             if (existing) {
                 existing.maxLevel = Math.max(existing.maxLevel, s.maxLevel || s.level || 1);
                 existing.level = s.level || existing.level;
+                existing.activeLevel = s.activeLevel || null;
                 existing.money = s.laba !== undefined ? s.laba : existing.money;
                 existing.accuracyNum = s.accuracy !== undefined ? s.accuracy : existing.accuracyNum;
                 existing.accuracyStr = s.accuracy !== undefined ? `${s.accuracy}%` : existing.accuracyStr;
@@ -382,6 +384,7 @@ export function renderFasilTableAndEWS() {
                     gender: s.gender || 'Laki-laki',
                     maxLevel: s.maxLevel || s.level || 1,
                     level: s.level || 1,
+                    activeLevel: s.activeLevel || null,
                     money: s.laba !== undefined ? s.laba : 0,
                     accuracyNum: s.accuracy !== undefined ? s.accuracy : 100,
                     accuracyStr: s.accuracy !== undefined ? `${s.accuracy}%` : '100%',
@@ -407,10 +410,14 @@ export function renderFasilTableAndEWS() {
         students.forEach(u => {
             const onlineBadge = u.isOnline ? '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-right:4px;" title="Online"></span>' : '';
 
-            // Tampilkan level aktif saat online, atau level maksimal saat offline
-            const levelDisplay = u.isOnline
-                ? `<div><strong style="color:#22c55e;"><i class="fa-solid fa-gamepad"></i> Sedang di Level ${u.level}</strong><div style="font-size:0.75rem; color:#94a3b8;">Level Maksimal: ${u.maxLevel}</div></div>`
-                : `Level ${u.maxLevel}`;
+            let levelDisplay = `<span style="color:#94a3b8;">Lvl ${u.maxLevel}</span>`;
+            if (u.isOnline) {
+                if (u.activeLevel) {
+                    levelDisplay = `<div><strong style="color:#22c55e;"><i class="fa-solid fa-gamepad"></i> Sedang di Lvl ${u.activeLevel}</strong><div style="font-size:0.75rem; color:#94a3b8;">Max: Lvl ${u.maxLevel}</div></div>`;
+                } else {
+                    levelDisplay = `<div><span style="color:#94a3b8;"><i class="fa-solid fa-couch"></i> Di Menu/Lobi</span><div style="font-size:0.75rem; color:#94a3b8;">Max: Lvl ${u.maxLevel}</div></div>`;
+                }
+            }
 
             tbody.innerHTML += `
                 <tr class="fasil-tr">

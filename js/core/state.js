@@ -32,6 +32,7 @@ export const state = {
     // --- Level & Pelanggan ---
     currentLevelTab: 'easy', // 'easy' (1-10) atau 'hard' (11-20)
     currentLevelIdx: 1,
+    activePlayingLevel: null,
     currentCustomerIdx: 0,
     /** @type {Array} */ levelCustomers: [],
     levelAccumulation: { revenue: 0, cost: 0, profit: 0, errors: 0 },
