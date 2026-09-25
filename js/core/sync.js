@@ -1,26 +1,27 @@
 // ==========================================
-// core/sync.js — Sinkronisasi Hybrid (Luring + Daring Firebase)
+// core/sync.js — Sinkronisasi Hybrid (Luring + Daring Firebase Modular SDK)
 // ==========================================
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, off } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 import { state } from './state.js';
 
 let syncChannel = null;
-let fbDbRef = null;
-let isFirebaseReady = false;
+let fbStudentsRef = null;
+let fbUnsubscribe = null;
+let dbInstance = null;
 let storageEventHandler = null;
 
 // =========================================================================
-// KONFIGURASI FIREBASE REALTIME DATABASE (TUGAS 1)
-// Ganti nilai di bawah ini dengan konfigurasi dari Firebase Console proyek Anda:
-// Firebase Console -> Project Settings -> General -> Your apps -> Web app (</>)
+// KONFIGURASI FIREBASE REALTIME DATABASE (MODULAR SDK v12)
 // =========================================================================
 export const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyAlgebraMartFallbackKey2026",
+    apiKey: "AIzaSyBBzf_KBnM93JCD5PXwXVzHwItz5I_cANM",
     authDomain: "algebra-mart.firebaseapp.com",
     databaseURL: "https://algebra-mart-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "algebra-mart",
-    storageBucket: "algebra-mart.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abcdef123456"
+    storageBucket: "algebra-mart.firebasestorage.app",
+    messagingSenderId: "769568456143",
+    appId: "1:769568456143:web:3908db2af0b6fc566b66ba"
 };
 
 // Inisialisasi BroadcastChannel untuk komunikasi antar-tab/perangkat luring instan
@@ -33,28 +34,22 @@ try {
 }
 
 /**
- * Inisialisasi aman Firebase Realtime Database jika SDK tersedia di window.
- * 100% Zero-Crash: Jika offline atau konfigurasi gagal, fallback ke mode luring tanpa melempar error.
+ * Inisialisasi aman Firebase Realtime Database menggunakan Modular SDK (v12).
+ * Inisialisasi hanya berjalan sekali via getApps().length === 0 ? initializeApp(...) : getApps()[0].
+ * 100% Zero-Crash: Jika offline atau inisialisasi gagal, fallback ke mode luring tanpa melempar error.
+ * @returns {object|null} Instance Firebase Realtime Database
  */
 export function initFirebase() {
-    if (typeof window === 'undefined' || !window.firebase) {
-        console.log('[Sync] Firebase SDK tidak ditemukan, berjalan dalam mode murni luring.');
-        return false;
-    }
-
-    if (isFirebaseReady) return true;
+    if (dbInstance) return dbInstance;
 
     try {
-        if (!window.firebase.apps || window.firebase.apps.length === 0) {
-            window.firebase.initializeApp(FIREBASE_CONFIG);
-        }
-        isFirebaseReady = true;
-        console.log('[Sync] Firebase Realtime Database berhasil disiapkan.');
-        return true;
+        const app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApps()[0];
+        dbInstance = getDatabase(app);
+        console.log('[Sync] Firebase Realtime Database Modular berhasil disiapkan.');
+        return dbInstance;
     } catch (err) {
-        console.warn('[Sync] Gagal inisialisasi Firebase (tetap aman luring):', err.message);
-        isFirebaseReady = false;
-        return false;
+        console.warn('[Sync] Gagal inisialisasi Firebase Modular (tetap aman luring):', err.message);
+        return null;
     }
 }
 
@@ -73,14 +68,14 @@ export function generateRoomCode() {
 
 /**
  * Memulai sesi hosting oleh Fasilitator/Guru.
- * Mendengarkan data murid secara realtime baik melalui Firebase RTDB maupun BroadcastChannel luring.
+ * Mendengarkan data murid secara realtime baik melalui Firebase RTDB Modular maupun BroadcastChannel luring.
  * 
  * @param {Function} onStudentsUpdate Callback saat ada pembaruan data murid: (studentsMap) => void
  * @param {boolean} [forceNew=false] Jika true, paksa membuat kode ruang baru meskipun sudah ada sesi aktif
  * @returns {string} Kode ruang yang di-host
  */
 export function startHostRoom(onStudentsUpdate, forceNew = false) {
-    initFirebase();
+    const db = initFirebase();
 
     // Hasilkan kode baru hanya jika diminta membuat baru atau belum ada sesi tersimpan
     if (forceNew || !state.hostedRoomCode) {
@@ -100,11 +95,17 @@ export function startHostRoom(onStudentsUpdate, forceNew = false) {
     console.log(`[Sync] Fasilitator membuka sesi kelas: ${roomCode}`);
 
     // Lepas listener Firebase sebelumnya jika sudah ada agar tidak ganda saat re-attach
-    if (fbDbRef) {
+    if (fbUnsubscribe) {
         try {
-            fbDbRef.off();
+            fbUnsubscribe();
         } catch (e) { /* ignore */ }
-        fbDbRef = null;
+        fbUnsubscribe = null;
+    }
+    if (fbStudentsRef) {
+        try {
+            off(fbStudentsRef);
+        } catch (e) { /* ignore */ }
+        fbStudentsRef = null;
     }
 
     // 1. Kanal Lokal / Luring (BroadcastChannel & Storage Event)
@@ -145,11 +146,12 @@ export function startHostRoom(onStudentsUpdate, forceNew = false) {
         window.addEventListener('storage', storageEventHandler);
     }
 
-    // 2. Kanal Daring (Firebase RTDB)
-    try {
-        if (isFirebaseReady && window.firebase && window.firebase.database) {
-            fbDbRef = window.firebase.database().ref(`rooms/${roomCode}/students`);
-            fbDbRef.on('value', (snapshot) => {
+    // 2. Kanal Daring (Firebase RTDB Modular)
+    if (db) {
+        try {
+            const studentsRef = ref(db, `rooms/${roomCode}/students`);
+            fbStudentsRef = studentsRef;
+            fbUnsubscribe = onValue(studentsRef, (snapshot) => {
                 const data = snapshot.val() || {};
                 // Gabungkan data online dengan data lokal
                 Object.assign(state.onlineStudents, data);
@@ -159,9 +161,9 @@ export function startHostRoom(onStudentsUpdate, forceNew = false) {
             }, (error) => {
                 console.warn('[Sync] Firebase RTDB listener error (fallback luring tetap aktif):', error.message);
             });
+        } catch (fbErr) {
+            console.warn('[Sync] Gagal menghubungkan listener Firebase:', fbErr.message);
         }
-    } catch (fbErr) {
-        console.warn('[Sync] Gagal menghubungkan listener Firebase:', fbErr.message);
     }
 
     return roomCode;
@@ -171,11 +173,17 @@ export function startHostRoom(onStudentsUpdate, forceNew = false) {
  * Menghentikan sesi hosting fasilitator dan membersihkan penyimpanan serta listener.
  */
 export function stopHostRoom() {
-    if (fbDbRef) {
+    if (fbUnsubscribe) {
         try {
-            fbDbRef.off();
+            fbUnsubscribe();
         } catch (e) { /* ignore */ }
-        fbDbRef = null;
+        fbUnsubscribe = null;
+    }
+    if (fbStudentsRef) {
+        try {
+            off(fbStudentsRef);
+        } catch (e) { /* ignore */ }
+        fbStudentsRef = null;
     }
     if (typeof window !== 'undefined' && storageEventHandler) {
         window.removeEventListener('storage', storageEventHandler);
@@ -291,12 +299,12 @@ export function sendStudentProgress(user, levelIdx, errors = 0, quizCorrect = 0,
         }));
     } catch (e) { /* ignore */ }
 
-    // 3. Kirim via Firebase Realtime Database jika daring
+    // 3. Kirim via Firebase Realtime Database Modular jika daring
     try {
-        initFirebase();
-        if (isFirebaseReady && window.firebase && window.firebase.database) {
-            const db = window.firebase.database();
-            db.ref(`rooms/${roomCode}/students/${studentId}`).set(payload)
+        const db = initFirebase();
+        if (db) {
+            const studentRef = ref(db, `rooms/${roomCode}/students/${studentId}`);
+            set(studentRef, payload)
                 .then(() => {
                     console.log('[Sync] Progres murid tersinkron ke Firebase RTDB.');
                 })
