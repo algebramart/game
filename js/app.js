@@ -486,6 +486,10 @@ function bindEvents() {
     document.querySelector('#modal-pin .btn-primary')?.addEventListener('click', checkPIN);
     document.getElementById('pin-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') checkPIN(); });
 
+    // --- Modal Detail Rapor Siswa ---
+    document.getElementById('btn-close-student-detail')?.addEventListener('click', () => closeModal('modal-student-detail'));
+    document.getElementById('btn-done-student-detail')?.addEventListener('click', () => closeModal('modal-student-detail'));
+
     // --- Modal Pesan ---
     document.querySelector('#modal-msg .btn-primary')?.addEventListener('click', () => closeModal('modal-msg'));
 

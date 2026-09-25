@@ -254,10 +254,11 @@ export function sendStudentProgress(user, levelIdx, errors = 0, quizCorrect = 0,
         return false;
     }
 
-    // Hitung akurasi kumulatif
-    const totalTrx = user.totalTransactions || 1;
-    const totalErr = user.totalErrors || 0;
-    const accuracy = Math.max(0, Math.min(100, Math.round(((totalTrx - totalErr) / totalTrx) * 100)));
+    // Hitung akurasi kumulatif berdasarkan user.history
+    const history = Array.isArray(user.history) ? user.history : [];
+    const totalLevels = history.length;
+    const zeroErrors = history.filter(h => (h.errors || 0) === 0).length;
+    const accuracy = totalLevels === 0 ? 100 : Math.round((zeroErrors / totalLevels) * 100);
 
     const studentId = String(user.id || user.name || 'anon').replace(/[^a-zA-Z0-9_-]/g, '_');
 
@@ -272,6 +273,8 @@ export function sendStudentProgress(user, levelIdx, errors = 0, quizCorrect = 0,
         accuracy: accuracy,
         errorCount: Number(errors) || 0,
         quizScore: `${quizCorrect}/${quizTotal}`,
+        quizWrong: (Number(quizTotal) - Number(quizCorrect)) || 0,
+        history: user.history || [],
         lastUpdated: Date.now()
     };
 

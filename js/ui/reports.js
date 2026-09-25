@@ -278,7 +278,7 @@ export function renderFasilTableAndEWS() {
         let totalLvl = u.history ? u.history.length : 0;
         let zeroErrors = u.history ? u.history.filter(h => (h.errors || 0) === 0).length : 0;
         let accNum = totalLvl === 0 ? 100 : Math.round((zeroErrors / totalLvl) * 100);
-        let accStr = totalLvl === 0 ? '-' : accNum + '%';
+        let accStr = totalLvl === 0 ? '100%' : accNum + '%';
 
         let lastHistory = u.history && u.history.length > 0 ? u.history[u.history.length - 1] : null;
         let lastErrors = lastHistory ? (lastHistory.errors || 0) : 0;
@@ -286,6 +286,16 @@ export function renderFasilTableAndEWS() {
         let totalQuizCorrect = u.history ? u.history.reduce((sum, h) => sum + (h.quizCorrect || 0), 0) : 0;
         let totalQuizCount   = u.history ? u.history.reduce((sum, h) => sum + (h.quizTotal   || 0), 0) : 0;
         let quizStr          = totalQuizCount > 0 ? `${totalQuizCorrect}/${totalQuizCount}` : '-';
+
+        // Deteksi kegagalan kuis pada level terakhir
+        let lastQuizFailed = false;
+        let lastQuizScore = '-';
+        if (lastHistory && (lastHistory.quizTotal > 0)) {
+            lastQuizScore = `${lastHistory.quizCorrect}/${lastHistory.quizTotal}`;
+            if (lastHistory.quizCorrect < lastHistory.quizTotal || lastHistory.quizCorrect === 0) {
+                lastQuizFailed = true;
+            }
+        }
 
         studentMap.set(String(u.id || u.name), {
             id: u.id,
@@ -299,6 +309,9 @@ export function renderFasilTableAndEWS() {
             accuracyStr: accStr,
             errorCount: lastErrors,
             quizStr: quizStr,
+            quizFailed: lastQuizFailed,
+            quizLastScore: lastQuizScore,
+            history: u.history || [],
             isOnline: false,
             isLocal: true
         });
@@ -309,6 +322,18 @@ export function renderFasilTableAndEWS() {
         Object.values(state.onlineStudents).forEach(s => {
             const key = String(s.studentId || s.name);
             const existing = studentMap.get(key);
+
+            // Deteksi kegagalan kuis dari data online (jawaban salah >= 1 atau skor 0)
+            let onlineQuizFailed = false;
+            if (s.quizWrong !== undefined && Number(s.quizWrong) > 0) {
+                onlineQuizFailed = true;
+            } else if (s.quizScore && s.quizScore.includes('/')) {
+                const [qc, qt] = s.quizScore.split('/').map(Number);
+                if (qt > 0 && (qc < qt || qc === 0)) {
+                    onlineQuizFailed = true;
+                }
+            }
+
             if (existing) {
                 existing.maxLevel = Math.max(existing.maxLevel, s.maxLevel || s.level || 1);
                 existing.level = s.level || existing.level;
@@ -317,6 +342,11 @@ export function renderFasilTableAndEWS() {
                 existing.accuracyStr = s.accuracy !== undefined ? `${s.accuracy}%` : existing.accuracyStr;
                 existing.errorCount = s.errorCount !== undefined ? s.errorCount : existing.errorCount;
                 if (s.quizScore) existing.quizStr = s.quizScore;
+                existing.quizFailed = onlineQuizFailed;
+                existing.quizLastScore = s.quizScore || existing.quizLastScore;
+                if (s.history && s.history.length > 0) {
+                    existing.history = s.history;
+                }
                 existing.isOnline = true;
             } else {
                 studentMap.set(key, {
@@ -326,11 +356,14 @@ export function renderFasilTableAndEWS() {
                     gender: s.gender || 'Laki-laki',
                     maxLevel: s.maxLevel || s.level || 1,
                     level: s.level || 1,
-                    money: s.laba || 0,
+                    money: s.laba !== undefined ? s.laba : 0,
                     accuracyNum: s.accuracy !== undefined ? s.accuracy : 100,
                     accuracyStr: s.accuracy !== undefined ? `${s.accuracy}%` : '100%',
                     errorCount: s.errorCount || 0,
                     quizStr: s.quizScore || '-',
+                    quizFailed: onlineQuizFailed,
+                    quizLastScore: s.quizScore || '-',
+                    history: s.history || [],
                     isOnline: true,
                     isLocal: false
                 });
@@ -354,10 +387,24 @@ export function renderFasilTableAndEWS() {
                     <td class="fasil-td text-center">${u.accuracyStr}</td>
                     <td class="fasil-td text-center font-bold" style="color:#1976d2;">${u.quizStr}</td>
                     <td class="fasil-td text-center">
-                        ${u.isLocal ? `<button class="btn-delete-user" data-id="${u.id}" title="Hapus"><i class="fa-solid fa-trash"></i></button>` : '<span style="color:#94a3b8; font-size:0.75rem;">Sesi Live</span>'}
+                        <div style="display:inline-flex; gap:6px; align-items:center; justify-content:center;">
+                            <button class="btn-detail-user" data-id="${u.id}" title="Lihat Rapor Belajar Siswa">
+                                <i class="fa-solid fa-chart-line"></i> Detail
+                            </button>
+                            ${u.isLocal ? `<button class="btn-delete-user" data-id="${u.id}" title="Hapus"><i class="fa-solid fa-trash"></i></button>` : '<span style="color:#94a3b8; font-size:0.75rem;">Sesi Live</span>'}
+                        </div>
                     </td>
                 </tr>
             `;
+        });
+
+        // Pasang event listener tombol detail
+        tbody.querySelectorAll('.btn-detail-user').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sId = btn.dataset.id;
+                const targetStudent = students.find(s => String(s.id) === String(sId));
+                if (targetStudent) openStudentDetailModal(targetStudent);
+            });
         });
 
         // Pasang event listener tombol hapus
@@ -367,9 +414,12 @@ export function renderFasilTableAndEWS() {
     }
 
     // Evaluasi EWS (Early Warning System)
-    // Kriteria: Murid dengan akurasi < 70% ATAU kesalahan rumus >= 3 kali pada suatu level
+    // Kriteria 3 Kondisi:
+    // a. Akurasi kumulatif < 70%
+    // b. Kesalahan rumus aljabar pada level berjalan >= 3 kali
+    // c. Kuis gagal pada level tersebut (jawaban salah >= 1 atau skor kuis 0)
     const ewsAlerts = students.filter(s => {
-        return (s.accuracyNum < 70) || (s.errorCount >= 3);
+        return (s.accuracyNum < 70) || (s.errorCount >= 3) || (s.quizFailed === true);
     });
 
     if (ewsAlerts.length === 0) {
@@ -388,6 +438,9 @@ export function renderFasilTableAndEWS() {
             if (s.errorCount >= 3) {
                 reasonHtml += `<div class="ews-reason-item"><i class="fa-solid fa-circle-xmark"></i> ${s.errorCount}x Kesalahan Rumus pada Level ${s.level}</div>`;
             }
+            if (s.quizFailed) {
+                reasonHtml += `<div class="ews-reason-item"><i class="fa-solid fa-clipboard-question" style="color:#f59e0b;"></i> Evaluasi Kuis Belum Tuntas: Skor ${s.quizLastScore || s.quizStr || '0'} pada Level ${s.level} (Perlu review konsep)</div>`;
+            }
 
             ewsList.innerHTML += `
                 <div class="ews-card">
@@ -403,6 +456,93 @@ export function renderFasilTableAndEWS() {
             `;
         });
     }
+}
+
+/**
+ * Menampilkan Modal Detail Rapor Siswa lengkap dengan profil dan riwayat perjalanan level.
+ * @param {Object} student Objek data siswa
+ */
+export function openStudentDetailModal(student) {
+    if (!student) return;
+
+    const modal = document.getElementById('modal-student-detail');
+    if (!modal) return;
+
+    // 1. Profil ringkas siswa
+    const nameEl   = document.getElementById('student-detail-name');
+    const metaEl   = document.getElementById('student-detail-meta');
+    const lvlEl    = document.getElementById('student-stat-level');
+    const moneyEl  = document.getElementById('student-stat-money');
+    const accEl    = document.getElementById('student-stat-acc');
+    const statusEl = document.getElementById('student-stat-status');
+
+    if (nameEl)   nameEl.innerText  = student.name || 'Siswa';
+    if (metaEl)   metaEl.innerText  = `Kelas: ${student.kelas || '-'} | Gender: ${student.gender || 'Laki-laki'}`;
+    if (lvlEl)    lvlEl.innerText   = `Lvl ${student.maxLevel || 1}`;
+    if (moneyEl)  moneyEl.innerText = `Rp ${(student.money || 0).toLocaleString('id-ID')}`;
+    if (accEl)    accEl.innerText   = student.accuracyStr || '100%';
+    if (statusEl) {
+        statusEl.innerHTML = student.isOnline
+            ? '<span style="color:#22c55e;"><i class="fa-solid fa-circle" style="font-size:0.6rem;"></i> Live Online</span>'
+            : '<span style="color:#94a3b8;">Lokal</span>';
+    }
+
+    // 2. Tabel riwayat perjalanan level
+    const tbody = document.getElementById('student-detail-history-body');
+    if (tbody) {
+        tbody.innerHTML = '';
+        const history = Array.isArray(student.history) ? student.history : [];
+
+        if (history.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:1.5rem; color:#94a3b8; font-style:italic;">
+                        Belum ada riwayat level yang diselesaikan.<br>
+                        <span style="font-size:0.75rem;">Siswa saat ini sedang aktif di Level ${student.level || 1}.</span>
+                    </td>
+                </tr>
+            `;
+        } else {
+            history.forEach(h => {
+                const dateObj = h.timestamp ? new Date(h.timestamp) : null;
+                const timeStr = dateObj
+                    ? `${dateObj.toLocaleDateString('id-ID')} ${dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+                    : '-';
+
+                const errBadge = (h.errors || 0) === 0
+                    ? '<span style="color:#22c55e; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> 0</span>'
+                    : `<span style="color:#ef4444; font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> ${h.errors}x</span>`;
+
+                const quizTotal = h.quizTotal || 0;
+                let quizBadge = '-';
+                if (quizTotal > 0) {
+                    const quizCorrect = h.quizCorrect || 0;
+                    const isPerfect = quizCorrect === quizTotal;
+                    quizBadge = `<span style="color:${isPerfect ? '#22c55e' : '#f59e0b'}; font-weight:bold;">${quizCorrect}/${quizTotal}</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-weight:700; color:#60a5fa;">Level ${h.level}</td>
+                        <td><i class="fa-regular fa-clock" style="color:#94a3b8;"></i> ${h.duration || 0}s</td>
+                        <td class="text-center">${errBadge}</td>
+                        <td class="text-center">${quizBadge}</td>
+                        <td class="text-right font-mono" style="color:#94a3b8; font-size:0.75rem;">${timeStr}</td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    modal.classList.remove('hidden');
+}
+
+/**
+ * Menutup Modal Detail Rapor Siswa.
+ */
+export function closeStudentDetailModal() {
+    const modal = document.getElementById('modal-student-detail');
+    if (modal) modal.classList.add('hidden');
 }
 
 export function exportCSV() {

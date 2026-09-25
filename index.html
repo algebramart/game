@@ -553,6 +553,71 @@
         </div>
 
         <!-- ==============================
+             MODAL: DETAIL RAPOR SISWA (FASILITATOR)
+             ============================== -->
+        <div id="modal-student-detail" class="modal-overlay hidden">
+            <div class="modal-card modal-student-detail-card">
+                <div class="modal-detail-header">
+                    <div class="detail-header-left">
+                        <div class="detail-avatar">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div>
+                            <h3 id="student-detail-name">Nama Siswa</h3>
+                            <p id="student-detail-meta">Kelas - | Laki-laki</p>
+                        </div>
+                    </div>
+                    <button id="btn-close-student-detail" class="btn-modal-close" title="Tutup">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Ringkasan Statistik Siswa -->
+                <div class="student-stats-grid">
+                    <div class="student-stat-card">
+                        <span class="stat-label">Level Maksimum</span>
+                        <span id="student-stat-level" class="stat-value text-primary">Lvl 1</span>
+                    </div>
+                    <div class="student-stat-card">
+                        <span class="stat-label">Total Laba Bersih</span>
+                        <span id="student-stat-money" class="stat-value text-success font-mono">Rp 0</span>
+                    </div>
+                    <div class="student-stat-card">
+                        <span class="stat-label">Akurasi Rumus</span>
+                        <span id="student-stat-acc" class="stat-value text-accent font-bold">100%</span>
+                    </div>
+                    <div class="student-stat-card">
+                        <span class="stat-label">Status Sesi</span>
+                        <span id="student-stat-status" class="stat-value">Lokal</span>
+                    </div>
+                </div>
+
+                <!-- Tabel Riwayat Perjalanan Belajar -->
+                <div class="student-history-section">
+                    <h4><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Perjalanan Level</h4>
+                    <div class="student-history-table-wrapper">
+                        <table class="student-history-table">
+                            <thead>
+                                <tr>
+                                    <th>Level</th>
+                                    <th>Durasi</th>
+                                    <th class="text-center">Salah Rumus</th>
+                                    <th class="text-center">Skor Kuis</th>
+                                    <th class="text-right">Waktu</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-detail-history-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 1rem; justify-content: flex-end;">
+                    <button id="btn-done-student-detail" class="btn-primary" style="padding: 0.5rem 1.5rem;">Tutup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
              MODAL: GABUNG KELAS ONLINE
              ============================== -->
         <div id="modal-join-room" class="modal-overlay hidden">

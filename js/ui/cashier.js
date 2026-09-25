@@ -474,6 +474,19 @@ export function checkQuizAnswer(selectedIndex, btnElement, correctIndex) {
         allButtons[correctIndex].classList.add("correct");
         feedbackBox.classList.add("feedback-wrong");
         feedbackBox.innerText = "Ups, kurang tepat. Konsep ini sempat dibahas oleh pelanggan tadi.";
+
+        // Kirim pembaruan progres realtime ke guru saat kuis salah
+        try {
+            sendStudentProgress(
+                state.currentUser,
+                state.currentLevelIdx,
+                state.currentLevelParams.errorCount,
+                state.currentQuizCorrect,
+                QUIZ_DB[state.currentLevelIdx]?.length || 0
+            );
+        } catch (syncErr) {
+            console.warn('[Sync] Gagal kirim progres saat kuis salah:', syncErr);
+        }
     }
 
     document.getElementById("btn-next-quiz").classList.remove("hidden");
@@ -725,6 +738,19 @@ function handleCalculate() {
         if (panel) {
             panel.classList.add('error-flash');
             setTimeout(() => panel.classList.remove('error-flash'), 300);
+        }
+
+        // Kirim pembaruan progres realtime ke guru saat rumus kasir salah
+        try {
+            sendStudentProgress(
+                state.currentUser,
+                state.currentLevelIdx,
+                state.currentLevelParams.errorCount,
+                state.currentQuizCorrect,
+                QUIZ_DB[state.currentLevelIdx]?.length || 0
+            );
+        } catch (syncErr) {
+            console.warn('[Sync] Gagal kirim progres saat rumus salah:', syncErr);
         }
     }
 }
