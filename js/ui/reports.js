@@ -260,6 +260,27 @@ export function handleCopyHostRoomCode() {
 }
 
 /**
+ * Mengonversi timestamp ke format waktu relatif.
+ * @param {number} timestamp
+ * @returns {string}
+ */
+export function formatTimeAgo(timestamp) {
+    if (!timestamp || isNaN(timestamp)) return 'Baru saja';
+    const now = Date.now();
+    const diffSec = Math.max(0, Math.floor((now - Number(timestamp)) / 1000));
+
+    if (diffSec < 60) {
+        return 'Baru saja';
+    }
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) {
+        return `${diffMin} menit yang lalu`;
+    }
+    const diffHours = Math.floor(diffMin / 60);
+    return `${diffHours} jam yang lalu`;
+}
+
+/**
  * Render tabel murid aktif dan panel Peringatan Dini (EWS).
  */
 export function renderFasilTableAndEWS() {
@@ -296,6 +317,7 @@ export function renderFasilTableAndEWS() {
                 lastQuizFailed = true;
             }
         }
+        let lastTimestamp = lastHistory && lastHistory.timestamp ? lastHistory.timestamp : Date.now();
 
         studentMap.set(String(u.id || u.name), {
             id: u.id,
@@ -310,8 +332,10 @@ export function renderFasilTableAndEWS() {
             errorCount: lastErrors,
             quizStr: quizStr,
             quizFailed: lastQuizFailed,
+            quizWrong: (lastHistory && lastHistory.quizTotal > 0) ? Math.max(0, lastHistory.quizTotal - (lastHistory.quizCorrect || 0)) : 0,
             quizLastScore: lastQuizScore,
             history: u.history || [],
+            lastUpdated: lastTimestamp,
             isOnline: false,
             isLocal: true
         });
@@ -340,10 +364,12 @@ export function renderFasilTableAndEWS() {
                 existing.money = s.laba !== undefined ? s.laba : existing.money;
                 existing.accuracyNum = s.accuracy !== undefined ? s.accuracy : existing.accuracyNum;
                 existing.accuracyStr = s.accuracy !== undefined ? `${s.accuracy}%` : existing.accuracyStr;
-                existing.errorCount = s.errorCount !== undefined ? s.errorCount : existing.errorCount;
+                existing.errorCount = s.errorCount !== undefined ? Number(s.errorCount) : existing.errorCount;
                 if (s.quizScore) existing.quizStr = s.quizScore;
                 existing.quizFailed = onlineQuizFailed;
+                existing.quizWrong = s.quizWrong !== undefined ? Number(s.quizWrong) : existing.quizWrong;
                 existing.quizLastScore = s.quizScore || existing.quizLastScore;
+                existing.lastUpdated = s.lastUpdated || existing.lastUpdated || Date.now();
                 if (s.history && s.history.length > 0) {
                     existing.history = s.history;
                 }
@@ -359,11 +385,13 @@ export function renderFasilTableAndEWS() {
                     money: s.laba !== undefined ? s.laba : 0,
                     accuracyNum: s.accuracy !== undefined ? s.accuracy : 100,
                     accuracyStr: s.accuracy !== undefined ? `${s.accuracy}%` : '100%',
-                    errorCount: s.errorCount || 0,
+                    errorCount: s.errorCount !== undefined ? Number(s.errorCount) : 0,
                     quizStr: s.quizScore || '-',
                     quizFailed: onlineQuizFailed,
+                    quizWrong: s.quizWrong !== undefined ? Number(s.quizWrong) : 0,
                     quizLastScore: s.quizScore || '-',
                     history: s.history || [],
+                    lastUpdated: s.lastUpdated || Date.now(),
                     isOnline: true,
                     isLocal: false
                 });
@@ -378,11 +406,17 @@ export function renderFasilTableAndEWS() {
     } else {
         students.forEach(u => {
             const onlineBadge = u.isOnline ? '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-right:4px;" title="Online"></span>' : '';
+
+            // Tampilkan level aktif saat online, atau level maksimal saat offline
+            const levelDisplay = u.isOnline
+                ? `<div><strong style="color:#22c55e;"><i class="fa-solid fa-gamepad"></i> Sedang di Level ${u.level}</strong><div style="font-size:0.75rem; color:#94a3b8;">Level Maksimal: ${u.maxLevel}</div></div>`
+                : `Level ${u.maxLevel}`;
+
             tbody.innerHTML += `
                 <tr class="fasil-tr">
                     <td class="fasil-td">${onlineBadge}<strong>${u.name}</strong></td>
                     <td class="fasil-td">${u.kelas}</td>
-                    <td class="fasil-td text-center">Lvl ${u.maxLevel}</td>
+                    <td class="fasil-td text-center">${levelDisplay}</td>
                     <td class="fasil-td text-right">${u.money.toLocaleString('id-ID')}</td>
                     <td class="fasil-td text-center">${u.accuracyStr}</td>
                     <td class="fasil-td text-center font-bold" style="color:#1976d2;">${u.quizStr}</td>
@@ -414,12 +448,13 @@ export function renderFasilTableAndEWS() {
     }
 
     // Evaluasi EWS (Early Warning System)
-    // Kriteria 3 Kondisi:
-    // a. Akurasi kumulatif < 70%
-    // b. Kesalahan rumus aljabar pada level berjalan >= 3 kali
-    // c. Kuis gagal pada level tersebut (jawaban salah >= 1 atau skor kuis 0)
+    // Filter HANYA mendeteksi kejadian nyata pada level berjalan:
+    // a. Kesalahan Rumus: errorCount >= 3 pada level yang sedang dimainkan
+    // b. Kesalahan Kuis: memiliki jawaban kuis yang salah (quizWrong > 0 atau quizFailed) pada level tersebut
     const ewsAlerts = students.filter(s => {
-        return (s.accuracyNum < 70) || (s.errorCount >= 3) || (s.quizFailed === true);
+        const hasFormulaError = Number(s.errorCount) >= 3;
+        const hasQuizError = s.quizFailed === true || (s.quizWrong !== undefined && Number(s.quizWrong) > 0);
+        return hasFormulaError || hasQuizError;
     });
 
     if (ewsAlerts.length === 0) {
@@ -431,25 +466,30 @@ export function renderFasilTableAndEWS() {
         `;
     } else {
         ewsAlerts.forEach(s => {
+            const hasFormulaError = Number(s.errorCount) >= 3;
+            const hasQuizError = s.quizFailed === true || (s.quizWrong !== undefined && Number(s.quizWrong) > 0);
+
             let reasonHtml = '';
-            if (s.accuracyNum < 70) {
-                reasonHtml += `<div class="ews-reason-item"><i class="fa-solid fa-triangle-exclamation"></i> Akurasi Rendah: ${s.accuracyStr} (Butuh bimbingan konsep)</div>`;
+            if (hasFormulaError) {
+                const errorCountText = s.errorCount >= 3 ? `${s.errorCount}x` : '3x';
+                reasonHtml += `<div class="ews-reason-item">⚠️ Terkendala Rumus di Level ${s.level}: Sudah ${errorCountText} salah memasukkan rumus kasir.</div>`;
             }
-            if (s.errorCount >= 3) {
-                reasonHtml += `<div class="ews-reason-item"><i class="fa-solid fa-circle-xmark"></i> ${s.errorCount}x Kesalahan Rumus pada Level ${s.level}</div>`;
+            if (hasQuizError) {
+                reasonHtml += `<div class="ews-reason-item">❌ Terkendala Konsep di Level ${s.level}: Salah saat menjawab evaluasi kuis.</div>`;
             }
-            if (s.quizFailed) {
-                reasonHtml += `<div class="ews-reason-item"><i class="fa-solid fa-clipboard-question" style="color:#f59e0b;"></i> Evaluasi Kuis Belum Tuntas: Skor ${s.quizLastScore || s.quizStr || '0'} pada Level ${s.level} (Perlu review konsep)</div>`;
-            }
+
+            const timeAgoStr = formatTimeAgo(s.lastUpdated);
 
             ewsList.innerHTML += `
                 <div class="ews-card">
                     <div class="ews-card-header">
-                        <span class="ews-card-name">${s.name}</span>
-                        <span class="ews-card-class">Kelas ${s.kelas}</span>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span class="ews-card-name">${s.name}</span>
+                            <span class="ews-card-class">Kelas ${s.kelas}</span>
+                        </div>
+                        <span class="ews-card-time" style="font-size:0.75rem; color:#94a3b8; font-weight:600;"><i class="fa-regular fa-clock"></i> ${timeAgoStr}</span>
                     </div>
-                    <div class="ews-card-level"><i class="fa-solid fa-gamepad"></i> Sedang di Level ${s.level}</div>
-                    <div class="ews-card-reasons">
+                    <div class="ews-card-reasons" style="margin-top:6px;">
                         ${reasonHtml}
                     </div>
                 </div>
