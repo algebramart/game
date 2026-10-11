@@ -6,7 +6,7 @@ import { state }             from './core/state.js';
 import { saveData, requestFullScreen, exitFullScreen } from './core/engine.js';
 import { switchScreen, renderUserList, showMsg, closeModal, renderLevels, updateUniversalSettingsContext } from './ui/screens.js';
 import { initGameListeners, startLevel, addVariable, tambahUangKembalian, nextQuizQuestion, confirmQuizAnswer } from './ui/cashier.js';
-import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleDonate, destroyFasilChart, handlePrintDetailedPDF, handlePrintReport, handleCopyWhatsAppReport } from './ui/reports.js';
+import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleDonate, destroyFasilChart, handlePrintDetailedPDF, handlePrintReport, handleCopyWhatsAppReport, forceRefreshFasilData } from './ui/reports.js';
 import { joinRoom, leaveRoom, sendStudentProgress } from './core/sync.js';
 import { startTutorial, skipTutorial, endTutorial, updateTutorialPosition, initTutorialEvents } from './core/tutorial.js';
 import { openLevelZeroModal, closeLevelZeroModal, initLevelZeroEvents } from './ui/levelZero.js';
@@ -569,6 +569,10 @@ function bindEvents() {
     document.querySelector('.btn-exit-fasil')?.addEventListener('click', () => {
         destroyFasilChart();
         switchScreen('screen-login');
+    });
+    document.getElementById('btn-refresh-fasil')?.addEventListener('click', () => {
+        playSFX('nav');
+        forceRefreshFasilData();
     });
     document.getElementById('btn-print-report')?.addEventListener('click', handlePrintDetailedPDF);
     document.getElementById('btn-copy-wa')?.addEventListener('click', handleCopyWhatsAppReport);

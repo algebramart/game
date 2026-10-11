@@ -7,8 +7,15 @@ let syncChannel = null;
 let pollingInterval = null;
 let storageEventHandler = null;
 
-// Ganti URL dengan IP Server Node.js (misalnya localhost, atau IP jaringan lokal)
-const API_URL = 'http://localhost:3000';
+// Penentuan URL API Server secara dinamis (mendukung cross-device via IP lokal maupun localhost)
+export const API_URL = (() => {
+    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+        const host = window.location.hostname;
+        const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+        return `${protocol}//${host}:3000`;
+    }
+    return 'http://localhost:3000';
+})();
 
 // Inisialisasi BroadcastChannel untuk komunikasi antar-tab/perangkat luring instan
 try {
