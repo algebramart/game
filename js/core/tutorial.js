@@ -3,10 +3,11 @@
 // ==========================================
 
 import { state } from './state.js';
+import { speakNarrator, stopNarrator } from './audio.js';
 
 /**
- * Konfigurasi 10 Langkah Tutorial Interaktif (Level 1 Pelanggan 1)
- * Pesanan: 3 Apel & 2 Beras | Uang: Rp 50.000 | Kembalian: Rp 14.000
+ * Konfigurasi 9 Langkah Tutorial Interaktif (Level 1 Pelanggan 1)
+ * Pesanan: 4 Kue Padamaran (4j) | Uang: Rp 20.000 | Kembalian: Rp 12.000
  */
 export const TUTORIAL_STEPS = [
     {
@@ -20,45 +21,35 @@ export const TUTORIAL_STEPS = [
     },
     {
         step: 2,
-        target: '.product-item[data-var="a"]',
+        target: '.product-item[data-var="j"]',
         actionType: 'addVar',
-        expectedValue: 'a',
-        reqCount: 3,
+        expectedValue: 'j',
+        reqCount: 4,
         handPos: 'left',
-        title: 'Pilih Apel (a)',
-        text: 'Pelanggan ingin membeli 3 Apel (a). Klik Apel di rak sebanyak 3 kali!'
+        title: 'Pilih Kue Padamaran (j)',
+        text: 'Harga satu kue padamaran adalah j rupiah. Pelanggan membeli 4 kue padamaran (4j). Klik Kue Padamaran di rak sebanyak 4 kali!'
     },
     {
         step: 3,
-        target: '.product-item[data-var="b"]',
-        actionType: 'addVar',
-        expectedValue: 'b',
-        reqCount: 2,
-        handPos: 'left',
-        title: 'Pilih Beras (b)',
-        text: 'Pelanggan juga membeli 2 Beras (b). Klik Beras di rak sebanyak 2 kali!'
-    },
-    {
-        step: 4,
         target: '.btn-calc',
         actionType: 'calc',
         reqCount: 1,
         handPos: 'left',
         title: 'Kalkulasi Rumus Aljabar',
-        text: 'Rumus aljabar pesanan sudah tersusun (3a + 2b). Tekan tombol "=" untuk mengalkulasi harga belanjaan!'
+        text: 'Rumus aljabar pesanan sudah tersusun (4j). Tekan tombol "=" untuk mengalkulasi harga belanjaan!'
     },
     {
-        step: 5,
+        step: 4,
         target: '.money-5k',
         actionType: 'payMoney',
-        expectedValue: 50000,
+        expectedValue: 20000,
         reqCount: 1,
         handPos: 'left',
         title: 'Ambil Uang Pelanggan',
-        text: 'Pelanggan membayar dengan uang Rp 50.000. Klik uang di dompet pelanggan untuk dimasukkan ke mesin kasir.'
+        text: 'Pelanggan membayar dengan uang Rp 20.000. Klik uang di dompet pelanggan untuk dimasukkan ke mesin kasir.'
     },
     {
-        step: 6,
+        step: 5,
         target: '#btn-final-checkout',
         actionType: 'checkout',
         reqCount: 1,
@@ -67,48 +58,49 @@ export const TUTORIAL_STEPS = [
         text: 'Harga belanja dan nominal bayar sudah sesuai. Tekan tombol "Konfirmasi" untuk mencetak struk transaksi!'
     },
     {
-        step: 7,
+        step: 6,
         target: '#btn-close-modal',
         actionType: 'closeReceipt',
         reqCount: 1,
         handPos: 'left',
         title: 'Periksa Struk Transaksi',
-        text: 'Belanja Rp 36.000, dibayar Rp 50.000. Kembalian: Rp 14.000. Klik tombol "Berikan Kembalian" di bawah struk!'
+        text: 'Belanja Rp 8.000, dibayar Rp 20.000. Kembalian: Rp 12.000. Klik tombol "Berikan Kembalian" di bawah struk!'
     },
     {
-        step: 8,
+        step: 7,
         target: '.btn-uang[data-nominal="10000"]',
         actionType: 'giveChange',
         expectedValue: 10000,
         reqCount: 1,
         handPos: 'left',
         title: 'Ambil Uang Rp 10.000',
-        text: 'Laci kasir terbuka! Siapkan kembalian Rp 14.000. Pertama, ambil 1 lembar Rp 10.000 dari laci kasir.'
+        text: 'Laci kasir terbuka! Siapkan kembalian Rp 12.000. Pertama, ambil 1 lembar Rp 10.000 dari laci kasir.'
     },
     {
-        step: 9,
+        step: 8,
         target: '.btn-uang[data-nominal="2000"]',
         actionType: 'giveChange',
         expectedValue: 2000,
-        reqCount: 2,
+        reqCount: 1,
         handPos: 'left',
         title: 'Ambil Uang Rp 2.000',
-        text: 'Sisa kembalian adalah Rp 4.000. Klik uang Rp 2.000 sebanyak 2 kali (2 x Rp 2.000)!'
+        text: 'Sisa kembalian adalah Rp 2.000. Klik uang Rp 2.000 sebanyak 1 kali!'
     },
     {
-        step: 10,
+        step: 9,
         target: '#btn-final-checkout',
         actionType: 'confirmChange',
         reqCount: 1,
         handPos: 'right',
         title: 'Serahkan Kembalian',
-        text: 'Uang kembalian sudah tepat Rp 14.000! Tekan tombol "Konfirmasi" untuk menyerahkan ke pelanggan.'
+        text: 'Uang kembalian sudah tepat Rp 12.000! Tekan tombol "Konfirmasi" untuk menyerahkan ke pelanggan.'
     }
 ];
 
 let currentStepIndex = 0;
 let currentActionCount = 0;
 let unlockedParents = [];
+let renderStepTimeoutId = null;
 
 /**
  * Memeriksa apakah tutorial sedang berjalan.
@@ -201,11 +193,10 @@ function advanceStep() {
 
     // Berikan jeda singkat agar DOM / transisi modal sempat merender
     setTimeout(() => {
-        isTransitioning = false;
         if (state.isTutorialActive) {
             renderStep(currentStepIndex);
         }
-    }, 180);
+    }, 50);
 }
 
 /**
@@ -256,95 +247,310 @@ function renderStep(index) {
         return;
     }
 
-    // Pastikan target tampak (misal di dalam laci kasir yang bisa di-scroll)
+    if (renderStepTimeoutId) {
+        clearTimeout(renderStepTimeoutId);
+        renderStepTimeoutId = null;
+    }
+
+    // Bersihkan target sebelumnya & segera buka akses untuk target ini
+    clearUnlocked();
+    unlockElement(targetEl);
+
+    // Pastikan target tampak (misal di dalam laci kasir atau struk yang bisa di-scroll)
     if (typeof targetEl.scrollIntoView === 'function') {
         targetEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
 
-    // Bersihkan target sebelumnya
-    clearUnlocked();
-    // Buka akses khusus untuk target ini
-    unlockElement(targetEl);
+    // Sembunyikan sementara tooltip & tangan selama jeda transisi
+    tooltip.classList.add('hidden');
+    handContainer.classList.add('hidden');
 
-    // Hitung koordinat relatif terhadap #app-container (aman 16:9 & fullscreen)
-    const appContainer  = document.getElementById('app-container');
-    const containerRect = appContainer.getBoundingClientRect();
-    const targetRect    = targetEl.getBoundingClientRect();
+    // Berikan jeda waktu (250ms) sebelum menghitung getBoundingClientRect() dan meletakkan tooltip
+    // karena modal (seperti struk transaksi) atau kontainer scroll memerlukan waktu untuk menyelesaikan animasi/transisi
+    renderStepTimeoutId = setTimeout(() => {
+        renderStepTimeoutId = null;
+        if (!state.isTutorialActive || currentStepIndex !== index) return;
+        isTransitioning = false;
 
-    const relTop  = targetRect.top - containerRect.top;
-    const relLeft = targetRect.left - containerRect.left;
-    const width   = targetRect.width;
-    const height  = targetRect.height;
-    const centerX = relLeft + width / 2;
-    const centerY = relTop + height / 2;
+        // Pastikan kembali posisi scroll sudah stabil setelah layout settle
+        if (typeof targetEl.scrollIntoView === 'function') {
+            targetEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
 
-    // 1. Posisikan Spotlight Cutout
-    highlight.style.top    = `${relTop - 6}px`;
-    highlight.style.left   = `${relLeft - 6}px`;
-    highlight.style.width  = `${width + 12}px`;
-    highlight.style.height = `${height + 12}px`;
+        // Hitung koordinat relatif terhadap #app-container (dinormalisasi terhadap skala transform scale())
+        const appContainer  = document.getElementById('app-container');
+        const containerRect = appContainer.getBoundingClientRect();
+        const targetRect    = targetEl.getBoundingClientRect();
 
-    // 2. Konfigurasi Tangan Penunjuk (Left: Kiri Atas | Right: Kanan Atas)
-    const isLeft = stepObj.handPos === 'left';
-    handImg.src       = isLeft ? 'image/indexfingerleft.svg' : 'image/indexfingerright.svg';
-    handImg.className = `tutorial-hand-img ${isLeft ? 'hand-left' : 'hand-right'}`;
+        // Dapatkan faktor skala aktif dari auto-scaling (#app-container)
+        let scale = 1;
+        if (appContainer) {
+            if (appContainer.dataset.scale) {
+                scale = parseFloat(appContainer.dataset.scale) || 1;
+            } else if (appContainer.offsetWidth) {
+                scale = containerRect.width / appContainer.offsetWidth;
+            }
+        }
+        if (!scale || scale <= 0) scale = 1;
 
-    if (pulseRing) {
-        pulseRing.className = `pulse-ring ${isLeft ? 'pulse-left' : 'pulse-right'}`;
-    }
+        const canvasWidth  = appContainer ? (appContainer.offsetWidth || parseFloat(appContainer.dataset.virtualWidth) || 1280) : 1280;
+        const canvasHeight = appContainer ? (appContainer.offsetHeight || parseFloat(appContainer.dataset.virtualHeight) || 720) : 720;
+        const safeLeft     = Math.max(0, (canvasWidth - 1240) / 2);
+        const safeRight    = safeLeft + 1240;
 
-    // Offset jari menunjuk tepat ke pusat elemen
-    let handTop  = centerY + 4;
-    let handLeft = isLeft ? (centerX + 4) : (centerX - 66);
+        const relTop  = (targetRect.top - containerRect.top) / scale;
+        const relLeft = (targetRect.left - containerRect.left) / scale;
+        const width   = targetRect.width / scale;
+        const height  = targetRect.height / scale;
+        const centerX = relLeft + width / 2;
+        const centerY = relTop + height / 2;
 
-    handContainer.style.top  = `${handTop}px`;
-    handContainer.style.left = `${handLeft}px`;
+        // 1. Posisikan Spotlight Cutout & SVG Cutout Mask
+        highlight.style.top    = `${relTop - 6}px`;
+        highlight.style.left   = `${relLeft - 6}px`;
+        highlight.style.width  = `${width + 12}px`;
+        highlight.style.height = `${height + 12}px`;
 
-    // 3. Teks Instruksi
-    updateProgressText(stepObj);
+        const maskPath = document.getElementById('tutorial-mask-path');
+        if (maskPath) {
+            const pad = 6;
+            const hx = Math.max(0, relLeft - pad);
+            const hy = Math.max(0, relTop - pad);
+            const hw = width + pad * 2;
+            const hh = height + pad * 2;
+            const r = 10;
+            // Layar penuh 1280x720 + lubang persegi dengan sudut melengkung pada target (evenodd)
+            maskPath.setAttribute('d',
+                `M 0 0 H ${canvasWidth} V ${canvasHeight} H 0 Z ` +
+                `M ${hx + r} ${hy} ` +
+                `H ${hx + hw - r} Q ${hx + hw} ${hy} ${hx + hw} ${hy + r} ` +
+                `V ${hy + hh - r} Q ${hx + hw} ${hy + hh} ${hx + hw - r} ${hy + hh} ` +
+                `H ${hx + r} Q ${hx} ${hy + hh} ${hx} ${hy + hh - r} ` +
+                `V ${hy + r} Q ${hx} ${hy} ${hx + r} ${hy} Z`
+            );
+        }
 
-    // 4. Posisikan Tooltip Pintar
-    const tooltipWidth  = tooltip.offsetWidth || 280;
-    const tooltipHeight = tooltip.offsetHeight || 100;
+        // 2. Konfigurasi Tangan Penunjuk (Left: Kiri Atas | Right: Kanan Atas)
+        const isLeft = stepObj.handPos === 'left';
+        handImg.src       = isLeft ? 'image/indexfingerleft.svg' : 'image/indexfingerright.svg';
+        handImg.className = `tutorial-hand-img ${isLeft ? 'hand-left' : 'hand-right'}`;
 
-    let tipTop;
-    if (relTop > 130) {
-        tipTop = relTop - tooltipHeight - 16;
-    } else {
-        tipTop = relTop + height + 20;
-    }
+        if (pulseRing) {
+            pulseRing.className = `pulse-ring ${isLeft ? 'pulse-left' : 'pulse-right'}`;
+        }
 
-    let tipLeft = centerX - tooltipWidth / 2;
-    const maxLeft = containerRect.width - tooltipWidth - 15;
-    const maxTop  = containerRect.height - tooltipHeight - 15;
+        // Offset jari menunjuk tepat ke pusat elemen
+        let handTop  = centerY + 4;
+        let handLeft = isLeft ? (centerX + 4) : (centerX - 66);
 
-    tipLeft = Math.max(15, Math.min(tipLeft, maxLeft));
-    tipTop  = Math.max(15, Math.min(tipTop, maxTop));
+        handContainer.style.top  = `${handTop}px`;
+        handContainer.style.left = `${handLeft}px`;
 
-    tooltip.style.top  = `${tipTop}px`;
-    tooltip.style.left = `${tipLeft}px`;
+        // 3. Teks Instruksi
+        updateProgressText(stepObj);
 
-    overlay.classList.remove('hidden');
-    tooltip.classList.remove('hidden');
-    handContainer.classList.remove('hidden');
+        // 4. Ukur Dimensi Nyata Tooltip Secara Presisi (Hindari pembacaan 0 saat hidden)
+        let tooltipWidth = 380;
+        let tooltipHeight = 140;
+
+        const prevDisplay = tooltip.style.display;
+        const prevVis = tooltip.style.visibility;
+        tooltip.style.visibility = 'hidden';
+        tooltip.classList.remove('hidden');
+        tooltip.style.display = 'block';
+
+        const measuredRect = tooltip.getBoundingClientRect();
+        if (measuredRect.width > 0 && measuredRect.height > 0) {
+            tooltipWidth = (measuredRect.width / scale) || 380;
+            tooltipHeight = (measuredRect.height / scale) || 140;
+        }
+
+        tooltip.style.visibility = prevVis;
+        tooltip.style.display = prevDisplay;
+
+        const maxLeftBound = canvasWidth - tooltipWidth - 20;
+        const maxTopBound  = canvasHeight - tooltipHeight - 20;
+
+        function rectsOverlap(r1, r2) {
+            return !(
+                r1.left + r1.width <= r2.left ||
+                r1.left >= r2.left + r2.width ||
+                r1.top + r1.height <= r2.top ||
+                r1.top >= r2.top + r2.height
+            );
+        }
+
+        // Zona Bounding Box Target (+ buffer 20px agar area sentuh jari tidak terhalang)
+        const targetZone = {
+            left: relLeft - 20,
+            top: relTop - 20,
+            width: width + 40,
+            height: height + 40
+        };
+
+        // Zona Tangan Penunjuk (+ buffer 18px)
+        const handZone = {
+            left: handLeft - 18,
+            top: handTop - 18,
+            width: 68 + 36,
+            height: 68 + 36
+        };
+
+        // Zona Proteksi Kontainer Khusus (Dompet Pelanggan, Laci Kasir, Struk Transaksi)
+        let containerZone = null;
+
+        // A. Jika target berada di dompet pelanggan (Step 4: Ambil Uang Pelanggan)
+        const walletEl = targetEl.closest('.customer-wallet') || (stepObj.actionType === 'payMoney' ? document.querySelector('.customer-wallet') : null);
+        if (walletEl) {
+            const wRect = walletEl.getBoundingClientRect();
+            containerZone = {
+                left: (wRect.left - containerRect.left) / scale - 16,
+                top: (wRect.top - containerRect.top) / scale - 16,
+                width: wRect.width / scale + 32,
+                height: wRect.height / scale + 32
+            };
+        }
+
+        // B. Jika target berada di laci kasir (Step 7 & 8: Ambil Uang Kembalian)
+        const laciEl = targetEl.closest('#laci-kasir') || (stepObj.actionType === 'giveChange' ? document.getElementById('laci-kasir') : null);
+        if (laciEl && !laciEl.classList.contains('hidden')) {
+            const lRect = laciEl.getBoundingClientRect();
+            containerZone = {
+                left: (lRect.left - containerRect.left) / scale - 16,
+                top: (lRect.top - containerRect.top) / scale - 16,
+                width: lRect.width / scale + 32,
+                height: lRect.height / scale + 32
+            };
+        }
+
+        // C. Jika target berada di struk transaksi (Step 6: Periksa Struk)
+        const receiptCardEl = targetEl.closest('.final-receipt-card') || (stepObj.actionType === 'closeReceipt' ? document.querySelector('.final-receipt-card') : null);
+        if (receiptCardEl) {
+            const rcRect = receiptCardEl.getBoundingClientRect();
+            containerZone = {
+                left: (rcRect.left - containerRect.left) / scale - 20,
+                top: (rcRect.top - containerRect.top) / scale - 20,
+                width: rcRect.width / scale + 40,
+                height: rcRect.height / scale + 40
+            };
+        }
+
+        function isColliding(l, t, w, h) {
+            const tipRect = { left: l, top: t, width: w, height: h };
+            if (rectsOverlap(tipRect, targetZone)) return true;
+            if (rectsOverlap(tipRect, handZone)) return true;
+            if (containerZone && rectsOverlap(tipRect, containerZone)) return true;
+            return false;
+        }
+
+        const candidates = [];
+
+        if (walletEl && containerZone) {
+            // STEP 4: AMBIL UANG PELANGGAN
+            // Dompet pelanggan berada di kanan bawah.
+            // Posisi terbaik: Tepat di samping KIRI dompet pelanggan (di atas nampan saji, dekat dan bebas rintangan)
+            const leftOfWallet = containerZone.left - tooltipWidth - 22;
+            candidates.push({ left: leftOfWallet, top: Math.max(16, Math.min(380, centerY - tooltipHeight / 2)) });
+            candidates.push({ left: leftOfWallet, top: 400 });
+            candidates.push({ left: leftOfWallet, top: 250 });
+            candidates.push({ left: Math.max(safeLeft + 16, containerZone.left - tooltipWidth / 2 - 100), top: 210 });
+        } else if (receiptCardEl && containerZone) {
+            // STEP 6: STRUK TRANSAKSI
+            // Struk berada di tengah layar. Letakkan di samping kiri atau samping kanan struk:
+            candidates.push({ left: Math.max(safeLeft + 16, containerZone.left - tooltipWidth - 24), top: 180 });
+            candidates.push({ left: Math.min(safeRight - tooltipWidth - 16, containerZone.left + containerZone.width + 24), top: 180 });
+            candidates.push({ left: Math.max(safeLeft + 16, containerZone.left - tooltipWidth - 24), top: 270 });
+            candidates.push({ left: Math.min(safeRight - tooltipWidth - 16, containerZone.left + containerZone.width + 24), top: 270 });
+        } else if (laciEl && containerZone) {
+            // STEP 7 & 8: AMBIL UANG DARI LACI KASIR
+            // Laci kasir berada di kiri bawah. Letakkan tepat di samping KANAN laci (area nampan saji):
+            const rightOfLaci = containerZone.left + containerZone.width + 24;
+            candidates.push({ left: rightOfLaci, top: 420 });
+            candidates.push({ left: rightOfLaci, top: Math.max(16, centerY - tooltipHeight / 2) });
+            candidates.push({ left: rightOfLaci, top: 260 });
+            candidates.push({ left: containerZone.left, top: 210 });
+        } else if (targetEl.id === 'btn-final-checkout') {
+            // STEP 5 & 9: TOMBOL KONFIRMASI CHECKOUT
+            // Tombol di kiri bawah. Letakkan tepat di samping kanan tombol:
+            candidates.push({ left: relLeft + width + 28, top: 460 });
+            candidates.push({ left: relLeft + width + 28, top: 380 });
+            candidates.push({ left: Math.max(safeLeft + 16, relLeft), top: 210 });
+        } else if (targetEl.classList.contains('btn-calc')) {
+            // STEP 3: TOMBOL "=" KALKULATOR
+            // Tombol di numpad kiri bawah. Letakkan tepat di samping kanan numpad:
+            candidates.push({ left: relLeft + width + 30, top: 460 });
+            candidates.push({ left: relLeft + width + 30, top: 380 });
+            candidates.push({ left: Math.max(safeLeft + 16, centerX - tooltipWidth / 2), top: 210 });
+        } else if (targetEl.closest('.product-item')) {
+            // STEP 2: KUE PADAMARAN DI RAK
+            // Rak berada di atas. Letakkan tepat di BAWAH rak barang (dekat dan rapi):
+            candidates.push({ left: Math.max(safeLeft + 16, Math.min(centerX - tooltipWidth / 2, maxLeftBound)), top: relTop + height + 20 });
+            candidates.push({ left: Math.max(safeLeft + 16, relLeft - tooltipWidth - 24), top: relTop });
+            candidates.push({ left: Math.min(maxLeftBound, relLeft + width + 24), top: relTop });
+        } else if (targetEl.closest('.speech-bubble')) {
+            // STEP 1: BALON PESAN PELANGGAN
+            // Balon pesan di kanan atas. Letakkan tepat di samping KIRI balon pesan:
+            candidates.push({ left: Math.max(safeLeft + 16, relLeft - tooltipWidth - 24), top: 60 });
+            candidates.push({ left: Math.max(safeLeft + 16, relLeft - tooltipWidth - 24), top: 140 });
+            candidates.push({ left: Math.max(safeLeft + 16, relLeft - 100), top: relTop + height + 20 });
+        } else {
+            // Fallback umum terdekat
+            const gap = 20;
+            candidates.push({ left: Math.max(safeLeft + 16, relLeft - tooltipWidth - gap), top: Math.max(16, centerY - tooltipHeight / 2) });
+            candidates.push({ left: Math.min(maxLeftBound, relLeft + width + gap), top: Math.max(16, centerY - tooltipHeight / 2) });
+            candidates.push({ left: Math.max(safeLeft + 16, Math.min(centerX - tooltipWidth / 2, maxLeftBound)), top: relTop - tooltipHeight - gap });
+            candidates.push({ left: Math.max(safeLeft + 16, Math.min(centerX - tooltipWidth / 2, maxLeftBound)), top: relTop + height + gap });
+        }
+
+        let tipTop = 24;
+        let tipLeft = safeLeft + 24;
+        let foundSafePos = false;
+
+        for (const cand of candidates) {
+            const clampedL = Math.max(safeLeft + 16, Math.min(cand.left, maxLeftBound));
+            const clampedT = Math.max(16, Math.min(cand.top, maxTopBound));
+
+            if (!isColliding(clampedL, clampedT, tooltipWidth, tooltipHeight)) {
+                tipLeft = clampedL;
+                tipTop  = clampedT;
+                foundSafePos = true;
+                break;
+            }
+        }
+
+        // Fallback darurat (jika semua posisi khusus tertolak)
+        if (!foundSafePos) {
+            if (centerY >= 340) {
+                // Target di area bawah -> letakkan di atas area aman
+                tipTop = 210;
+                tipLeft = (centerX >= 640) ? Math.max(safeLeft + 16, centerX - tooltipWidth - 40) : Math.min(maxLeftBound, centerX + width + 40);
+            } else {
+                // Target di area atas -> letakkan di bawah area aman
+                tipTop = 380;
+                tipLeft = Math.max(safeLeft + 16, Math.min(centerX - tooltipWidth / 2, maxLeftBound));
+            }
+        }
+
+        tooltip.style.top  = `${tipTop}px`;
+        tooltip.style.left = `${tipLeft}px`;
+
+        overlay.classList.remove('hidden');
+        tooltip.classList.remove('hidden');
+        handContainer.classList.remove('hidden');
+
+        // Suara Interaktif Narator (Web Speech API) membacakan panduan setiap pergantian langkah
+        const speechTitle = stepObj.title || '';
+        const speechText = stepObj.text || '';
+        speakNarrator(`${speechTitle}. ${speechText}`);
+    }, 250);
 }
 
 /**
- * Menembus stacking context CSS agar elemen target berada di atas overlay.
+ * Membuka akses interaksi untuk elemen target.
  */
 function unlockElement(targetEl) {
     targetEl.classList.add('tutorial-unlocked');
-
-    let parent = targetEl.parentElement;
-    while (parent && parent !== document.body && parent.id !== 'app-container') {
-        const style = window.getComputedStyle(parent);
-        if (style.zIndex !== 'auto' && parseInt(style.zIndex, 10) < 10000) {
-            parent.dataset.tutOrigZ = parent.style.zIndex || '';
-            parent.style.zIndex = '10004';
-            unlockedParents.push(parent);
-        }
-        parent = parent.parentElement;
-    }
+    targetEl.style.setProperty('pointer-events', 'auto', 'important');
 }
 
 /**
@@ -353,15 +559,31 @@ function unlockElement(targetEl) {
 function clearUnlocked() {
     document.querySelectorAll('.tutorial-unlocked').forEach(el => {
         el.classList.remove('tutorial-unlocked');
+        el.style.removeProperty('position');
+        el.style.removeProperty('z-index');
+        el.style.removeProperty('pointer-events');
     });
 
     unlockedParents.forEach(p => {
-        if (p.dataset.tutOrigZ !== undefined) {
+        p.classList.remove('tutorial-unlocked-parent');
+        if (p.dataset.tutOrigZ !== undefined && p.dataset.tutOrigZ !== '') {
             p.style.zIndex = p.dataset.tutOrigZ;
-            delete p.dataset.tutOrigZ;
         } else {
-            p.style.zIndex = '';
+            p.style.removeProperty('z-index');
         }
+        if (p.dataset.tutOrigPos !== undefined && p.dataset.tutOrigPos !== '') {
+            p.style.position = p.dataset.tutOrigPos;
+        } else {
+            p.style.removeProperty('position');
+        }
+        if (p.dataset.tutOrigPE !== undefined && p.dataset.tutOrigPE !== '') {
+            p.style.pointerEvents = p.dataset.tutOrigPE;
+        } else {
+            p.style.removeProperty('pointer-events');
+        }
+        delete p.dataset.tutOrigZ;
+        delete p.dataset.tutOrigPos;
+        delete p.dataset.tutOrigPE;
     });
     unlockedParents = [];
 }
@@ -376,7 +598,7 @@ export function updateTutorialPosition() {
 }
 
 /**
- * Melewati tutorial secara langsung dan mengembalikan kontrol ke pemain.
+ * Melewati tutorial secara langsung dan mengembalikan kontrol ke pemain (hanya fallback internal).
  */
 export function skipTutorial() {
     endTutorial();
@@ -391,26 +613,30 @@ export function endTutorial() {
     currentStepIndex = 0;
     currentActionCount = 0;
 
+    if (renderStepTimeoutId) {
+        clearTimeout(renderStepTimeoutId);
+        renderStepTimeoutId = null;
+    }
+
     clearUnlocked();
+    stopNarrator();
 
     const overlay       = document.getElementById('tutorial-overlay');
     const tooltip       = document.getElementById('tutorial-tooltip');
     const handContainer = document.getElementById('tutorial-hand-container');
+    const maskPath      = document.getElementById('tutorial-mask-path');
 
     if (overlay) overlay.classList.add('hidden');
     if (tooltip) tooltip.classList.add('hidden');
     if (handContainer) handContainer.classList.add('hidden');
+    if (maskPath) maskPath.setAttribute('d', '');
 }
 
 /**
- * Menginisialisasi event tombol lewati tutorial.
+ * Menginisialisasi event tutorial (responsif resize & fullscreen).
+ * Catatan: Tombol lewati telah dihapus agar panduan bersifat wajib (action-gated).
  */
 export function initTutorialEvents() {
-    const skipBtn = document.getElementById('tutorial-btn-skip');
-    if (skipBtn) {
-        skipBtn.addEventListener('click', skipTutorial);
-    }
-
     window.addEventListener('resize', updateTutorialPosition);
     document.addEventListener('fullscreenchange', updateTutorialPosition);
     document.addEventListener('webkitfullscreenchange', updateTutorialPosition);

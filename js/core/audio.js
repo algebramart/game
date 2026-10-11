@@ -88,6 +88,8 @@ export function initAudio() {
     }
 }
 
+const lastSfxTime = {};
+
 /**
  * Memulai pemutaran musik latar belakang (BGM).
  */
@@ -96,6 +98,7 @@ export function playBGM() {
     bgmStarted = true;
 
     if (isBgmMuted || !bgmAudio) return;
+    if (!bgmAudio.paused) return; // Jika BGM sudah berjalan, jangan trigger ulang agar tidak terjadi tumpang tindih
 
     bgmAudio.volume = bgmVolume;
     const playPromise = bgmAudio.play();
@@ -133,6 +136,12 @@ export function stopBGM() {
  */
 export function playSFX(sfxKey) {
     if (isSfxMuted) return;
+
+    // Cegah trigger ganda instan (debouncing 80ms)
+    const now = Date.now();
+    if (lastSfxTime[sfxKey] && now - lastSfxTime[sfxKey] < 80) return;
+    lastSfxTime[sfxKey] = now;
+
     if (!isInitialized) initAudio();
 
     const masterSfx = sfxAudioCache[sfxKey];
@@ -222,6 +231,9 @@ export function toggleSFXMute() {
     if (!isInitialized) initAudio();
 
     isSfxMuted = !isSfxMuted;
+    if (isSfxMuted) {
+        stopNarrator();
+    }
     if (typeof localStorage !== 'undefined') {
         try { localStorage.setItem('algebraMart_sfxMuted', isSfxMuted ? 'true' : 'false'); } catch (e) {}
     }
@@ -309,4 +321,80 @@ export function updateSoundButtonUI() {
         btn.setAttribute('aria-label', 'Bisukan Suara');
         btn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
     }
+}
+
+// ==========================================
+// WEB SPEECH API — SUARA NARATOR INTERAKTIF
+// ==========================================
+
+let activeUtterance = null;
+let cachedIndonesianVoice = null;
+
+function resolveIndonesianVoice() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    if (cachedIndonesianVoice) return cachedIndonesianVoice;
+    try {
+        const voices = window.speechSynthesis.getVoices();
+        if (!voices || !voices.length) return null;
+        // Prioritaskan suara asli id-ID, lalu fallback ke yang memuat 'id' atau 'indonesia'
+        const match = voices.find(v => v.lang === 'id-ID' || v.lang === 'id_ID') ||
+                      voices.find(v => v.lang.toLowerCase().startsWith('id') || v.lang.toLowerCase().includes('indonesia'));
+        if (match) cachedIndonesianVoice = match;
+        return match;
+    } catch (e) {
+        return null;
+    }
+}
+
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+        cachedIndonesianVoice = null;
+        resolveIndonesianVoice();
+    };
+}
+
+/**
+ * Membacakan teks narator otomatis menggunakan Web Speech API (bahasa Indonesia).
+ * Digunakan untuk walkthrough tutorial dan modul pengantar Level 0.
+ * @param {string} text
+ */
+export function speakNarrator(text) {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (isSfxMuted) return;
+
+    try {
+        window.speechSynthesis.cancel();
+
+        // Hapus tag HTML dan rapikan teks
+        const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!cleanText) return;
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'id-ID';
+        utterance.rate = 0.95; // Kecepatan artikulasi ramah siswa
+        utterance.pitch = 1.05;
+        utterance.volume = Math.max(0.1, sfxVolume);
+
+        const voice = resolveIndonesianVoice();
+        if (voice) {
+            utterance.voice = voice;
+        }
+
+        activeUtterance = utterance;
+        window.speechSynthesis.speak(utterance);
+    } catch (err) {
+        console.warn('[Audio] Gagal membacakan teks narator:', err);
+    }
+}
+
+/**
+ * Menghentikan pembacaan narator suara seketika.
+ */
+export function stopNarrator() {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+            window.speechSynthesis.cancel();
+        } catch (e) {}
+    }
+    activeUtterance = null;
 }

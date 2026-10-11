@@ -28,6 +28,7 @@ export const state = {
     tagihanTervalidasi: 0,
     currentLevelParams: { order: {}, errorCount: 0, startTime: 0, totalCost: 0 },
     /** @type {Object} */ uangDibayarDetail: {},
+    /** @type {string[]} */ selectedProducts: [],
 
     // --- Level & Pelanggan ---
     currentLevelTab: 'easy', // 'easy' (1-10) atau 'hard' (11-20)

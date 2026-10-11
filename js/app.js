@@ -6,9 +6,10 @@ import { state }             from './core/state.js';
 import { saveData, requestFullScreen, exitFullScreen } from './core/engine.js';
 import { switchScreen, renderUserList, showMsg, closeModal, renderLevels, updateUniversalSettingsContext } from './ui/screens.js';
 import { initGameListeners, startLevel, addVariable, tambahUangKembalian, nextQuizQuestion, confirmQuizAnswer } from './ui/cashier.js';
-import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleDonate } from './ui/reports.js';
+import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleDonate, destroyFasilChart, handlePrintDetailedPDF, handlePrintReport, handleCopyWhatsAppReport } from './ui/reports.js';
 import { joinRoom, leaveRoom, sendStudentProgress } from './core/sync.js';
 import { startTutorial, skipTutorial, endTutorial, updateTutorialPosition, initTutorialEvents } from './core/tutorial.js';
+import { openLevelZeroModal, closeLevelZeroModal, initLevelZeroEvents } from './ui/levelZero.js';
 import {
     initAudio,
     playBGM,
@@ -25,11 +26,88 @@ import {
     isSfxMutedStatus
 } from './core/audio.js';
 
+// ==========================================
+// VIRTUAL DESKTOP AUTO-SCALING (1280x720)
+// ==========================================
+export const BASE_WIDTH = 1280;
+export const BASE_HEIGHT = 720;
+
+export function getAppScale() {
+    const container = document.getElementById('app-container');
+    if (container && container.dataset.scale) {
+        return parseFloat(container.dataset.scale) || 1;
+    }
+    return window.__appScale || 1;
+}
+
+export function fitScreen() {
+    const container = document.getElementById('app-container');
+    if (!container) return;
+
+    const winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
+    const winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+    const aspect = winW / winH;
+    const targetAspect = BASE_WIDTH / BASE_HEIGHT; // 1280 / 720 = 1.7777...
+
+    let scale = 1;
+    let virtualWidth = BASE_WIDTH;
+    let virtualHeight = BASE_HEIGHT;
+
+    if (aspect >= targetAspect) {
+        // Layar Ultra-Wide Landscape (e.g. 18:9, 19.5:9, 20:9):
+        // Kunci tinggi ke 720px, lebarkan canvas agar mengisi penuh 100vw tanpa pilar hitam di samping (+4px subpixel buffer)
+        scale = winH / BASE_HEIGHT;
+        virtualWidth = Math.max(BASE_WIDTH, Math.ceil(winW / scale) + 4);
+        virtualHeight = BASE_HEIGHT;
+    } else {
+        // Layar lebih sempit dari 16:9 (tablet 4:3, dll)
+        scale = winW / BASE_WIDTH;
+        virtualWidth = BASE_WIDTH;
+        virtualHeight = Math.max(BASE_HEIGHT, Math.ceil(winH / scale) + 4);
+    }
+
+    container.style.width = `${virtualWidth}px`;
+    container.style.height = `${virtualHeight}px`;
+    container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    container.dataset.scale = String(scale);
+    container.dataset.virtualWidth = String(virtualWidth);
+    container.dataset.virtualHeight = String(virtualHeight);
+    window.__appScale = scale;
+    window.__virtualWidth = virtualWidth;
+    window.__virtualHeight = virtualHeight;
+
+    // Deteksi Rotasi Gawai (Landscape Only)
+    const rotateOverlay = document.getElementById('rotate-device-overlay');
+    if (rotateOverlay) {
+        if (winH > winW) {
+            rotateOverlay.classList.remove('hidden');
+        } else {
+            rotateOverlay.classList.add('hidden');
+        }
+    }
+}
+
 // Ekspos ke window untuk integrasi antar-modul
-window._endTutorial  = endTutorial;
-window._startTutorial = startTutorial;
-window._startLevel   = startLevel;
-window._login        = login;
+window._endTutorial    = endTutorial;
+window._startTutorial  = startTutorial;
+window._startLevel     = startLevel;
+window._openLevelZero  = openLevelZeroModal;
+window._login          = login;
+window._fitScreen      = fitScreen;
+window._getAppScale    = getAppScale;
+
+// Penskalaan otomatis segera saat skrip dimuat dan saat jendela diubah ukurannya
+window.addEventListener('resize', fitScreen);
+window.addEventListener('orientationchange', () => {
+    setTimeout(fitScreen, 50);
+    setTimeout(fitScreen, 200);
+});
+if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
+    window.screen.orientation.addEventListener('change', () => {
+        setTimeout(fitScreen, 50);
+    });
+}
+fitScreen();
 
 let confirmExitReason = 'cashier'; // 'cashier' | 'fullscreen'
 
@@ -89,8 +167,12 @@ function logout(targetScreen = 'screen-login') {
 
     closeModal('modal-settings');
     closeModal('modal-confirm-exit');
+    closeModal('modal-badge-detail');
 
-    exitFullScreen();
+    // Hanya keluar dari layar penuh jika kembali ke gerbang awal (welcome gateway)
+    if (targetScreen === 'screen-welcome') {
+        exitFullScreen();
+    }
     switchScreen(targetScreen);
 }
 
@@ -183,11 +265,7 @@ function openSettingsModal() {
     const updateSliderFill = (slider, type) => {
         if (!slider) return;
         const pct = slider.value;
-        if (type === 'bgm') {
-            slider.style.background = `linear-gradient(to right, #3b82f6 0%, #06b6d4 ${pct}%, rgba(30, 41, 59, 0.85) ${pct}%, rgba(30, 41, 59, 0.85) 100%)`;
-        } else {
-            slider.style.background = `linear-gradient(to right, #f59e0b 0%, #fbbf24 ${pct}%, rgba(30, 41, 59, 0.85) ${pct}%, rgba(30, 41, 59, 0.85) 100%)`;
-        }
+        slider.style.background = `linear-gradient(to right, #f59e0b 0%, #fbbf24 ${pct}%, #e2e8f0 ${pct}%, #e2e8f0 100%)`;
     };
 
     // Sinkronisasi slider BGM
@@ -270,12 +348,17 @@ function showExitConfirmation(reason = 'cashier') {
 
     if (reason === 'fullscreen') {
         if (title) title.textContent = 'Keluar dari Permainan?';
-        if (desc) desc.textContent = 'Anda telah keluar dari mode layar penuh. Apakah Anda yakin ingin kembali ke menu awal? Sesi bermain saat ini akan dihentikan.';
-        if (btnCancel) btnCancel.textContent = 'Lanjutkan Bermain (Layar Penuh)';
-        if (btnConfirm) btnConfirm.textContent = 'Ya, Keluar Game';
+        if (desc) desc.textContent = 'Anda keluar dari mode layar penuh. Apakah Anda ingin melanjutkan bermain atau keluar dari permainan?';
+        if (btnCancel) btnCancel.textContent = 'Lanjutkan Bermain';
+        if (btnConfirm) btnConfirm.textContent = 'Keluar Game';
+    } else if (reason === 'app_exit') {
+        if (title) title.textContent = 'Keluar Game?';
+        if (desc) desc.textContent = 'Apakah Anda yakin ingin keluar dari permainan dan kembali ke halaman awal?';
+        if (btnCancel) btnCancel.textContent = 'Batal';
+        if (btnConfirm) btnConfirm.textContent = 'Ya, Keluar';
     } else {
-        if (title) title.textContent = 'Keluar Permainan?';
-        if (desc) desc.textContent = 'Pesanan pelanggan saat ini belum selesai. Jika kembali ke menu, transaksi level ini akan diulang dari awal.';
+        if (title) title.textContent = 'Selesaikan Permainan?';
+        if (desc) desc.textContent = 'Apakah Anda ingin menyelesaikan permainan dan kembali ke menu tantangan level?';
         if (btnCancel) btnCancel.textContent = 'Batal';
         if (btnConfirm) btnConfirm.textContent = 'Ya, Keluar';
     }
@@ -296,18 +379,28 @@ function handleConfirmExitExecute() {
     const modal = document.getElementById('modal-confirm-exit');
     if (modal) modal.classList.add('hidden');
 
-    if (confirmExitReason === 'fullscreen') {
+    endTutorial();
+    closeLevelZeroModal();
+    const receiptModal = document.getElementById('receipt-modal');
+    if (receiptModal) receiptModal.style.display = "none";
+    const quizModal = document.getElementById('quiz-modal');
+    if (quizModal) quizModal.classList.add('hidden');
+    const formulaInput = document.getElementById("formula-box");
+    if (formulaInput) formulaInput.value = "";
+    const paidInput = document.getElementById("paid-box");
+    if (paidInput) paidInput.value = "";
+    state.activePlayingLevel = null;
+    state.selectedProducts = [];
+    state.tagihanTervalidasi = 0;
+    const trayItems = document.getElementById("tray-items");
+    if (trayItems) trayItems.innerHTML = "";
+    const hargaDisplay = document.getElementById("harga-display");
+    if (hargaDisplay) { hargaDisplay.textContent = ""; }
+
+    if (confirmExitReason === 'fullscreen' || confirmExitReason === 'app_exit') {
         logout('screen-welcome');
         pauseBGM();
     } else {
-        endTutorial();
-        const receiptModal = document.getElementById('receipt-modal');
-        if (receiptModal) receiptModal.style.display = "none";
-        const formulaInput = document.getElementById("formula-box");
-        if (formulaInput) formulaInput.value = "";
-        const paidInput = document.getElementById("paid-box");
-        if (paidInput) paidInput.value = "";
-        state.activePlayingLevel = null;
         try {
             if (state.currentUser) {
                 sendStudentProgress(state.currentUser, state.currentLevelIdx);
@@ -343,7 +436,7 @@ function bindEvents() {
             const pct = parseInt(e.target.value, 10);
             setBGMVolume(pct / 100);
             if (labelBgm) labelBgm.textContent = `${pct}%`;
-            sliderBgm.style.background = `linear-gradient(to right, #3b82f6 0%, #06b6d4 ${pct}%, rgba(30, 41, 59, 0.85) ${pct}%, rgba(30, 41, 59, 0.85) 100%)`;
+            sliderBgm.style.background = `linear-gradient(to right, #f59e0b 0%, #fbbf24 ${pct}%, #e2e8f0 ${pct}%, #e2e8f0 100%)`;
         });
     }
 
@@ -364,7 +457,7 @@ function bindEvents() {
             const pct = parseInt(e.target.value, 10);
             setSFXVolume(pct / 100);
             if (labelSfx) labelSfx.textContent = `${pct}%`;
-            sliderSfx.style.background = `linear-gradient(to right, #f59e0b 0%, #fbbf24 ${pct}%, rgba(30, 41, 59, 0.85) ${pct}%, rgba(30, 41, 59, 0.85) 100%)`;
+            sliderSfx.style.background = `linear-gradient(to right, #f59e0b 0%, #fbbf24 ${pct}%, #e2e8f0 ${pct}%, #e2e8f0 100%)`;
         });
     }
 
@@ -378,21 +471,7 @@ function bindEvents() {
         });
     }
 
-    // --- Modal Pengaturan: Toggle Fullscreen ---
-    document.getElementById('btn-toggle-fullscreen')?.addEventListener('click', () => {
-        const isFs = document.fullscreenElement ||
-                     document.webkitFullscreenElement ||
-                     document.mozFullScreenElement ||
-                     document.msFullscreenElement;
-        if (isFs) {
-            exitFullScreen();
-        } else {
-            requestFullScreen();
-        }
-        setTimeout(updateFullscreenBtnUI, 200);
-    });
-
-    // --- Modal Pengaturan: Aksi Kontekstual Dinamis ---
+    // --- Modal Pengaturan: Aksi Kontekstual Dinamis (Kiri & Kanan) ---
     document.getElementById('btn-settings-fasil')?.addEventListener('click', () => {
         closeModal('modal-settings');
         showFasilitatorLogin();
@@ -405,7 +484,13 @@ function bindEvents() {
 
     document.getElementById('btn-settings-exit-game')?.addEventListener('click', () => {
         closeModal('modal-settings');
-        showExitConfirmation('cashier');
+        const activeScreen = document.querySelector('.screen.active');
+        const currentScreenId = activeScreen ? activeScreen.id : '';
+        if (currentScreenId === 'screen-game') {
+            showExitConfirmation('cashier');
+        } else {
+            showExitConfirmation('app_exit');
+        }
     });
 
     // --- Login Screen ---
@@ -416,8 +501,8 @@ function bindEvents() {
     document.querySelector('.btn-logout')?.addEventListener('click', () => logout('screen-login'));
     document.querySelector('.btn-start-game')?.addEventListener('click', bukaMenuLevel);
     document.querySelectorAll('.btn-secondary').forEach(btn => {
-        if (btn.querySelector('.fa-book'))   btn.addEventListener('click', () => { playSFX('nav'); openBukuKas(); });
-        if (btn.querySelector('.fa-trophy')) btn.addEventListener('click', () => { playSFX('nav'); openPrestasi(); });
+        if (btn.querySelector('.fa-book'))   btn.addEventListener('click', () => openBukuKas());
+        if (btn.querySelector('.fa-trophy')) btn.addEventListener('click', () => openPrestasi());
     });
 
     // --- Sinkronisasi Kelas Guru (Murid) ---
@@ -459,7 +544,7 @@ function bindEvents() {
         renderLevels();
     });
 
-    // --- Game Screen: Tombol Kembali dengan Dialog Konfirmasi ---
+    // --- Game Screen: Tombol Kembali/Selesaikan dengan Dialog Konfirmasi ---
     document.getElementById('btn-back-menu')?.addEventListener('click', () => {
         showExitConfirmation('cashier');
     });
@@ -481,20 +566,33 @@ function bindEvents() {
     document.querySelector('.btn-copy')?.addEventListener('click', copyToken);
 
     // --- Fasilitator Screen ---
-    document.querySelector('.btn-exit-fasil')?.addEventListener('click', () => switchScreen('screen-login'));
+    document.querySelector('.btn-exit-fasil')?.addEventListener('click', () => {
+        destroyFasilChart();
+        switchScreen('screen-login');
+    });
+    document.getElementById('btn-print-report')?.addEventListener('click', handlePrintDetailedPDF);
+    document.getElementById('btn-copy-wa')?.addEventListener('click', handleCopyWhatsAppReport);
     document.querySelector('.btn-export')?.addEventListener('click', exportCSV);
     document.querySelector('.btn-reset-data')?.addEventListener('click', resetAllData);
     document.getElementById('btn-create-room')?.addEventListener('click', handleCreateHostRoom);
     document.getElementById('btn-copy-room-code')?.addEventListener('click', handleCopyHostRoomCode);
 
     // --- Modal PIN ---
+    document.getElementById('btn-pin-cancel')?.addEventListener('click', () => closeModal('modal-pin'));
     document.querySelector('#modal-pin .btn-secondary')?.addEventListener('click', () => closeModal('modal-pin'));
+    document.getElementById('btn-pin-submit')?.addEventListener('click', checkPIN);
     document.querySelector('#modal-pin .btn-primary')?.addEventListener('click', checkPIN);
     document.getElementById('pin-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') checkPIN(); });
 
     // --- Modal Detail Rapor Siswa ---
     document.getElementById('btn-close-student-detail')?.addEventListener('click', () => closeModal('modal-student-detail'));
     document.getElementById('btn-done-student-detail')?.addEventListener('click', () => closeModal('modal-student-detail'));
+
+    // --- Modal Detail Lencana Prestasi ---
+    document.getElementById('btn-close-badge-detail')?.addEventListener('click', () => closeModal('modal-badge-detail'));
+    document.getElementById('modal-badge-detail')?.addEventListener('click', (e) => {
+        if (e.target.id === 'modal-badge-detail') closeModal('modal-badge-detail');
+    });
 
     // --- Modal Pesan ---
     document.querySelector('#modal-msg .btn-primary')?.addEventListener('click', () => closeModal('modal-msg'));
@@ -524,11 +622,25 @@ function handleFullscreenChange() {
     const activeScreen = document.querySelector('.screen.active');
     const currentScreenId = activeScreen ? activeScreen.id : '';
 
-    // Hanya tampilkan konfirmasi jika keluar dari fullscreen saat sedang di dalam permainan (bukan di #screen-welcome)
+    // Jika pengguna keluar dari layar penuh secara paksa (Esc, hover X bar browser, dll)
+    // dan sedang berada di dalam game (bukan layar gerbang welcome),
+    // tampilkan modal konfirmasi untuk memilih Lanjut Game atau Keluar Game.
     if (!isFullscreenNow && currentScreenId && currentScreenId !== 'screen-welcome') {
         showExitConfirmation('fullscreen');
     }
 }
+
+// Tangkap penekanan F11 agar memicu pop up konfirmasi yang konsisten
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'F11') {
+        e.preventDefault();
+        const activeScreen = document.querySelector('.screen.active');
+        const currentScreenId = activeScreen ? activeScreen.id : '';
+        if (currentScreenId && currentScreenId !== 'screen-welcome') {
+            showExitConfirmation('fullscreen');
+        }
+    }
+});
 
 document.addEventListener('fullscreenchange',        handleFullscreenChange);
 document.addEventListener('webkitfullscreenchange',  handleFullscreenChange);
@@ -539,11 +651,13 @@ document.addEventListener('MSFullscreenChange',      handleFullscreenChange);
 // INIT
 // ==========================================
 
-window.addEventListener('load', () => {
+function initApp() {
+    fitScreen();
     initAudio();
     renderUserList();
     initGameListeners();
     initTutorialEvents();
+    initLevelZeroEvents();
     bindEvents();
 
     const activeScreen = document.querySelector('.screen.active');
@@ -565,4 +679,10 @@ window.addEventListener('load', () => {
     window.addEventListener('click', unlockAutoplay);
     window.addEventListener('keydown', unlockAutoplay);
     window.addEventListener('touchstart', unlockAutoplay);
-});
+}
+
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}

@@ -311,43 +311,145 @@ export function formatMathText(text) {
 }
 
 /**
+ * Mengurai ekspresi aljabar pemain menjadi map koefisien bersih tiap variabel:
+ * @param {string} rawStr
+ * @returns {Object.<string, number>|null}
+ */
+export function parseAlgebraicExpression(rawStr) {
+    if (!rawStr) return null;
+    let str = rawStr.replace(/\s+/g, '').toLowerCase();
+
+    // Tolak ekspresi yang diakhiri operator gantung atau kurung kosong
+    if (/[+\-]$/.test(str)) return null;
+    if (/\(\s*\)/.test(str)) return null;
+
+    // 1. Tangani ekspansi sifat distributif perkalian tanda kurung: [+-]?k(ax + by + ...)
+    const parenRegex = /([+-]?\d*)\(([^()]+)\)/g;
+    let matchParen;
+    let maxParenExpansions = 10;
+    while ((matchParen = parenRegex.exec(str)) !== null && maxParenExpansions > 0) {
+        maxParenExpansions--;
+        const fullMatch = matchParen[0];
+        const signMultStr = matchParen[1];
+        let mult = 1;
+        if (signMultStr === '' || signMultStr === '+') mult = 1;
+        else if (signMultStr === '-') mult = -1;
+        else mult = parseInt(signMultStr, 10);
+
+        const inner = matchParen[2];
+        if (/[+\-]$/.test(inner)) return null;
+
+        const innerTerms = inner.match(/[+-]?[^+-]+/g) || [];
+        if (innerTerms.length === 0) return null;
+
+        let expanded = '';
+        for (const it of innerTerms) {
+            const isNeg = it.startsWith('-');
+            const clean = it.replace(/^[+-]/, '');
+            const termMatch = clean.match(/^(\d*)([a-q])$/);
+            if (!termMatch) return null; // Format tidak sah di dalam kurung
+            const baseCoef = termMatch[1] === '' ? 1 : parseInt(termMatch[1], 10);
+            const netCoef = baseCoef * mult * (isNeg ? -1 : 1);
+            expanded += (netCoef >= 0 ? '+' : '') + netCoef + termMatch[2];
+        }
+
+        str = str.replace(fullMatch, expanded);
+        parenRegex.lastIndex = 0;
+    }
+
+    // Jika masih ada tanda kurung tersisa (misal kurung tak berpasangan), tolak
+    if (str.includes('(') || str.includes(')')) return null;
+    if (/[+\-]$/.test(str)) return null;
+
+    // 2. Ekstrak seluruh suku bertanda (+ / -)
+    const terms = str.match(/[+-]?[^+-]+/g);
+    if (!terms) return null;
+
+    const netCounts = {};
+
+    for (const term of terms) {
+        const isNeg = term.startsWith('-');
+        const clean = term.replace(/^[+-]/, '');
+        const match = clean.match(/^(\d*)([a-q])$/);
+        if (!match) {
+            // Miskonsepsi penggabungan suku tidak sejenis (misal "5bi") atau karakter tak terduga
+            return null;
+        }
+
+        const coef = (match[1] === '' ? 1 : parseInt(match[1], 10)) * (isNeg ? -1 : 1);
+        const variable = match[2];
+        netCounts[variable] = (netCounts[variable] || 0) + coef;
+    }
+
+    return netCounts;
+}
+
+/**
  * Menghitung dan memvalidasi rumus aljabar dari input pemain.
- * @returns {{ isBenar: boolean, tagihan: number, cost: number }}
+ * @returns {{ isBenar: boolean, tagihan: number, cost: number, simplifiedFormula: string }}
  */
 export function calculateFormula() {
     const formulaInput = document.getElementById("formula-box");
-    if (state.activeInput !== formulaInput) return { isBenar: false, tagihan: 0, cost: 0 };
+    if (!formulaInput) return { isBenar: false, tagihan: 0, cost: 0, simplifiedFormula: '' };
 
-    let rumusBersih  = formulaInput.value.replace(/\s+/g, '').toLowerCase();
-    let userTerms    = rumusBersih.split('+');
+    let rumusBersih = formulaInput.value.replace(/\s+/g, '').toLowerCase();
+    if (!rumusBersih) return { isBenar: false, tagihan: 0, cost: 0, simplifiedFormula: '' };
+
+    const parsed = parseAlgebraicExpression(rumusBersih);
+    if (!parsed) return { isBenar: false, tagihan: 0, cost: 0, simplifiedFormula: '' };
+
+    // Susun formula kanonik aljabar yang telah disederhanakan
+    const simplifiedTerms = [];
+    for (let key in ITEM_DB) {
+        if (parsed[key] && parsed[key] > 0) {
+            const count = parsed[key];
+            simplifiedTerms.push(`${count === 1 ? '' : count}${key}`);
+        }
+    }
+    const simplifiedFormula = simplifiedTerms.length > 0 ? simplifiedTerms.join(' + ') : '0';
 
     let isRumusBenar      = true;
-    let expectedTermCount = 0;
     let calculatedTagihan = 0;
     let calculatedCost    = 0;
 
-    for (let key in ITEM_DB) {
-        let qty = state.currentLevelParams.order[key] || 0;
-        if (qty > 0) {
-            expectedTermCount++;
-            let term1 = `${qty}${key}`;
-            let term2 = (qty === 1) ? `${key}` : term1;
+    const order = state.currentLevelParams?.order || {};
 
-            if (!userTerms.includes(term1) && !userTerms.includes(term2)) {
+    // Periksa kesesuaian koefisien bersih tiap barang pesanan
+    for (let key in ITEM_DB) {
+        let expectedQty = order[key] || 0;
+        let userQty = parsed[key] || 0;
+
+        if (userQty !== expectedQty) {
+            isRumusBenar = false;
+            break;
+        }
+
+        if (expectedQty > 0) {
+            calculatedTagihan += expectedQty * ITEM_DB[key].price;
+            calculatedCost    += expectedQty * ITEM_DB[key].cost;
+        }
+    }
+
+    // Pastikan tidak ada variabel lain yang bernilai > 0 di luar pesanan,
+    // dan tidak ada variabel yang memiliki koefisien bersih negatif (< 0)
+    if (isRumusBenar) {
+        for (let key in parsed) {
+            let expectedQty = order[key] || 0;
+            if (parsed[key] > 0 && expectedQty === 0) {
                 isRumusBenar = false;
-            } else {
-                calculatedTagihan += qty * ITEM_DB[key].price;
-                calculatedCost    += qty * ITEM_DB[key].cost;
+                break;
+            }
+            if (parsed[key] < 0) {
+                isRumusBenar = false;
+                break;
             }
         }
     }
 
-    let strictUserTerms = userTerms.filter(t => !t.startsWith('0'));
-
-    if (isRumusBenar && strictUserTerms.length === expectedTermCount) {
-        return { isBenar: true, tagihan: calculatedTagihan, cost: calculatedCost };
+    if (isRumusBenar) {
+        return { isBenar: true, tagihan: calculatedTagihan, cost: calculatedCost, simplifiedFormula };
     }
-    return { isBenar: false, tagihan: 0, cost: 0 };
+    return { isBenar: false, tagihan: 0, cost: 0, simplifiedFormula };
 }
 
 /**

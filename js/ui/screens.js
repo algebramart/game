@@ -40,8 +40,15 @@ export function closeModal(id) {
  */
 export function updateUniversalSettingsContext(screenId) {
     const btnUniversalSettings = document.getElementById('btn-universal-settings');
+
     if (btnUniversalSettings) {
-        if (screenId === 'screen-welcome') {
+        if (
+            screenId === 'screen-welcome' ||
+            screenId === 'screen-fasilitator' ||
+            screenId === 'screen-levels' ||
+            screenId === 'screen-bukukas' ||
+            screenId === 'screen-prestasi'
+        ) {
             btnUniversalSettings.classList.add('hidden');
         } else {
             btnUniversalSettings.classList.remove('hidden');
@@ -58,13 +65,22 @@ export function updateUniversalSettingsContext(screenId) {
     }
 
     if (btnSwitchUser) {
-        if (screenId === 'screen-lobby') btnSwitchUser.classList.remove('hidden');
-        else btnSwitchUser.classList.add('hidden');
+        if (screenId !== 'screen-login' && screenId !== 'screen-welcome' && screenId !== 'screen-fasilitator') {
+            btnSwitchUser.classList.remove('hidden');
+        } else {
+            btnSwitchUser.classList.add('hidden');
+        }
     }
 
     if (btnExitGame) {
-        if (screenId === 'screen-game') btnExitGame.classList.remove('hidden');
-        else btnExitGame.classList.add('hidden');
+        btnExitGame.classList.remove('hidden');
+        if (screenId === 'screen-game') {
+            btnExitGame.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Selesaikan Permainan';
+            btnExitGame.title = 'Selesaikan Permainan dan Kembali ke Menu Level';
+        } else {
+            btnExitGame.innerHTML = '<i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar Game';
+            btnExitGame.title = 'Keluar dari Permainan';
+        }
     }
 }
 
@@ -106,7 +122,7 @@ export function renderUserList() {
             <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
             <div class="user-info">
                 <div class="user-name">${u.name}</div>
-                <div class="user-meta">${u.kelas} | Rp ${u.money.toLocaleString('id-ID')}</div>
+                <div class="user-meta">Kelas ${u.kelas || '-'} • Lvl ${u.maxLevel || 1} • Rp ${u.money.toLocaleString('id-ID')}</div>
             </div>
             <i class="fa-solid fa-chevron-right"></i>
         `;
@@ -139,7 +155,6 @@ export function showBadgeUnlockedPopup(badge) {
         <div class="badge-toast-content">
             <div class="badge-toast-tag"><i class="fa-solid fa-star"></i> LENCANA DIBUKA!</div>
             <h4 class="badge-toast-name">${badge.name}</h4>
-            <p class="badge-toast-desc">${badge.desc}</p>
         </div>
         <button class="badge-toast-close" title="Tutup">&times;</button>
     `;
@@ -254,6 +269,27 @@ export function renderLevels() {
     const isHardMode = state.currentLevelTab === 'hard';
     const startLevel = isHardMode ? 11 : 1;
     const endLevel   = isHardMode ? 20 : 10;
+
+    // HILANGKAN banner pengantar Level 0 untuk semua device
+    const bannerLevel0 = document.getElementById('btn-open-level-0');
+    if (bannerLevel0) {
+        bannerLevel0.style.display = 'none';
+    }
+
+    // TETAP PERTAHANKAN tombol bulat Level 0 di dalam grid tantangan (khusus tab Easy)
+    if (!isHardMode) {
+        const btnZero = document.createElement('button');
+        btnZero.className = "btn-level-intro-grid";
+        btnZero.innerHTML = `<span>0</span><div class="level-stars"><i class="fa-solid fa-graduation-cap"></i> Pengantar</div>`;
+        btnZero.title = "Level 0: Materi Pengantar Konsep Aljabar";
+        btnZero.addEventListener('click', () => {
+            playSFX('nav');
+            if (typeof window._openLevelZero === 'function') {
+                window._openLevelZero();
+            }
+        });
+        container.appendChild(btnZero);
+    }
 
     for (let i = startLevel; i <= endLevel; i++) {
         let isUnlocked = false;

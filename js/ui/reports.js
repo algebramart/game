@@ -1,8 +1,10 @@
 import { state } from '../core/state.js';
 import { BADGES_DB } from '../data/items.js';
 import { getTitle, saveData, checkBadgeUnlocks } from '../core/engine.js';
-import { switchScreen, showMsg } from './screens.js';
+import { switchScreen, showMsg, closeModal } from './screens.js';
 import { startHostRoom, stopHostRoom } from '../core/sync.js';
+
+let fasilChartInstance = null;
 
 // ==========================================
 // BUKU KAS
@@ -24,14 +26,16 @@ export function openBukuKas() {
     let zeroErrors  = state.currentUser.history.filter(h => h.errors === 0).length;
     let accuracy    = totalLevels === 0 ? 0 : Math.round((zeroErrors / totalLevels) * 100);
 
-    document.getElementById('bk-akurasi').innerText         = accuracy + "%";
-    document.getElementById('bk-akurasi-bar').style.width   = accuracy + "%";
+    const akurasiEl = document.getElementById('bk-akurasi');
+    const akurasiBar = document.getElementById('bk-akurasi-bar');
+    if (akurasiEl)  akurasiEl.innerText = totalLevels === 0 ? "–" : accuracy + "%";
+    if (akurasiBar) akurasiBar.style.width = accuracy + "%";
 
     const histList = document.getElementById('bk-history-list');
     histList.innerHTML = '';
 
     if (totalLevels === 0) {
-        histList.innerHTML = '<div style="text-align:center; color:var(--color-slate-400); font-style:italic; padding:1rem;">Belum ada riwayat permainan.</div>';
+        histList.innerHTML = '<div style="text-align:center; color:#92400e; font-style:italic; padding:1.25rem;">Belum ada riwayat permainan. Selesaikan pesanan pembeli di toko untuk mencatat performa kasir.</div>';
     } else {
         state.currentUser.history.forEach(h => {
             let d = new Date(h.timestamp);
@@ -51,35 +55,49 @@ export function openBukuKas() {
         });
     }
 
-    const ctx = document.getElementById('financeChart').getContext('2d');
-    if (state.chartInstance) state.chartInstance.destroy();
+    const chartCanvas = document.getElementById('financeChart');
+    const chartEmpty  = document.getElementById('finance-chart-empty');
 
-    let labels     = state.currentUser.history.map(h => `Lvl ${h.level}`);
-    let dataProfit = state.currentUser.history.map(h => h.profit);
-    if (labels.length === 0) { labels = ['-']; dataProfit = [0]; }
-
-    state.chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Laba (Rp)',
-                data: dataProfit,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                borderWidth: 3,
-                pointBackgroundColor: '#1e3a8a',
-                fill: true,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true } },
-            plugins: { legend: { display: false } }
+    if (totalLevels === 0) {
+        if (chartCanvas) chartCanvas.style.display = 'none';
+        if (chartEmpty)  chartEmpty.classList.remove('hidden');
+        if (state.chartInstance) {
+            state.chartInstance.destroy();
+            state.chartInstance = null;
         }
-    });
+    } else {
+        if (chartCanvas) chartCanvas.style.display = 'block';
+        if (chartEmpty)  chartEmpty.classList.add('hidden');
+
+        const ctx = chartCanvas.getContext('2d');
+        if (state.chartInstance) state.chartInstance.destroy();
+
+        let labels     = state.currentUser.history.map(h => `Lvl ${h.level}`);
+        let dataProfit = state.currentUser.history.map(h => h.profit);
+
+        state.chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Laba (Rp)',
+                    data: dataProfit,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#d97706',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
 }
 
 /**
@@ -116,6 +134,49 @@ export function handleDonate(nominal) {
 // PRESTASI & LEADERBOARD
 // ==========================================
 
+/**
+ * Menampilkan modal detail informasi lencana saat salah satu kartu diklik.
+ * @param {Object} badge
+ * @param {boolean} isUnlocked
+ */
+export function showBadgeDetail(badge, isUnlocked) {
+    const modal = document.getElementById('modal-badge-detail');
+    if (!modal) return;
+
+    const iconWrap = document.getElementById('badge-detail-icon-wrapper');
+    const iconEl = document.getElementById('badge-detail-icon');
+    const categoryEl = document.getElementById('badge-detail-category');
+    const nameEl = document.getElementById('badge-detail-name');
+    const statusEl = document.getElementById('badge-detail-status');
+    const descEl = document.getElementById('badge-detail-desc');
+
+    if (iconWrap && iconEl) {
+        iconWrap.className = isUnlocked
+            ? `badge-detail-icon-wrapper ${badge.colorClass || 'icon-gold'}`
+            : 'badge-detail-icon-wrapper icon-disabled';
+        iconEl.className = `fa-solid ${isUnlocked ? (badge.icon || 'fa-award') : 'fa-lock'}`;
+    }
+
+    if (categoryEl) categoryEl.textContent = badge.category || 'Prestasi';
+    if (nameEl) nameEl.textContent = badge.name;
+
+    if (statusEl) {
+        if (isUnlocked) {
+            statusEl.className = 'badge-detail-status-pill status-unlocked';
+            statusEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Sudah Terbuka';
+        } else {
+            statusEl.className = 'badge-detail-status-pill status-locked';
+            statusEl.innerHTML = '<i class="fa-solid fa-lock"></i> Masih Terkunci';
+        }
+    }
+
+    if (descEl) {
+        descEl.textContent = badge.desc || 'Selesaikan tantangan tertentu untuk membuka lencana ini.';
+    }
+
+    modal.classList.remove('hidden');
+}
+
 export function openPrestasi() {
     switchScreen('screen-prestasi');
 
@@ -134,19 +195,32 @@ export function openPrestasi() {
 
     BADGES_DB.forEach(b => {
         const hasBadge = userBadges.includes(b.id);
-        badgeContainer.innerHTML += `
-            <div class="badge-card ${hasBadge ? 'badge-unlocked' : 'badge-locked'}" title="${b.desc}">
-                <div class="badge-icon-wrapper ${hasBadge ? b.colorClass : 'icon-disabled'}">
-                    <i class="fa-solid badge-icon ${hasBadge ? b.icon : 'fa-lock'}"></i>
-                </div>
-                <span class="badge-category-tag">${b.category}</span>
-                <h4>${b.name}</h4>
-                <p class="badge-desc-text">${b.desc}</p>
+        const card = document.createElement('div');
+        card.className = `badge-card ${hasBadge ? 'badge-unlocked' : 'badge-locked'}`;
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.title = `Klik untuk melihat detail lencana: ${b.name}`;
+        card.innerHTML = `
+            <div class="badge-icon-wrapper ${hasBadge ? b.colorClass : 'icon-disabled'}">
+                <i class="fa-solid badge-icon ${hasBadge ? b.icon : 'fa-lock'}"></i>
             </div>
+            <span class="badge-category-tag">${b.category}</span>
+            <h4>${b.name}</h4>
         `;
+        card.addEventListener('click', () => {
+            showBadgeDetail(b, hasBadge);
+        });
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                showBadgeDetail(b, hasBadge);
+            }
+        });
+        badgeContainer.appendChild(card);
     });
 
-    document.getElementById('token-display').innerText = state.currentUser.token;
+    const tokenDisplay = document.getElementById('token-display');
+    if (tokenDisplay) tokenDisplay.innerText = state.currentUser?.token || '';
 
     const tbody = document.getElementById('leaderboard-body');
     tbody.innerHTML = '';
@@ -170,6 +244,17 @@ export function openPrestasi() {
             </tr>
         `;
     });
+
+    const minSlots = 5;
+    for (let idx = sortedUsers.length; idx < minSlots; idx++) {
+        tbody.innerHTML += `
+            <tr class="table-row table-row-empty" style="opacity: 0.55;">
+                <td style="color:#94a3b8; text-align:center;">${idx + 1}</td>
+                <td><span class="rank-name" style="color:#94a3b8; font-style:italic;">Slot Kasir Kosong</span><span class="rank-title" style="color:#cbd5e1;">Belum ada data pemain</span></td>
+                <td class="text-right font-mono" style="color:#cbd5e1;">–</td>
+            </tr>
+        `;
+    }
 }
 
 export function copyToken() {
@@ -281,25 +366,18 @@ export function formatTimeAgo(timestamp) {
 }
 
 /**
- * Render tabel murid aktif dan panel Peringatan Dini (EWS).
+ * Mengambil dan menggabungkan data seluruh murid (lokal dan sesi daring) ke dalam satu array.
+ * @returns {Array<Object>}
  */
-export function renderFasilTableAndEWS() {
-    const tbody   = document.getElementById('fasil-table-body');
-    const ewsList = document.getElementById('fasil-ews-list');
-    if (!tbody || !ewsList) return;
-
-    tbody.innerHTML = '';
-    ewsList.innerHTML = '';
-
-    // Gabungkan data user lokal dan data murid online
+export function getAggregatedStudents() {
     const studentMap = new Map();
 
     // 1. Masukkan pengguna lokal
     state.users.forEach(u => {
         let totalLvl = u.history ? u.history.length : 0;
         let zeroErrors = u.history ? u.history.filter(h => (h.errors || 0) === 0).length : 0;
-        let accNum = totalLvl === 0 ? 100 : Math.round((zeroErrors / totalLvl) * 100);
-        let accStr = totalLvl === 0 ? '100%' : accNum + '%';
+        let accNum = totalLvl === 0 ? 0 : Math.round((zeroErrors / totalLvl) * 100);
+        let accStr = totalLvl === 0 ? '–' : accNum + '%';
 
         let lastHistory = u.history && u.history.length > 0 ? u.history[u.history.length - 1] : null;
         let lastErrors = lastHistory ? (lastHistory.errors || 0) : 0;
@@ -386,8 +464,8 @@ export function renderFasilTableAndEWS() {
                     level: s.level || 1,
                     activeLevel: s.activeLevel || null,
                     money: s.laba !== undefined ? s.laba : 0,
-                    accuracyNum: s.accuracy !== undefined ? s.accuracy : 100,
-                    accuracyStr: s.accuracy !== undefined ? `${s.accuracy}%` : '100%',
+                    accuracyNum: s.accuracy !== undefined ? s.accuracy : 0,
+                    accuracyStr: s.accuracy !== undefined ? `${s.accuracy}%` : '–',
                     errorCount: s.errorCount !== undefined ? Number(s.errorCount) : 0,
                     quizStr: s.quizScore || '-',
                     quizFailed: onlineQuizFailed,
@@ -402,7 +480,21 @@ export function renderFasilTableAndEWS() {
         });
     }
 
-    const students = Array.from(studentMap.values());
+    return Array.from(studentMap.values());
+}
+
+/**
+ * Render tabel murid aktif dan panel Peringatan Dini (EWS).
+ */
+export function renderFasilTableAndEWS() {
+    const tbody   = document.getElementById('fasil-table-body');
+    const ewsList = document.getElementById('fasil-ews-list');
+    if (!tbody || !ewsList) return;
+
+    tbody.innerHTML = '';
+    ewsList.innerHTML = '';
+
+    const students = getAggregatedStudents();
 
     if (students.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 1.5rem; color: #64748b;">Belum ada data murid yang terhubung atau tersimpan.</td></tr>';
@@ -503,6 +595,147 @@ export function renderFasilTableAndEWS() {
             `;
         });
     }
+
+    // ==========================================
+    // AGREGASI STATISTIK KELAS & GRAFIK VISUAL
+    // ==========================================
+
+    // a. Rata-rata Level (maxLevel seluruh murid)
+    let avgLevelStr = '–';
+    if (students.length > 0) {
+        const sumLevel = students.reduce((sum, s) => sum + (Number(s.maxLevel) || 1), 0);
+        avgLevelStr = `Lvl ${(sumLevel / students.length).toFixed(1)}`;
+    }
+    const avgLevelEl = document.getElementById('fasil-stat-avg-level');
+    const avgSubEl   = document.getElementById('fasil-stat-avg-sub');
+    if (avgLevelEl) avgLevelEl.textContent = avgLevelStr;
+    if (avgSubEl)   avgSubEl.textContent   = students.length > 0 ? `Dari ${students.length} murid terdata` : 'Belum ada murid';
+
+    // b. Ketuntasan Kelas (Target: Min. Level 5)
+    const TARGET_LEVEL = 5;
+    const completedCount = students.filter(s => (Number(s.maxLevel) || 1) >= TARGET_LEVEL).length;
+    const masteryPct = students.length > 0 ? Math.round((completedCount / students.length) * 100) : 0;
+    const masteryEl    = document.getElementById('fasil-stat-mastery');
+    const masterySubEl = document.getElementById('fasil-stat-mastery-sub');
+    if (masteryEl)    masteryEl.textContent    = `${masteryPct}%`;
+    if (masterySubEl) masterySubEl.textContent = students.length > 0 ? `${completedCount}/${students.length} capai ≥ Lvl 5` : 'Target: Min. Level 5';
+
+    // c. Perlu Pendampingan (EWS: errorCount >= 3 atau gagal kuis)
+    const needsHelpEl = document.getElementById('fasil-stat-needs-help');
+    const ewsSubEl    = document.getElementById('fasil-stat-ews-sub');
+    if (needsHelpEl) needsHelpEl.textContent = `${ewsAlerts.length} Murid`;
+    if (ewsSubEl)    ewsSubEl.textContent    = ewsAlerts.length > 0 ? 'Terkendala rumus/kuis' : 'Semua aman lancar';
+
+    // d. Render / Perbarui Bar Chart Capaian Murid
+    const chartTagEl = document.getElementById('fasil-chart-tag');
+    if (chartTagEl) chartTagEl.textContent = `${students.length} Murid Terdata`;
+
+    renderFasilClassChart(students);
+}
+
+/**
+ * Menghancurkan instance grafik kelas fasilitator jika ada.
+ */
+export function destroyFasilChart() {
+    if (fasilChartInstance) {
+        fasilChartInstance.destroy();
+        fasilChartInstance = null;
+    }
+}
+
+/**
+ * Render atau perbarui Bar Chart distribusi kemampuan murid berdasarkan rentang level.
+ * @param {Array} students Daftar seluruh siswa teragregasi
+ */
+export function renderFasilClassChart(students) {
+    const canvas = document.getElementById('fasilClassChart');
+    if (!canvas) return;
+
+    // Hancurkan chartInstance lama jika ada untuk mencegah error canvas tumpang tindih
+    destroyFasilChart();
+
+    if (typeof Chart === 'undefined') return;
+
+    // Distribusi level murid: "Level 1-3", "Level 4-7", "Level 8-10", "Level 11+"
+    let c1_3 = 0, c4_7 = 0, c8_10 = 0, c11plus = 0;
+    if (Array.isArray(students)) {
+        students.forEach(s => {
+            const lvl = Number(s.maxLevel) || 1;
+            if (lvl <= 3) c1_3++;
+            else if (lvl <= 7) c4_7++;
+            else if (lvl <= 10) c8_10++;
+            else c11plus++;
+        });
+    }
+
+    const counts = [c1_3, c4_7, c8_10, c11plus];
+
+    const ctx = canvas.getContext('2d');
+    fasilChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Level 1-3', 'Level 4-7', 'Level 8-10', 'Level 11+'],
+            datasets: [{
+                label: 'Jumlah Murid',
+                data: counts,
+                backgroundColor: [
+                    'rgba(245, 158, 11, 0.78)',  // Emas / Amber hangat
+                    'rgba(217, 119, 6, 0.82)',   // Amber pekat
+                    'rgba(180, 83, 9, 0.88)',    // Cokelat keemasan
+                    'rgba(16, 185, 129, 0.85)'   // Emerald hijau tuntas
+                ],
+                borderColor: [
+                    '#f59e0b',
+                    '#d97706',
+                    '#b45309',
+                    '#10b981'
+                ],
+                borderWidth: 1.5,
+                borderRadius: 8,
+                borderSkipped: false,
+                maxBarThickness: 56
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#78350f',
+                    titleColor: '#fef3c7',
+                    bodyColor: '#ffffff',
+                    padding: 8,
+                    cornerRadius: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: (ctx) => `${ctx.raw} murid`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        color: '#78350f',
+                        font: { weight: 'bold', size: 11 }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        precision: 0,
+                        color: '#92400e',
+                        font: { size: 11 }
+                    },
+                    grid: {
+                        color: 'rgba(254, 230, 138, 0.45)'
+                    }
+                }
+            }
+        }
+    });
 }
 
 /**
@@ -527,7 +760,7 @@ export function openStudentDetailModal(student) {
     if (metaEl)   metaEl.innerText  = `Kelas: ${student.kelas || '-'} | Gender: ${student.gender || 'Laki-laki'}`;
     if (lvlEl)    lvlEl.innerText   = `Lvl ${student.maxLevel || 1}`;
     if (moneyEl)  moneyEl.innerText = `Rp ${(student.money || 0).toLocaleString('id-ID')}`;
-    if (accEl)    accEl.innerText   = student.accuracyStr || '100%';
+    if (accEl)    accEl.innerText   = student.accuracyStr || '–';
     if (statusEl) {
         statusEl.innerHTML = student.isOnline
             ? '<span style="color:#22c55e;"><i class="fa-solid fa-circle" style="font-size:0.6rem;"></i> Live Online</span>'
@@ -543,9 +776,9 @@ export function openStudentDetailModal(student) {
         if (history.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" style="text-align:center; padding:1.5rem; color:#94a3b8; font-style:italic;">
+                    <td colspan="5" style="text-align:center; padding:1.5rem; color:#92400e; font-style:italic;">
                         Belum ada riwayat level yang diselesaikan.<br>
-                        <span style="font-size:0.75rem;">Siswa saat ini sedang aktif di Level ${student.level || 1}.</span>
+                        <span style="font-size:0.75rem; color:#b45309;">Siswa saat ini sedang aktif di Level ${student.level || 1}.</span>
                     </td>
                 </tr>
             `;
@@ -557,24 +790,24 @@ export function openStudentDetailModal(student) {
                     : '-';
 
                 const errBadge = (h.errors || 0) === 0
-                    ? '<span style="color:#22c55e; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> 0</span>'
-                    : `<span style="color:#ef4444; font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> ${h.errors}x</span>`;
+                    ? '<span style="color:#15803d; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> 0</span>'
+                    : `<span style="color:#dc2626; font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> ${h.errors}x</span>`;
 
                 const quizTotal = h.quizTotal || 0;
                 let quizBadge = '-';
                 if (quizTotal > 0) {
                     const quizCorrect = h.quizCorrect || 0;
                     const isPerfect = quizCorrect === quizTotal;
-                    quizBadge = `<span style="color:${isPerfect ? '#22c55e' : '#f59e0b'}; font-weight:bold;">${quizCorrect}/${quizTotal}</span>`;
+                    quizBadge = `<span style="color:${isPerfect ? '#15803d' : '#d97706'}; font-weight:bold;">${quizCorrect}/${quizTotal}</span>`;
                 }
 
                 tbody.innerHTML += `
                     <tr>
-                        <td style="font-weight:700; color:#60a5fa;">Level ${h.level}</td>
-                        <td><i class="fa-regular fa-clock" style="color:#94a3b8;"></i> ${h.duration || 0}s</td>
+                        <td style="font-weight:800; color:#d97706;">Level ${h.level}</td>
+                        <td><i class="fa-regular fa-clock" style="color:#b45309;"></i> ${h.duration || 0}s</td>
                         <td class="text-center">${errBadge}</td>
                         <td class="text-center">${quizBadge}</td>
-                        <td class="text-right font-mono" style="color:#94a3b8; font-size:0.75rem;">${timeStr}</td>
+                        <td class="text-right font-mono" style="color:#78350f; font-size:0.75rem;">${timeStr}</td>
                     </tr>
                 `;
             });
@@ -592,74 +825,749 @@ export function closeStudentDetailModal() {
     if (modal) modal.classList.add('hidden');
 }
 
-export function exportCSV() {
-    // Kumpulkan data gabungan (lokal + online)
-    const studentMap = new Map();
-    state.users.forEach(u => {
-        let totalLvl    = u.history ? u.history.length : 0;
-        let acc         = totalLvl === 0 ? 0 : Math.round((u.history.filter(h => (h.errors || 0) === 0).length / totalLvl) * 100);
-        let totalErrors = u.history ? u.history.reduce((sum, h) => sum + (h.errors || 0), 0) : 0;
-        let totalQC     = u.history ? u.history.reduce((sum, h) => sum + (h.quizCorrect || 0), 0) : 0;
-        let totalQT     = u.history ? u.history.reduce((sum, h) => sum + (h.quizTotal   || 0), 0) : 0;
-        let kuisStr     = totalQT > 0 ? `${totalQC}/${totalQT}` : "0/0";
-        let sumbangan   = u.sumbangan || u.donasi || 0;
-        let reputasi    = getTitle(u.money || 0);
+/**
+ * Menyalin teks bantuan fallback jika navigator.clipboard tidak tersedia/diblokir.
+ * @param {string} text 
+ */
+function fallbackCopyText(text) {
+    try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (success) {
+            showMsg('Laporan Berhasil Disalin', 'Ringkasan laporan kelas siap ditempelkan (paste) ke grup WhatsApp guru/wali murid.');
+        } else {
+            showMsg('Salin Teks', 'Silakan salin teks laporan secara manual.');
+        }
+    } catch (e) {
+        showMsg('Gagal Menyalin', 'Tidak dapat menyalin laporan secara otomatis.');
+    }
+}
 
-        studentMap.set(String(u.id || u.name), {
-            name: u.name,
-            kelas: u.kelas || u.class || '-',
-            gender: u.gender || 'Laki-laki',
-            maxLevel: u.maxLevel || 1,
-            money: u.money || 0,
-            acc: `${acc}%`,
-            totalErrors,
-            kuisStr,
-            sumbangan,
-            reputasi
-        });
+/**
+ * Mengidentifikasi kendala teknis dan konseptual (EWS) pada siswa.
+ * @param {Object} student 
+ * @returns {Array<string>}
+ */
+function getStudentDiagnosis(student) {
+    const issues = [];
+    const history = Array.isArray(student.history) ? student.history : [];
+
+    // Periksa riwayat level yang pernah diselesaikan
+    history.forEach(h => {
+        if ((h.errors || 0) >= 3) {
+            issues.push(`Kendala Kesalahan Rumus pada Level ${h.level} (${h.errors}x kesalahan)`);
+        }
+        if ((h.quizTotal || 0) > 0 && (h.quizCorrect || 0) < h.quizTotal) {
+            issues.push(`Kendala Evaluasi Kuis pada Level ${h.level} (Skor kuis tidak tuntas)`);
+        }
     });
 
-    if (state.onlineStudents) {
-        Object.values(state.onlineStudents).forEach(s => {
-            const key = String(s.studentId || s.name);
-            const existing = studentMap.get(key);
-            if (existing) {
-                existing.maxLevel = Math.max(existing.maxLevel, s.maxLevel || s.level || 1);
-                existing.money = s.laba !== undefined ? s.laba : existing.money;
-                if (s.accuracy !== undefined) existing.acc = `${s.accuracy}%`;
-                if (s.quizScore) existing.kuisStr = s.quizScore;
-                existing.totalErrors += (s.errorCount || 0);
-            } else {
-                studentMap.set(key, {
+    // Periksa status terkini / level berjalan jika belum tercatat di riwayat selesai
+    if ((student.errorCount || 0) >= 3) {
+        const alreadyInHistory = history.some(h => h.level === student.level && (h.errors || 0) >= 3);
+        if (!alreadyInHistory) {
+            issues.push(`Kendala Kesalahan Rumus pada Level ${student.level || 1} (${student.errorCount}x kesalahan)`);
+        }
+    }
+    if (student.quizFailed || (student.quizWrong !== undefined && Number(student.quizWrong) > 0)) {
+        const alreadyInHistory = history.some(h => h.level === student.level && (h.quizTotal || 0) > 0 && (h.quizCorrect || 0) < h.quizTotal);
+        if (!alreadyInHistory) {
+            issues.push(`Kendala Evaluasi Kuis pada Level ${student.level || 1} (Skor kuis tidak tuntas)`);
+        }
+    }
+
+    return issues;
+}
+
+/**
+ * Menyusun ringkasan laporan kelas terformat formal tanpa emotikon dan menyalinnya ke clipboard untuk dibagikan ke WhatsApp.
+ */
+export function handleCopyWhatsAppReport() {
+    const students = getAggregatedStudents();
+    if (students.length === 0) {
+        return showMsg('Tidak Ada Data', 'Belum ada data peserta didik untuk menyusun laporan rekapitulasi kelas.');
+    }
+
+    const now = new Date();
+    const dateFormatted = now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+
+    const sessionStr = state.hostedRoomCode 
+        ? state.hostedRoomCode 
+        : 'Mode Luring (Perangkat Lokal)';
+
+    const totalStudents = students.length;
+    const sumLevel = students.reduce((sum, s) => sum + (Number(s.maxLevel) || 1), 0);
+    const avgLevel = (sumLevel / totalStudents).toFixed(1);
+
+    const TARGET_LEVEL = 5;
+    const completedCount = students.filter(s => (Number(s.maxLevel) || 1) >= TARGET_LEVEL).length;
+    const masteryPct = Math.round((completedCount / totalStudents) * 100);
+
+    // B. Catatan Diagnosis & Tindak Lanjut (EWS)
+    const ewsStudents = [];
+    students.forEach(s => {
+        const issues = getStudentDiagnosis(s);
+        if (issues.length > 0) {
+            ewsStudents.push({ student: s, issues });
+        }
+    });
+
+    let ewsSection = '';
+    if (ewsStudents.length === 0) {
+        ewsSection = 'Seluruh peserta didik mencapai ketuntasan tanpa kendala signifikan.';
+    } else {
+        ewsSection = ewsStudents.map((item, idx) => {
+            const lines = [
+                `${idx + 1}. ${item.student.name} (Kelas ${item.student.kelas})`,
+                ...item.issues.map(iss => `   - ${iss}`),
+                '   - Catatan: Perlu penguatan pemahaman konsep sifat aljabar terkait.'
+            ];
+            return lines.join('\n');
+        }).join('\n\n');
+    }
+
+    // C. Peringkat Capaian Hasil Belajar Peserta Didik
+    const sortedStudents = [...students].sort((a, b) => {
+        const lvlDiff = (Number(b.maxLevel) || 1) - (Number(a.maxLevel) || 1);
+        if (lvlDiff !== 0) return lvlDiff;
+        return (Number(b.money) || 0) - (Number(a.money) || 0);
+    });
+
+    const rankSection = sortedStudents.map((s, idx) => {
+        const acc = s.accuracyStr && s.accuracyStr !== '–' 
+            ? s.accuracyStr 
+            : (s.accuracyNum ? `${s.accuracyNum}%` : '100%');
+        const labaStr = `Rp ${(s.money || 0).toLocaleString('id-ID')}`;
+        return `${idx + 1}. ${s.name} (Kelas ${s.kelas}) - Capaian: Level ${s.maxLevel || 1} | Total Laba: ${labaStr} | Akurasi Rumus: ${acc}`;
+    }).join('\n');
+
+    // D. Rincian Riwayat Pembelajaran per Siswa
+    const historySection = sortedStudents.map(s => {
+        const hist = Array.isArray(s.history) ? s.history : [];
+        const lines = [`Siswa: ${s.name} (Kelas ${s.kelas})`];
+        if (hist.length === 0) {
+            lines.push(`- Belum ada riwayat level yang diselesaikan (sedang aktif di Level ${s.level || 1}).`);
+        } else {
+            hist.forEach(h => {
+                const quizStr = (h.quizTotal || 0) > 0 ? `${h.quizCorrect || 0}/${h.quizTotal}` : '-';
+                const profitVal = h.profit !== undefined ? h.profit : ((h.revenue || 0) - (h.cost || 0));
+                const profitStr = `Rp ${Number(profitVal || 0).toLocaleString('id-ID')}`;
+                lines.push(`- Level ${h.level}: Durasi ${h.duration || 0} detik | Kesalahan Rumus: ${h.errors || 0} kali | Kuis: ${quizStr} | Laba: ${profitStr}`);
+            });
+        }
+        return lines.join('\n');
+    }).join('\n\n');
+
+    const DIVIDER = '----------------------------------------';
+
+    const reportText = [
+        DIVIDER,
+        '*LAPORAN REKAPITULASI HASIL BELAJAR ALGEBRA-MART*',
+        DIVIDER,
+        `Tanggal: ${dateFormatted}`,
+        `Sesi / Kode Kelas: ${sessionStr}`,
+        `Total Peserta Didik: ${totalStudents} Siswa`,
+        `Rata-rata Capaian: Level ${avgLevel}`,
+        `Ketuntasan Belajar: ${masteryPct}% (Target: Level 5)`,
+        '',
+        DIVIDER,
+        '*DIAGNOSIS & SISWA PERLU PENDAMPINGAN*',
+        DIVIDER,
+        ewsSection,
+        '',
+        DIVIDER,
+        '*PERINGKAT CAPAIAN PESERTA DIDIK*',
+        '*(Berdasarkan Akumulasi Level dan Efisiensi Keuangan)*',
+        DIVIDER,
+        rankSection,
+        '',
+        DIVIDER,
+        '*RINCIAN RIWAYAT PEMBELAJARAN SISWA*',
+        DIVIDER,
+        historySection,
+        '',
+        DIVIDER,
+        'Dokumen ini disusun secara otomatis oleh sistem evaluasi pembelajaran Algebra-Mart.',
+        DIVIDER
+    ].join('\n');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(reportText)
+            .then(() => {
+                showMsg('Laporan Berhasil Disalin', 'Teks laporan formal rekapitulasi hasil belajar telah disalin ke papan klip.');
+            })
+            .catch(() => {
+                fallbackCopyText(reportText);
+            });
+    } else {
+        fallbackCopyText(reportText);
+    }
+}
+
+/**
+ * Helper untuk sanitasi teks HTML agar aman saat diinjeksi ke dokumen cetak.
+ * @param {string|number} str 
+ * @returns {string}
+ */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+/**
+ * Mencetak atau mengekspor dokumen rapor hasil belajar formal lengkap ke PDF via iframe terisolasi.
+ */
+export function handlePrintDetailedPDF() {
+    const students = getAggregatedStudents();
+    if (students.length === 0) {
+        return showMsg('Tidak Ada Data', 'Belum ada data peserta didik untuk mencetak laporan hasil belajar.');
+    }
+
+    const now = new Date();
+    const fullDateStr = now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }) + ' WIB';
+
+    const dateOnlyStr = now.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+
+    const sessionStr = state.hostedRoomCode 
+        ? state.hostedRoomCode 
+        : 'Mode Luring (Perangkat Lokal)';
+
+    const totalStudents = students.length;
+    const sumLevel = students.reduce((sum, s) => sum + (Number(s.maxLevel) || 1), 0);
+    const avgLevel = (sumLevel / totalStudents).toFixed(1);
+
+    const TARGET_LEVEL = 5;
+    const completedCount = students.filter(s => (Number(s.maxLevel) || 1) >= TARGET_LEVEL).length;
+    const masteryPct = Math.round((completedCount / totalStudents) * 100);
+
+    // Urutkan siswa: level tertinggi, lalu laba terbesar
+    const sortedStudents = [...students].sort((a, b) => {
+        const lvlDiff = (Number(b.maxLevel) || 1) - (Number(a.maxLevel) || 1);
+        if (lvlDiff !== 0) return lvlDiff;
+        return (Number(b.money) || 0) - (Number(a.money) || 0);
+    });
+
+    // 1. Baris Tabel Rekapitulasi Capaian
+    const summaryRowsHtml = sortedStudents.map((s, idx) => {
+        const isCompleted = (Number(s.maxLevel) || 1) >= TARGET_LEVEL;
+        const genderShort = (s.gender && s.gender.toLowerCase().startsWith('p')) ? 'P' : 'L';
+        const acc = s.accuracyStr && s.accuracyStr !== '–' 
+            ? s.accuracyStr 
+            : (s.accuracyNum ? `${s.accuracyNum}%` : '100%');
+        
+        const hist = Array.isArray(s.history) ? s.history : [];
+        const totalCorrect = hist.reduce((accVal, h) => accVal + (h.quizCorrect || 0), 0);
+        const totalQuiz = hist.reduce((accVal, h) => accVal + (h.quizTotal || 0), 0);
+        const quizDisplay = totalQuiz > 0 ? `${totalCorrect}/${totalQuiz}` : (s.quizStr || '-');
+
+        return `
+            <tr>
+                <td class="text-center">${idx + 1}</td>
+                <td><strong>${escapeHtml(s.name)}</strong></td>
+                <td class="text-center">${escapeHtml(s.kelas)}</td>
+                <td class="text-center">${escapeHtml(genderShort)}</td>
+                <td class="text-center font-bold">Level ${escapeHtml(s.maxLevel || 1)}</td>
+                <td class="text-center font-mono">${escapeHtml(acc)}</td>
+                <td class="text-center font-mono">${escapeHtml(quizDisplay)}</td>
+                <td class="text-right font-mono">Rp ${(s.money || 0).toLocaleString('id-ID')}</td>
+                <td class="text-center"><strong>${isCompleted ? 'Tuntas' : 'Belum Tuntas'}</strong></td>
+            </tr>
+        `;
+    }).join('');
+
+    // 2. Baris Tabel Diagnosis Kendala Belajar (EWS)
+    const ewsEntries = [];
+    sortedStudents.forEach(s => {
+        const hist = Array.isArray(s.history) ? s.history : [];
+        hist.forEach(h => {
+            if ((h.errors || 0) >= 3) {
+                ewsEntries.push({
                     name: s.name,
-                    kelas: s.kelas || '-',
-                    gender: s.gender || 'Laki-laki',
-                    maxLevel: s.maxLevel || s.level || 1,
-                    money: s.laba || 0,
-                    acc: s.accuracy !== undefined ? `${s.accuracy}%` : '100%',
-                    totalErrors: s.errorCount || 0,
-                    kuisStr: s.quizScore || '0/0',
-                    sumbangan: 0,
-                    reputasi: getTitle(s.laba || 0)
+                    kelas: s.kelas,
+                    level: `Level ${h.level}`,
+                    type: 'Kesalahan Rumus Aljabar',
+                    detail: `${h.errors} kali salah input rumus`,
+                    rec: 'Penguatan konsep variabel, koefisien, dan substitusi aljabar'
+                });
+            }
+            if ((h.quizTotal || 0) > 0 && (h.quizCorrect || 0) < h.quizTotal) {
+                ewsEntries.push({
+                    name: s.name,
+                    kelas: s.kelas,
+                    level: `Level ${h.level}`,
+                    type: 'Evaluasi Konsep Kuis',
+                    detail: `Skor kuis tidak tuntas (${h.quizCorrect || 0}/${h.quizTotal})`,
+                    rec: 'Bimbingan terarah konsep sifat operasi aljabar dan soal kontekstual'
                 });
             }
         });
+
+        // Periksa data level aktif terkini jika belum tersimpan di riwayat
+        if ((s.errorCount || 0) >= 3) {
+            const already = hist.some(h => h.level === s.level && (h.errors || 0) >= 3);
+            if (!already) {
+                ewsEntries.push({
+                    name: s.name,
+                    kelas: s.kelas,
+                    level: `Level ${s.level || 1}`,
+                    type: 'Kesalahan Rumus Aljabar',
+                    detail: `${s.errorCount} kali salah input rumus`,
+                    rec: 'Pendampingan langsung saat perakitan formula kasir'
+                });
+            }
+        }
+        if (s.quizFailed || (s.quizWrong !== undefined && Number(s.quizWrong) > 0)) {
+            const already = hist.some(h => h.level === s.level && (h.quizTotal || 0) > 0 && (h.quizCorrect || 0) < h.quizTotal);
+            if (!already) {
+                ewsEntries.push({
+                    name: s.name,
+                    kelas: s.kelas,
+                    level: `Level ${s.level || 1}`,
+                    type: 'Evaluasi Konsep Kuis',
+                    detail: 'Skor kuis belum tuntas',
+                    rec: 'Remedial pemahaman konsep aljabar pada level berjalan'
+                });
+            }
+        }
+    });
+
+    let ewsRowsHtml = '';
+    if (ewsEntries.length === 0) {
+        ewsRowsHtml = `
+            <tr>
+                <td colspan="6" class="text-center" style="padding: 10px; font-style: italic; color: #475569;">
+                    Seluruh siswa mencapai ketuntasan tanpa kendala signifikan.
+                </td>
+            </tr>
+        `;
+    } else {
+        ewsRowsHtml = ewsEntries.map((e, idx) => `
+            <tr>
+                <td class="text-center">${idx + 1}</td>
+                <td><strong>${escapeHtml(e.name)}</strong> (${escapeHtml(e.kelas)})</td>
+                <td class="text-center font-bold">${escapeHtml(e.level)}</td>
+                <td>${escapeHtml(e.type)}</td>
+                <td>${escapeHtml(e.detail)}</td>
+                <td>${escapeHtml(e.rec)}</td>
+            </tr>
+        `).join('');
     }
 
-    const allRecords = Array.from(studentMap.values());
-    if (allRecords.length === 0) return showMsg("Tidak Ada Data", "Belum ada data untuk diekspor.");
+    // 3. Rincian Riwayat Pembelajaran Siswa (Sangat Lengkap per Siswa)
+    const studentHistoriesHtml = sortedStudents.map((s, idx) => {
+        const acc = s.accuracyStr && s.accuracyStr !== '–' 
+            ? s.accuracyStr 
+            : (s.accuracyNum ? `${s.accuracyNum}%` : '100%');
+        const hist = Array.isArray(s.history) ? s.history : [];
 
+        let rowsHtml = '';
+        if (hist.length === 0) {
+            rowsHtml = `
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 9px; font-style: italic; color: #64748b;">
+                        Siswa sedang aktif di Level ${escapeHtml(s.level || 1)} dan belum menyelesaikan transaksi.
+                    </td>
+                </tr>
+            `;
+        } else {
+            rowsHtml = hist.map(h => {
+                const dateObj = h.timestamp ? new Date(h.timestamp) : null;
+                const timeStr = dateObj
+                    ? `${dateObj.toLocaleDateString('id-ID')} ${dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+                    : '-';
+                
+                const quizScoreStr = (h.quizTotal || 0) > 0 
+                    ? `${h.quizCorrect || 0}/${h.quizTotal}` 
+                    : '-';
+
+                const revenueVal = h.revenue !== undefined ? h.revenue : (h.profit || 0);
+                const costVal = h.cost !== undefined ? h.cost : 0;
+                const profitVal = h.profit !== undefined ? h.profit : (revenueVal - costVal);
+
+                return `
+                    <tr>
+                        <td class="text-center font-bold">Level ${escapeHtml(h.level)}</td>
+                        <td class="text-center">${escapeHtml(h.duration || 0)} detik</td>
+                        <td class="text-center">${escapeHtml(h.errors || 0)} kali</td>
+                        <td class="text-center font-mono">${escapeHtml(quizScoreStr)}</td>
+                        <td class="text-right font-mono">Rp ${Number(revenueVal).toLocaleString('id-ID')}</td>
+                        <td class="text-right font-mono">Rp ${Number(costVal).toLocaleString('id-ID')}</td>
+                        <td class="text-right font-mono font-bold">Rp ${Number(profitVal).toLocaleString('id-ID')}</td>
+                        <td class="text-center" style="font-size: 7.5pt;">${escapeHtml(timeStr)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        return `
+            <div class="student-history-block">
+                <div class="student-header-info">
+                    <strong>3.${idx + 1}. Siswa: ${escapeHtml(s.name)}</strong> (Kelas ${escapeHtml(s.kelas)} | Gender: ${escapeHtml(s.gender || 'Laki-laki')}) &mdash; 
+                    <span>Capaian: Level ${escapeHtml(s.maxLevel || 1)} | Akumulasi Laba: Rp ${(s.money || 0).toLocaleString('id-ID')} | Akurasi Rumus: ${escapeHtml(acc)}</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 10%;">Level</th>
+                            <th class="text-center" style="width: 11%;">Durasi Waktu</th>
+                            <th class="text-center" style="width: 13%;">Kesalahan Rumus</th>
+                            <th class="text-center" style="width: 10%;">Skor Kuis</th>
+                            <th class="text-right" style="width: 13%;">Pendapatan</th>
+                            <th class="text-right" style="width: 13%;">Modal</th>
+                            <th class="text-right" style="width: 14%;">Laba Bersih Level</th>
+                            <th class="text-center" style="width: 16%;">Waktu Pengerjaan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }).join('');
+
+    const fullHtmlDoc = `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Laporan Asesmen Hasil Belajar - Algebra-Mart</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 8.5pt;
+            line-height: 1.35;
+            color: #111827;
+            background: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        .doc-header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .doc-title {
+            font-size: 13pt;
+            font-weight: 800;
+            color: #111827;
+            margin: 0 0 3px 0;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+        .doc-subtitle {
+            font-size: 9pt;
+            color: #374151;
+            margin: 0 0 8px 0;
+            font-weight: 500;
+        }
+        .doc-divider {
+            border-bottom: 2px solid #111827;
+            margin-bottom: 12px;
+        }
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+            font-size: 8.5pt;
+        }
+        .meta-table td {
+            padding: 2.5px 4px;
+            border: none;
+            vertical-align: top;
+        }
+        .section-title {
+            font-size: 9.5pt;
+            font-weight: 800;
+            color: #111827;
+            text-transform: uppercase;
+            margin: 14px 0 4px 0;
+            border-left: 3.5px solid #111827;
+            padding-left: 6px;
+            page-break-after: avoid;
+        }
+        .section-desc {
+            font-size: 8pt;
+            color: #4b5563;
+            margin: 0 0 6px 0;
+            page-break-after: avoid;
+        }
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+            font-size: 8pt;
+            page-break-inside: auto;
+        }
+        table.data-table thead {
+            display: table-header-group;
+        }
+        table.data-table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        table.data-table th {
+            background-color: #f1f5f9;
+            color: #111827;
+            font-weight: 700;
+            border: 1px solid #94a3b8;
+            padding: 5px 6px;
+            text-align: left;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        table.data-table td {
+            border: 1px solid #cbd5e1;
+            padding: 4px 6px;
+            color: #111827;
+        }
+        table.data-table tr:nth-child(even) td {
+            background-color: #f8fafc;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: 700; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+        .student-history-block {
+            margin-bottom: 12px;
+            page-break-inside: avoid;
+        }
+        .student-header-info {
+            background-color: #f8fafc;
+            border: 1px solid #94a3b8;
+            border-bottom: none;
+            padding: 5px 8px;
+            font-size: 8.5pt;
+            color: #111827;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .document-footer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 18px;
+            padding-top: 10px;
+            page-break-inside: avoid;
+        }
+        .footer-left {
+            max-width: 58%;
+            font-size: 7.5pt;
+            color: #4b5563;
+            line-height: 1.4;
+        }
+        .footer-note {
+            margin: 0 0 2px 0;
+        }
+        .footer-right {
+            min-width: 200px;
+            text-align: center;
+            font-size: 8.5pt;
+            color: #111827;
+        }
+        .sign-place-date {
+            margin: 0 0 2px 0;
+        }
+        .sign-role {
+            margin: 0;
+            font-weight: 600;
+        }
+        .sign-space {
+            height: 48px;
+        }
+        .sign-name {
+            margin: 0;
+            font-weight: 700;
+            border-bottom: 1px solid #111827;
+            display: inline-block;
+            min-width: 170px;
+        }
+        .sign-nip {
+            margin: 3px 0 0 0;
+            font-size: 8pt;
+            color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div class="doc-header">
+        <div class="doc-title">LAPORAN REKAPITULASI DAN ASESMEN HASIL BELAJAR SISWA</div>
+        <div class="doc-subtitle">Media Pembelajaran Matematika Interaktif Algebra-Mart</div>
+        <div class="doc-divider"></div>
+    </div>
+
+    <table class="meta-table">
+        <tr>
+            <td style="width: 18%;"><strong>Tanggal Cetak</strong></td>
+            <td style="width: 2%;">:</td>
+            <td style="width: 35%;">${escapeHtml(fullDateStr)}</td>
+            <td style="width: 20%;"><strong>Rata-rata Capaian</strong></td>
+            <td style="width: 2%;">:</td>
+            <td style="width: 23%;">Level ${escapeHtml(avgLevel)}</td>
+        </tr>
+        <tr>
+            <td><strong>Sesi / Kode Kelas</strong></td>
+            <td>:</td>
+            <td>${escapeHtml(sessionStr)}</td>
+            <td><strong>Ketuntasan Belajar</strong></td>
+            <td>:</td>
+            <td>${escapeHtml(masteryPct)}% (Target: Minimal Level 5)</td>
+        </tr>
+        <tr>
+            <td><strong>Total Peserta Didik</strong></td>
+            <td>:</td>
+            <td>${escapeHtml(totalStudents)} Siswa</td>
+            <td><strong>Kriteria Kelulusan</strong></td>
+            <td>:</td>
+            <td>${escapeHtml(completedCount)}/${escapeHtml(totalStudents)} Siswa Capai &ge; Lvl 5</td>
+        </tr>
+    </table>
+
+    <div class="section-title">I. REKAPITULASI CAPAIAN HASIL BELAJAR PESERTA DIDIK</div>
+    <p class="section-desc">Peringkat hasil belajar berdasarkan akumulasi capaian level maksimum dan efisiensi finansial laba bersih toko.</p>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th class="text-center" style="width: 4%;">No</th>
+                <th style="width: 22%;">Nama Siswa</th>
+                <th class="text-center" style="width: 9%;">Kelas</th>
+                <th class="text-center" style="width: 6%;">L/P</th>
+                <th class="text-center" style="width: 12%;">Level Maks.</th>
+                <th class="text-center" style="width: 12%;">Akurasi Rumus</th>
+                <th class="text-center" style="width: 11%;">Skor Kuis</th>
+                <th class="text-right" style="width: 14%;">Akumulasi Laba</th>
+                <th class="text-center" style="width: 10%;">Ketuntasan</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${summaryRowsHtml}
+        </tbody>
+    </table>
+
+    <div class="section-title">II. CATATAN DIAGNOSIS KENDALA BELAJAR (EARLY WARNING SYSTEM)</div>
+    <p class="section-desc">Identifikasi kendala teknis (kesalahan input rumus &ge; 3 kali) atau evaluasi kuis belum sempurna untuk perencanaan remedial.</p>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th class="text-center" style="width: 4%;">No</th>
+                <th style="width: 20%;">Nama Siswa</th>
+                <th class="text-center" style="width: 12%;">Level Terkendala</th>
+                <th style="width: 18%;">Jenis Kendala</th>
+                <th style="width: 20%;">Frekuensi Kesalahan</th>
+                <th style="width: 26%;">Rekomendasi Remedial</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${ewsRowsHtml}
+        </tbody>
+    </table>
+
+    <div class="section-title">III. RINCIAN RIWAYAT PEMBELAJARAN PER SISWA</div>
+    <p class="section-desc">Dokumentasi transaksi dan performa lengkap per level yang telah diselesaikan setiap peserta didik.</p>
+    ${studentHistoriesHtml}
+
+    <div class="document-footer-section">
+        <div class="footer-left">
+            <p class="footer-note"><strong>Catatan Penting:</strong></p>
+            <p class="footer-note">&bull; Laporan asesmen ini disusun dan diekspor secara otomatis melalui sistem pembelajaran terpadu Algebra-Mart.</p>
+            <p class="footer-note">&bull; Digunakan sebagai bukti evaluasi portofolio literasi aljabar, penalaran matematika, dan literasi finansial peserta didik.</p>
+        </div>
+        <div class="footer-right">
+            <p class="sign-place-date">${escapeHtml(dateOnlyStr)}</p>
+            <p class="sign-role">Guru Pengampu Matematika / Fasilitator Kelas,</p>
+            <div class="sign-space"></div>
+            <p class="sign-name">________________________________________</p>
+            <p class="sign-nip">NIP. ...................................................</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+    // Buat iframe terisolasi untuk proses pencetakan dokumen PDF
+    let printFrame = document.getElementById('print-pdf-frame');
+    if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'print-pdf-frame';
+        printFrame.style.position = 'fixed';
+        printFrame.style.right = '0';
+        printFrame.style.bottom = '0';
+        printFrame.style.width = '0';
+        printFrame.style.height = '0';
+        printFrame.style.border = '0';
+        printFrame.style.visibility = 'hidden';
+        document.body.appendChild(printFrame);
+    }
+
+    const frameDoc = printFrame.contentDocument || printFrame.contentWindow.document;
+    frameDoc.open();
+    frameDoc.write(fullHtmlDoc);
+    frameDoc.close();
+
+    setTimeout(() => {
+        try {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+        } catch (printErr) {
+            console.error('Gagal memicu cetak iframe, beralih ke window.print():', printErr);
+            window.print();
+        }
+    }, 250);
+}
+
+export const handlePrintReport = handlePrintDetailedPDF;
+
+export function exportCSV() {
+    const allStudents = getAggregatedStudents();
+    if (allStudents.length === 0) return showMsg("Tidak Ada Data", "Belum ada data untuk diekspor.");
+
+    // 2. Format baris CSV detail per level sama persis dengan tabel riwayat di detail rapor siswa
     const headers = [
-        "Nama",
+        "Nama Siswa",
         "Kelas",
-        "Gender",
-        "Level Max",
-        "Laba Bersih",
-        "Akurasi Rumus (%)",
-        "Total Salah",
-        "Kuis (Benar/Total)",
-        "Total Sumbangan",
-        "Reputasi Toko"
+        "Jenis Kelamin",
+        "Level",
+        "Durasi",
+        "Salah Rumus",
+        "Skor Kuis",
+        "Total Laba Bersih",
+        "Waktu"
     ];
 
     const escapeCSV = (val) => {
@@ -670,19 +1578,51 @@ export function exportCSV() {
         return str;
     };
 
-    const rows = allRecords.map(u => {
-        return [
-            escapeCSV(u.name),
-            escapeCSV(u.kelas),
-            escapeCSV(u.gender),
-            u.maxLevel || 0,
-            u.money || 0,
-            u.acc,
-            u.totalErrors || 0,
-            u.kuisStr,
-            u.sumbangan || 0,
-            escapeCSV(u.reputasi)
-        ].join(",");
+    const rows = [];
+
+    allStudents.forEach(student => {
+        const history = Array.isArray(student.history) ? student.history : [];
+        const studentMoneyStr = `Rp ${(student.money || 0).toLocaleString('id-ID')}`;
+
+        if (history.length === 0) {
+            rows.push([
+                escapeCSV(student.name),
+                escapeCSV(student.kelas),
+                escapeCSV(student.gender),
+                `Level ${student.level || 1} (Sedang Aktif)`,
+                "-",
+                "0",
+                "-",
+                escapeCSV(studentMoneyStr),
+                "-"
+            ].join(","));
+        } else {
+            history.forEach(h => {
+                const dateObj = h.timestamp ? new Date(h.timestamp) : null;
+                const timeStr = dateObj
+                    ? `${dateObj.toLocaleDateString('id-ID')} ${dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+                    : '-';
+
+                const quizTotal = h.quizTotal || 0;
+                let quizScoreStr = '-';
+                if (quizTotal > 0) {
+                    const quizCorrect = h.quizCorrect || 0;
+                    quizScoreStr = `${quizCorrect}/${quizTotal}`;
+                }
+
+                rows.push([
+                    escapeCSV(student.name),
+                    escapeCSV(student.kelas),
+                    escapeCSV(student.gender),
+                    `Level ${h.level}`,
+                    `${h.duration || 0}s`,
+                    `${h.errors || 0}`,
+                    escapeCSV(quizScoreStr),
+                    escapeCSV(studentMoneyStr),
+                    escapeCSV(timeStr)
+                ].join(","));
+            });
+        }
     });
 
     const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
@@ -690,7 +1630,7 @@ export function exportCSV() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `AlgebraMart_Data_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.csv`);
+    link.setAttribute("download", `AlgebraMart_Detail_Siswa_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

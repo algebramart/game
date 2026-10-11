@@ -16,11 +16,12 @@ import { playSFX } from '../core/audio.js';
 // ==========================================
 
 export function setFocus(inputElement) {
+    if (!inputElement) return;
     const formulaInput = document.getElementById("formula-box");
     const paidInput    = document.getElementById("paid-box");
     state.activeInput  = inputElement;
-    formulaInput.classList.remove("input-active");
-    paidInput.classList.remove("input-active");
+    if (formulaInput) formulaInput.classList.remove("input-active");
+    if (paidInput)    paidInput.classList.remove("input-active");
     inputElement.classList.add("input-active");
 }
 
@@ -33,6 +34,7 @@ export function loadCustomer() {
     state.currentLevelParams.order      = customer.order || {};
     state.currentLevelParams.errorCount = 0;
     state.uangDibayarDetail             = customer.uangDibayarDetail;
+    state.selectedProducts              = [];
 
     const speechBubble = document.querySelector('.speech-bubble');
     if (speechBubble) speechBubble.innerHTML = formatMathText(customer.text);
@@ -45,10 +47,16 @@ export function loadCustomer() {
     const hargaDisplay = document.getElementById("harga-display");
     const trayItems    = document.getElementById("tray-items");
 
-    if (formulaInput) formulaInput.value = "";
+    if (formulaInput) {
+        formulaInput.value = "";
+        formulaInput.classList.remove("input-error");
+    }
     if (paidInput)    paidInput.value    = "";
     if (hargaDisplay) { hargaDisplay.textContent = ""; hargaDisplay.style.color = "#a5d6a7"; }
     if (trayItems)    trayItems.innerHTML = "";
+    renderProdukDiNampan();
+
+    updateVariableHelperSubtext();
 
     const walletContainer = document.getElementById("wallet-container-dynamic");
     if (walletContainer) {
@@ -78,6 +86,8 @@ export function loadCustomer() {
         state.tagihanTervalidasi  = 0;
         state.targetKembalian     = 0;
         state.arrayUangKembalian  = [];
+        state.selectedProducts    = [];
+        renderProdukDiNampan();
 
         if (formulaInput) setFocus(formulaInput);
     }
@@ -117,6 +127,132 @@ export function startLevel(lvl) {
 }
 
 // ==========================================
+// SUB-TEKS BANTUAN VARIABEL HARGA SATUAN
+// ==========================================
+
+export function updateVariableHelperSubtext(highlightVar = null) {
+    const helper = document.getElementById("variable-helper-subtext");
+    if (!helper) return;
+
+    if (highlightVar && ITEM_DB[highlightVar]) {
+        const itemName = ITEM_DB[highlightVar].name.toLowerCase();
+        helper.textContent = `(${highlightVar} = harga satuan ${itemName})`;
+        return;
+    }
+
+    const order = state.currentLevelParams?.order || {};
+    const varsInOrder = Object.keys(order).filter(v => order[v] > 0);
+    if (varsInOrder.length > 0) {
+        const textParts = varsInOrder.map(v => `${v} = harga satuan ${(ITEM_DB[v]?.name || '').toLowerCase()}`);
+        helper.textContent = `(${textParts.join(', ')})`;
+    } else {
+        helper.textContent = "";
+    }
+}
+
+// ==========================================
+// FORMULA & NAMPAN PRODUK INTERAKTIF
+// ==========================================
+
+/**
+ * Menyusun ekspresi aljabar dari daftar produk yang dipilih di nampan.
+ * Mengelompokkan suku sejenis berdasarkan urutan kemunculan pertama.
+ * Misalnya: ['a', 'a', 'b'] -> "2a + b"
+ * @returns {string}
+ */
+export function generateFormulaFromSelectedProducts() {
+    if (!state.selectedProducts || state.selectedProducts.length === 0) return "";
+
+    const counts = {};
+    const order = [];
+    for (const v of state.selectedProducts) {
+        if (!counts[v]) {
+            counts[v] = 0;
+            order.push(v);
+        }
+        counts[v]++;
+    }
+
+    const terms = order.map(v => {
+        const count = counts[v];
+        return count === 1 ? v : `${count}${v}`;
+    });
+
+    return terms.join(" + ");
+}
+
+/**
+ * Menghapus satu produk dari nampan dan memperbarui rumus di kasir.
+ * @param {number} index
+ */
+export function hapusProdukDariNampan(index) {
+    if (state.isTutorialActive) return;
+    if (state.kembalianModeActive) return;
+
+    playSFX('clear_back');
+    state.selectedProducts.splice(index, 1);
+    renderProdukDiNampan();
+
+    const formulaInput = document.getElementById("formula-box");
+    const hargaDisplay = document.getElementById("harga-display");
+
+    const newFormula = generateFormulaFromSelectedProducts();
+    if (formulaInput) {
+        formulaInput.value = newFormula;
+        formulaInput.classList.remove("input-error");
+        formulaInput.style.color = "#1a1a1a";
+    }
+
+    // Reset status validasi harga dan display jika barang diubah/dihapus
+    state.tagihanTervalidasi = 0;
+    if (hargaDisplay) {
+        hargaDisplay.textContent = "";
+        hargaDisplay.style.color = "#a5d6a7";
+    }
+
+    if (state.selectedProducts.length > 0) {
+        const lastVar = state.selectedProducts[state.selectedProducts.length - 1];
+        updateVariableHelperSubtext(lastVar);
+    } else {
+        updateVariableHelperSubtext();
+    }
+}
+
+/**
+ * Merender daftar produk yang ada di nampan (#tray-items).
+ * Setiap produk dapat diklik langsung untuk membatalkan/menghapus 1 barang dari nampan.
+ */
+export function renderProdukDiNampan() {
+    if (state.kembalianModeActive) return;
+
+    const tray = document.getElementById("tray-items");
+    if (!tray) return;
+
+    tray.innerHTML = "";
+    tray.style.flexDirection = "row";
+    tray.style.flexWrap      = "wrap";
+    tray.style.alignItems    = "flex-end";
+    tray.style.paddingTop    = "14px";
+
+    if (!Array.isArray(state.selectedProducts) || state.selectedProducts.length === 0) return;
+
+    state.selectedProducts.forEach((key, index) => {
+        const itemInfo = ITEM_DB[key] || { name: key, img: `assets/products/${key}.png` };
+        const div = document.createElement('div');
+        div.className = "tray-product tray-product-interactive";
+        div.title = `Klik untuk membatalkan ${itemInfo.name}`;
+        div.innerHTML = `
+            <span class="tray-label">Rp ${key},-</span>
+            <img src="${itemInfo.img}" class="tray-img" alt="${itemInfo.name}">
+        `;
+        div.addEventListener('click', () => {
+            hapusProdukDariNampan(index);
+        });
+        tray.appendChild(div);
+    });
+}
+
+// ==========================================
 // KLIK BARANG DI RAK
 // ==========================================
 
@@ -129,27 +265,31 @@ export function addVariable(varName) {
     playSFX('product');
 
     const formulaInput = document.getElementById("formula-box");
-    if (!state.activeInput) state.activeInput = formulaInput;
+    if (!formulaInput) return;
 
-    if (state.activeInput.id === "formula-box") {
-        let currentValue = state.activeInput.value.replace(/\s+/g, '');
+    // Auto-Routing: Kursor dan activeInput otomatis diarahkan ke #formula-box
+    setFocus(formulaInput);
+    formulaInput.classList.remove("input-error");
 
-        if (currentValue === "") {
-            state.activeInput.value = varName;
-        } else if (new RegExp(`(\\d*)(${varName})$`).test(currentValue)) {
-            let match      = currentValue.match(new RegExp(`(\\d*)(${varName})$`));
-            let currentNum = match[1] === "" ? 1 : parseInt(match[1]);
-            state.activeInput.value = currentValue.replace(new RegExp(`(\\d*)(${varName})$`), (currentNum + 1) + varName);
-        } else if (/\d+$/.test(currentValue)) {
-            state.activeInput.value = currentValue + varName;
-        } else if (/[+\-]$/.test(currentValue)) {
-            state.activeInput.value = currentValue + varName;
-        } else {
-            state.activeInput.value = currentValue + "+" + varName;
-        }
-
-        state.activeInput.style.color = "#1a1a1a";
+    // Jika tagihan sudah tervalidasi sebelumnya lalu pemain mengklik barang baru,
+    // batalkan status validasi lama agar rumus baru dapat dihitung ulang
+    if (state.tagihanTervalidasi > 0) {
+        state.tagihanTervalidasi = 0;
+        const hargaDisplay = document.getElementById("harga-display");
+        if (hargaDisplay) { hargaDisplay.textContent = ""; hargaDisplay.style.color = "#a5d6a7"; }
     }
+
+    if (!Array.isArray(state.selectedProducts)) {
+        state.selectedProducts = [];
+    }
+    state.selectedProducts.push(varName);
+    renderProdukDiNampan();
+
+    formulaInput.value = generateFormulaFromSelectedProducts();
+    formulaInput.style.color = "#1a1a1a";
+
+    // Tampilkan sub-teks bantuan variabel harga satuan
+    updateVariableHelperSubtext(varName);
 }
 
 // ==========================================
@@ -167,7 +307,10 @@ export function tambahUangPelanggan(nominal, element) {
     const paidInput = document.getElementById("paid-box");
     if (!paidInput) return;
 
-    let currentVal = parseInt(paidInput.value.replace(/\./g, ''), 10) || 0;
+    // Auto-Routing: Kursor dan activeInput otomatis diarahkan ke #paid-box
+    setFocus(paidInput);
+
+    let currentVal = parseInt(paidInput.value.replace(/[^0-9]/g, ''), 10) || 0;
 
     if (element.style.opacity === "0.2") {
         element.style.opacity = "1";
@@ -179,7 +322,6 @@ export function tambahUangPelanggan(nominal, element) {
     }
 
     paidInput.style.color = "#1a1a1a";
-    setFocus(paidInput);
 }
 
 // ==========================================
@@ -187,27 +329,19 @@ export function tambahUangPelanggan(nominal, element) {
 // ==========================================
 
 export function munculkanKueDiNampan() {
-    const tray = document.getElementById("tray-items");
-    tray.innerHTML = "";
-    tray.style.flexDirection = "row";
-    tray.style.flexWrap      = "wrap";
-    tray.style.alignItems    = "flex-end";
-    tray.style.paddingTop    = "0";
-
-    let delayCounter = 0;
-    for (let key in state.currentLevelParams.order) {
-        let qty = state.currentLevelParams.order[key];
-        if (qty > 0) {
-            for (let i = 0; i < qty; i++) {
-                let delay = delayCounter * 0.05;
-                tray.innerHTML += `<div class="tray-product" style="animation-delay:${delay}s">
-                    <span class="tray-label">${key}</span>
-                    <img src="${ITEM_DB[key].img}" class="tray-img" alt="${ITEM_DB[key].name}">
-                </div>`;
-                delayCounter++;
+    if (state.kembalianModeActive) return;
+    if (!state.selectedProducts || state.selectedProducts.length === 0) {
+        state.selectedProducts = [];
+        for (let key in state.currentLevelParams.order) {
+            let qty = state.currentLevelParams.order[key];
+            if (qty > 0) {
+                for (let i = 0; i < qty; i++) {
+                    state.selectedProducts.push(key);
+                }
             }
         }
     }
+    renderProdukDiNampan();
 }
 
 // ==========================================
@@ -287,7 +421,12 @@ export function processCheckout() {
         btnCloseModal.onclick     = finishCustomerOrLevel;
     }
 
-    document.getElementById("receipt-modal").style.display = "flex";
+    const modalReceipt = document.getElementById("receipt-modal");
+    modalReceipt.style.display = "flex";
+    const receiptCard = modalReceipt.querySelector(".final-receipt-card");
+    if (receiptCard) {
+        receiptCard.scrollTop = 0;
+    }
 }
 
 // ==========================================
@@ -625,11 +764,22 @@ export function initGameListeners() {
             if (!state.activeInput) state.activeInput = formulaInput;
             if (state.activeInput.id === "paid-box") {
                 if (btn.classList.contains('btn-num')) {
-                    let currentVal = state.activeInput.value.replace(/\./g, '');
-                    let newVal     = currentVal + btn.textContent;
-                    state.activeInput.value = parseInt(newVal, 10).toLocaleString('id-ID');
+                    let currentDigits = state.activeInput.value.replace(/[^0-9]/g, '');
+                    let newDigits     = (currentDigits === '0' || currentDigits === '') ? btn.textContent : (currentDigits + btn.textContent);
+                    let num           = parseInt(newDigits, 10);
+                    state.activeInput.value = isNaN(num) ? "" : num.toLocaleString('id-ID');
                 }
             } else {
+                // Input sedang di #formula-box
+                // Jika tagihan sudah tervalidasi sebelumnya lalu pemain mengetik rumus baru, batalkan validasi lama
+                if (state.tagihanTervalidasi > 0) {
+                    state.tagihanTervalidasi = 0;
+                    const priceDisplay = document.getElementById("harga-display");
+                    if (priceDisplay) { priceDisplay.textContent = ""; priceDisplay.style.color = "#a5d6a7"; }
+                    const trayItems = document.getElementById("tray-items");
+                    if (trayItems) trayItems.innerHTML = "";
+                }
+                state.activeInput.classList.remove('input-error');
                 state.activeInput.value += btn.textContent;
             }
             state.activeInput.style.color = "#1a1a1a";
@@ -641,14 +791,23 @@ export function initGameListeners() {
             if (state.isTutorialActive) return;
             playSFX('clear_back');
             if (state.activeInput && state.activeInput.value.length > 0) {
+                state.activeInput.classList.remove('input-error');
                 if (state.activeInput.id === "formula-box") {
-                    state.activeInput.value = state.activeInput.value.replace(/(\d*[a-q]|[+\-]|\d+)$/i, '');
-                    document.getElementById("harga-display").textContent = "";
+                    if (Array.isArray(state.selectedProducts) && state.selectedProducts.length > 0) {
+                        state.selectedProducts.pop();
+                        state.activeInput.value = generateFormulaFromSelectedProducts();
+                        renderProdukDiNampan();
+                    } else {
+                        state.activeInput.value = state.activeInput.value.replace(/(\d*[a-q]|[+\-]|\d+)$/i, '');
+                    }
+                    const priceDisplay = document.getElementById("harga-display");
+                    if (priceDisplay) { priceDisplay.textContent = ""; priceDisplay.style.color = "#a5d6a7"; }
                     state.tagihanTervalidasi = 0;
-                    document.getElementById("tray-items").innerHTML = "";
+                    const lastVar = state.selectedProducts && state.selectedProducts.length > 0 ? state.selectedProducts[state.selectedProducts.length - 1] : null;
+                    updateVariableHelperSubtext(lastVar);
                 } else if (state.activeInput.id === "paid-box") {
-                    let currentVal = state.activeInput.value.replace(/\./g, '').slice(0, -1);
-                    state.activeInput.value = currentVal.length > 0 ? parseInt(currentVal, 10).toLocaleString('id-ID') : "";
+                    let clean = state.activeInput.value.replace(/[^0-9]/g, '').slice(0, -1);
+                    state.activeInput.value = clean.length > 0 ? parseInt(clean, 10).toLocaleString('id-ID') : "";
                 } else {
                     state.activeInput.value = state.activeInput.value.slice(0, -1);
                 }
@@ -660,13 +819,18 @@ export function initGameListeners() {
         clearBtn.addEventListener('click', () => {
             if (state.isTutorialActive) return;
             playSFX('clear_back');
-            if (state.activeInput) {
-                state.activeInput.value = "";
-                if (state.activeInput.id === "formula-box") {
-                    document.getElementById("harga-display").textContent = "";
+            const target = state.activeInput || formulaInput;
+            if (target) {
+                target.classList.remove('input-error');
+                target.value = "";
+                if (target.id === "formula-box") {
+                    const priceDisplay = document.getElementById("harga-display");
+                    if (priceDisplay) { priceDisplay.textContent = ""; priceDisplay.style.color = "#a5d6a7"; }
                     state.tagihanTervalidasi = 0;
-                    document.getElementById("tray-items").innerHTML = "";
-                } else if (state.activeInput.id === "paid-box") {
+                    state.selectedProducts = [];
+                    renderProdukDiNampan();
+                    updateVariableHelperSubtext();
+                } else if (target.id === "paid-box") {
                     document.querySelectorAll("#wallet-container-dynamic .img-placeholder")
                         .forEach(item => { item.style.opacity = "1"; });
                 }
@@ -677,10 +841,13 @@ export function initGameListeners() {
     if (calcBtn) {
         calcBtn.addEventListener('click', () => {
             if (state.isTutorialActive) {
-                const allowed = checkTutorialAction('calc');
+                const paidInput = document.getElementById("paid-box");
+                const paidVal = paidInput ? (parseInt(paidInput.value.replace(/[^0-9]/g, ''), 10) || 0) : 0;
+                const isShortcut = state.tagihanTervalidasi > 0 && paidVal > 0;
+                const reqAction = isShortcut ? (state.kembalianModeActive ? 'confirmChange' : 'checkout') : 'calc';
+                const allowed = checkTutorialAction(reqAction);
                 if (!allowed) return;
             }
-            playSFX('calc_checkout');
             handleCalculate();
         });
     }
@@ -716,37 +883,81 @@ export function initGameListeners() {
 }
 
 /**
- * Menangani tombol "=" di numpad: validasi formula lalu tampilkan harga.
+ * Menangani tombol "=" di numpad: validasi formula lalu tampilkan harga,
+ * atau pintasan konfirmasi checkout jika rumus sudah valid dan uang sudah diinput.
  */
-function handleCalculate() {
+export function handleCalculate() {
     const formulaInput = document.getElementById("formula-box");
-    if (state.activeInput !== formulaInput) return;
-
-    const result = calculateFormula();
+    const paidInput    = document.getElementById("paid-box");
     const priceDisplay = document.getElementById("harga-display");
 
+    const paidVal = paidInput ? (parseInt(paidInput.value.replace(/[^0-9]/g, ''), 10) || 0) : 0;
+
+    // Logika Pintar: Jika rumus sudah valid (state.tagihanTervalidasi > 0) dan kolom uang sudah terisi,
+    // jadikan tombol "=" sebagai jalan pintas untuk langsung menjalankan konfirmasi transaksi (checkout)
+    if (state.tagihanTervalidasi > 0 && paidVal > 0) {
+        if (state.isTutorialActive) {
+            const action = state.kembalianModeActive ? 'confirmChange' : 'checkout';
+            const allowed = checkTutorialAction(action);
+            if (!allowed) return;
+        }
+        playSFX('calc_checkout');
+        if (state.kembalianModeActive) {
+            validasiUangKembalian();
+        } else {
+            processCheckout();
+        }
+        return;
+    }
+
+    if (!formulaInput) return;
+
+    // Evaluasi rumus aljabar dari formula-box terlepas dari kolom mana yang sedang aktif
+    const result = calculateFormula();
+
     if (result.isBenar) {
+        playSFX('calc_checkout');
         state.tagihanTervalidasi = result.tagihan;
         state.currentLevelParams.totalCost = result.cost;
 
-        priceDisplay.textContent = "Rp " + state.tagihanTervalidasi.toLocaleString('id-ID');
-        priceDisplay.style.color = "#a5d6a7";
+        // Otomatis sederhanakan ekspresi (misal 3a + 4a -> 7a, atau 5j + 2e - 2e -> 5j)
+        if (result.simplifiedFormula) {
+            formulaInput.value = result.simplifiedFormula;
+        }
+
+        formulaInput.classList.remove('input-error');
+        if (priceDisplay) {
+            priceDisplay.textContent = "Rp " + state.tagihanTervalidasi.toLocaleString('id-ID');
+            priceDisplay.style.color = "#a5d6a7";
+        }
 
         munculkanKueDiNampan();
-        setFocus(document.getElementById("paid-box"));
+
+        // Pindahkan fokus input secara otomatis ke #paid-box
+        if (paidInput) {
+            setFocus(paidInput);
+        }
     } else {
         playSFX('error');
         state.currentLevelParams.errorCount++;
-        priceDisplay.textContent = "Rumus Salah!";
-        priceDisplay.style.color = "#ef9a9a";
+        if (priceDisplay) {
+            priceDisplay.textContent = "Rumus Salah!";
+            priceDisplay.style.color = "#ef9a9a";
+        }
         state.tagihanTervalidasi = 0;
-        document.getElementById("tray-items").innerHTML = "";
+        renderProdukDiNampan();
+
+        // Tampilkan indikator merah pada box rumus tanpa memblokir game
+        formulaInput.classList.add('input-error');
 
         const panel = document.querySelector('.green-indicator-screen');
         if (panel) {
             panel.classList.add('error-flash');
-            setTimeout(() => panel.classList.remove('error-flash'), 300);
+            setTimeout(() => panel.classList.remove('error-flash'), 350);
         }
+
+        // Arahkan kembali fokus ke formula-box agar siswa dapat mengoreksi rumus
+        setFocus(formulaInput);
 
         // Kirim pembaruan progres realtime ke guru saat rumus kasir salah
         try {

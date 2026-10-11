@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Algebra-Mart</title>
 
     <!-- External Libraries -->
@@ -21,12 +21,17 @@
 </head>
 
 <body class="app-body">
+    <!-- Layer Latar Belakang Panggung Fullscreen (100vw x 100vh) Bebas Celah Hitam -->
+    <div id="stage-bg-layer" class="stage-bg-layer"></div>
+
     <div id="app-container">
 
-        <!-- Tombol Pengaturan Universal (Melayang Anti-Blocking) -->
-        <button id="btn-universal-settings" class="btn-universal-settings hidden" title="Pengaturan">
-            <i class="fa-solid fa-gear"></i>
-        </button>
+        <!-- Grup Navigasi Kiri Atas (Pengaturan) -->
+        <div class="top-nav-left">
+            <button id="btn-universal-settings" class="btn-universal-settings hidden" title="Pengaturan">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
 
         <!-- ==============================
              LAYAR: GERBANG AWAL (WELCOME GATEWAY)
@@ -72,7 +77,7 @@
                         </select>
                         <input type="text" id="new-class" placeholder="Kelas (mis. 7A)" class="form-input">
                     </div>
-                    <button class="btn-primary btn-add-user">
+                    <button class="btn-secondary btn-md btn-add-user">
                         <i class="fa-solid fa-plus"></i> Tambah Kasir
                     </button>
                 </div>
@@ -145,6 +150,20 @@
 
             <h2 class="section-title">PILIH TANTANGAN</h2>
 
+            <!-- Banner Pengenalan Level 0 -->
+            <div class="level-intro-card" id="btn-open-level-0" role="button" tabindex="0" title="Klik untuk membuka Materi Pengantar Level 0">
+                <div class="level-intro-left">
+                    <div class="level-intro-badge"><i class="fa-solid fa-graduation-cap"></i> LEVEL 0</div>
+                    <div class="level-intro-info">
+                        <div class="level-intro-title">Materi Pengantar: Konsep Aljabar Kasir</div>
+                        <div class="level-intro-desc">Pelajari Koefisien, Variabel, dan Konstanta lewat simulasi interaktif pencocokan nilai kue</div>
+                    </div>
+                </div>
+                <button class="btn-play-level-0" type="button">
+                    <i class="fa-solid fa-play"></i> Mulai Materi
+                </button>
+            </div>
+
             <div class="level-grid-wrapper">
                 <div class="level-tabs">
                     <button id="tab-level-easy" class="tab-active">Tantangan Mudah (C1-C3)</button>
@@ -160,84 +179,82 @@
         <div id="screen-game" class="screen game-screen">
             <div class="game-container">
 
-                <button id="btn-back-menu" class="btn-back">⬅ Kembali</button>
-
                 <div class="shop-background">
 
                     <div class="wooden-shelf wide-shelf">
                         <div class="shelf-tier">
                             <div class="product-item clickable-item" data-var="a">
-                                <div class="item-labels"><span class="product-name">Apel</span><span class="variable-label">a</span></div>
+                                <div class="item-labels"><span class="product-name">Apel</span></div>
                                 <img src="assets/barangbelanja/apel.png" alt="Apel" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="b">
-                                <div class="item-labels"><span class="product-name">Beras</span><span class="variable-label">b</span></div>
+                                <div class="item-labels"><span class="product-name">Beras</span></div>
                                 <img src="assets/barangbelanja/beras.png" alt="Beras" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="c">
-                                <div class="item-labels"><span class="product-name">Buku</span><span class="variable-label">c</span></div>
+                                <div class="item-labels"><span class="product-name">Buku</span></div>
                                 <img src="assets/barangbelanja/buku.png" alt="Buku" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="d">
-                                <div class="item-labels"><span class="product-name">Dodol</span><span class="variable-label">d</span></div>
+                                <div class="item-labels"><span class="product-name">Dodol</span></div>
                                 <img src="assets/barangbelanja/dodolnanas.png" alt="Dodol" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="e">
-                                <div class="item-labels"><span class="product-name">Gandus</span><span class="variable-label">e</span></div>
+                                <div class="item-labels"><span class="product-name">Gandus</span></div>
                                 <img src="assets/barangbelanja/gandus.png" alt="Gandus" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="f">
-                                <div class="item-labels"><span class="product-name">Gula</span><span class="variable-label">f</span></div>
+                                <div class="item-labels"><span class="product-name">Gula</span></div>
                                 <img src="assets/barangbelanja/gula.png" alt="Gula" class="product-size">
                             </div>
                         </div>
 
                         <div class="shelf-tier">
                             <div class="product-item clickable-item" data-var="g">
-                                <div class="item-labels"><span class="product-name">Jeruk</span><span class="variable-label">g</span></div>
+                                <div class="item-labels"><span class="product-name">Jeruk</span></div>
                                 <img src="assets/barangbelanja/jeruk.png" alt="Jeruk" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="h">
-                                <div class="item-labels"><span class="product-name">Kopi</span><span class="variable-label">h</span></div>
+                                <div class="item-labels"><span class="product-name">Kopi</span></div>
                                 <img src="assets/barangbelanja/kopiaaa.png" alt="Kopi" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="i">
-                                <div class="item-labels"><span class="product-name">Minyak</span><span class="variable-label">i</span></div>
+                                <div class="item-labels"><span class="product-name">Minyak</span></div>
                                 <img src="assets/barangbelanja/minyakgoreng.png" alt="Minyak" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="j">
-                                <div class="item-labels"><span class="product-name">Padamaran</span><span class="variable-label">j</span></div>
+                                <div class="item-labels"><span class="product-name">Padamaran</span></div>
                                 <img src="assets/barangbelanja/padamaran.png" alt="Padamaran" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="k">
-                                <div class="item-labels"><span class="product-name">Pena</span><span class="variable-label">k</span></div>
+                                <div class="item-labels"><span class="product-name">Pena</span></div>
                                 <img src="assets/barangbelanja/pena.png" alt="Pena" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="l">
-                                <div class="item-labels"><span class="product-name">Roti</span><span class="variable-label">l</span></div>
+                                <div class="item-labels"><span class="product-name">Roti</span></div>
                                 <img src="assets/barangbelanja/roti.png" alt="Roti" class="product-size">
                             </div>
                         </div>
 
                         <div class="shelf-tier">
                             <div class="product-item clickable-item" data-var="m">
-                                <div class="item-labels"><span class="product-name">Sabun</span><span class="variable-label">m</span></div>
+                                <div class="item-labels"><span class="product-name">Sabun</span></div>
                                 <img src="assets/barangbelanja/sabun.png" alt="Sabun" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="n">
-                                <div class="item-labels"><span class="product-name">Telur</span><span class="variable-label">n</span></div>
+                                <div class="item-labels"><span class="product-name">Telur</span></div>
                                 <img src="assets/barangbelanja/telur.png" alt="Telur" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="o">
-                                <div class="item-labels"><span class="product-name">Tempoyak</span><span class="variable-label">o</span></div>
+                                <div class="item-labels"><span class="product-name">Tempoyak</span></div>
                                 <img src="assets/barangbelanja/tempoyak.png" alt="Tempoyak" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="p">
-                                <div class="item-labels"><span class="product-name">Tepung</span><span class="variable-label">p</span></div>
+                                <div class="item-labels"><span class="product-name">Tepung</span></div>
                                 <img src="assets/barangbelanja/tepung.png" alt="Tepung" class="product-size">
                             </div>
                             <div class="product-item clickable-item" data-var="q">
-                                <div class="item-labels"><span class="product-name">Terong</span><span class="variable-label">q</span></div>
+                                <div class="item-labels"><span class="product-name">Terong</span></div>
                                 <img src="assets/barangbelanja/terong.png" alt="Terong" class="product-size">
                             </div>
                         </div>
@@ -245,7 +262,7 @@
 
                     <div class="npc-container">
                         <div class="speech-bubble">
-                            Aku mau beli<br><strong>3 Kue Padamaran</strong> dan <br><strong>2 Kue Gandus</strong>
+                            Harga satu kotak kue padamaran adalah <em>j</em> rupiah.<br>Tolong bungkuskan <strong>4 kotak kue padamaran</strong> ya.
                         </div>
                         <img src="image/anaksmp.png" alt="Pelanggan" class="npc-image">
                     </div>
@@ -257,6 +274,7 @@
                             <div class="green-indicator-screen">
                                 <div class="screen-row"><span class="screen-label">Harga:</span> <span id="harga-display" class="screen-value"></span></div>
                                 <div class="screen-row"><span class="screen-label">Rumus:</span> <input type="text" id="formula-box" class="kasir-input input-active" readonly></div>
+                                <div id="variable-helper-subtext" class="variable-helper-subtext"></div>
                                 <div class="screen-row">
                                     <span class="screen-label">Dibayar:</span>
                                     <div style="display: flex; align-items: center; width: 60%; justify-content: flex-end;">
@@ -316,43 +334,6 @@
                     </div>
                 </div>
 
-                <div class="modal-overlay" id="receipt-modal" style="display: none;">
-                    <div class="final-receipt-card">
-                        <h3>STRUK TRANSAKSI</h3>
-                        <div class="receipt-divider">======================================</div>
-
-                        <div class="receipt-section-title">-- KALKULASI HARGA --</div>
-                        <div class="receipt-row"><span>Rumus:</span> <span id="struk-rumus"></span></div>
-                        <div class="receipt-row"><span>Proses:</span> <span id="struk-proses"></span></div>
-                        <div class="receipt-row"><span>Rincian:</span> <span id="struk-rincian"></span></div>
-                        <div class="receipt-row total-row"><span>Total Harga:</span> <strong id="struk-total"></strong></div>
-
-                        <div class="receipt-divider">--------------------------------------</div>
-
-                        <div class="receipt-section-title">-- PEMBAYARAN --</div>
-                        <div class="receipt-row flex-col">
-                            <div class="flex-row-between">
-                                <span>Tunai Dibayar:</span> <strong id="struk-bayar-total"></strong>
-                            </div>
-                            <span class="small-detail" id="struk-bayar-rincian"></span>
-                        </div>
-
-                        <div class="receipt-divider">--------------------------------------</div>
-
-                        <div class="receipt-section-title">-- KEMBALIAN --</div>
-                        <div class="receipt-row flex-col">
-                            <span class="small-detail">Persamaan: Kembalian = Tunai Dibayar - Total Harga</span>
-                            <span class="small-detail math-step" id="struk-kembalian-hitung"></span>
-                        </div>
-                        <div class="receipt-row change-row">
-                            <span>KEMBALIAN:</span> <strong id="struk-kembalian-final"></strong>
-                        </div>
-
-                        <div class="receipt-divider">======================================</div>
-                        <button id="btn-close-modal">Lanjut Level</button>
-                    </div>
-                </div>
-
             </div>
         </div>
 
@@ -369,8 +350,17 @@
                     <h2 class="panel-title">Buku Kas (Grafik)</h2>
                     <div class="chart-container">
                         <canvas id="financeChart"></canvas>
+                        <div id="finance-chart-empty" class="chart-empty-state hidden">
+                            <i class="fa-solid fa-chart-line chart-empty-icon"></i>
+                            <p class="chart-empty-title">Belum Ada Transaksi</p>
+                            <p class="chart-empty-desc">Selesaikan pesanan pembeli di toko untuk mencatat tren laba penjualan.</p>
+                        </div>
                     </div>
                     <div class="stats-grid">
+                        <div class="stat-box stat-profit">
+                            <p>Total Laba Bersih (Pendapatan - Modal)</p>
+                            <h3 id="bk-bersih">Rp 0</h3>
+                        </div>
                         <div class="stat-box stat-revenue">
                             <p>Total Pendapatan</p>
                             <h3 id="bk-kotor">Rp 0</h3>
@@ -378,10 +368,6 @@
                         <div class="stat-box stat-cost">
                             <p>Total Modal</p>
                             <h3 id="bk-modal">Rp 0</h3>
-                        </div>
-                        <div class="stat-box stat-profit">
-                            <p>Total Laba Bersih = Total Pendapatan - Total Modal</p>
-                            <h3 id="bk-bersih" style="font-size: .7rem;">Rp 0</h3>
                         </div>
                     </div>
 
@@ -459,14 +445,6 @@
                         </div>
                         <div class="badges-grid" id="badges-container"></div>
                     </div>
-
-                    <div class="token-panel">
-                        <h3>Kode Prestasi</h3>
-                        <div class="token-display" id="token-display">------</div>
-                        <button class="btn-copy">
-                            <i class="fa-solid fa-copy"></i> Salin Kode
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -475,6 +453,18 @@
              LAYAR: FASILITATOR
              ============================== -->
         <div id="screen-fasilitator" class="screen fasilitator-screen">
+            <!-- Kop Formal Cetak Rapor (Hanya Tampil Saat Dicetak / Disimpan ke PDF) -->
+            <div class="print-header">
+                <div class="print-header-content">
+                    <h1 class="print-title">LAPORAN HASIL BELAJAR - ALGEBRA-MART</h1>
+                    <p class="print-subtitle">Media Pembelajaran Literasi Matematika & Simulasi Finansial Berbasis Konteks</p>
+                    <div class="print-meta-grid">
+                        <div><strong>Tanggal Cetak:</strong> <span id="print-date">-</span></div>
+                        <div><strong>Status Sesi:</strong> <span id="print-session">-</span></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="fasil-topbar">
                 <div>
                     <h1><i class="fa-solid fa-user-tie"></i> RUANG FASILITATOR</h1>
@@ -498,11 +488,69 @@
 
             <div class="fasil-layout">
                 <div class="fasil-main-panel">
+                    <!-- Dashboard Visual & Grafik Analitik Kelas -->
+                    <div class="fasil-dashboard-section">
+                        <!-- Tiga Quick Stat Cards -->
+                        <div class="fasil-stats-grid">
+                            <div class="fasil-stat-card">
+                                <div class="fasil-stat-icon icon-avg-level">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                </div>
+                                <div class="fasil-stat-content">
+                                    <span class="fasil-stat-label">Rata-rata Level</span>
+                                    <span id="fasil-stat-avg-level" class="fasil-stat-value">Lvl 1.0</span>
+                                    <span id="fasil-stat-avg-sub" class="fasil-stat-sub">Dari 0 murid terdata</span>
+                                </div>
+                            </div>
+
+                            <div class="fasil-stat-card">
+                                <div class="fasil-stat-icon icon-mastery">
+                                    <i class="fa-solid fa-graduation-cap"></i>
+                                </div>
+                                <div class="fasil-stat-content">
+                                    <span class="fasil-stat-label">Ketuntasan Kelas</span>
+                                    <span id="fasil-stat-mastery" class="fasil-stat-value text-success">0%</span>
+                                    <span id="fasil-stat-mastery-sub" class="fasil-stat-sub">Target: Min. Level 5</span>
+                                </div>
+                            </div>
+
+                            <div class="fasil-stat-card">
+                                <div class="fasil-stat-icon icon-ews">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                </div>
+                                <div class="fasil-stat-content">
+                                    <span class="fasil-stat-label">Perlu Pendampingan</span>
+                                    <span id="fasil-stat-needs-help" class="fasil-stat-value text-warning">0 Murid</span>
+                                    <span id="fasil-stat-ews-sub" class="fasil-stat-sub">Kriteria EWS (Rumus/Kuis)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kontainer Grafik Visual -->
+                        <div class="fasil-chart-box">
+                            <div class="fasil-chart-header">
+                                <div class="fasil-chart-title">
+                                    <i class="fa-solid fa-chart-column"></i>
+                                    <h3>Distribusi Capaian Level Kelas</h3>
+                                </div>
+                                <span class="fasil-chart-tag" id="fasil-chart-tag">0 Murid Terdata</span>
+                            </div>
+                            <div class="fasil-chart-container">
+                                <canvas id="fasilClassChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="panel-header">
                         <h2>Daftar Peserta Didik Aktif</h2>
-                        <button class="btn-export">
-                            <i class="fa-solid fa-file-csv"></i> Ekspor CSV
-                        </button>
+                        <div class="fasil-report-actions">
+                            <button id="btn-copy-wa" class="btn-secondary btn-wa-report" title="Salin ringkasan laporan kelas untuk dibagikan ke WhatsApp">
+                                <i class="fa-brands fa-whatsapp"></i> Salin ke WA
+                            </button>
+                            <button id="btn-print-report" class="btn-primary btn-print-report" title="Cetak rapor atau simpan sebagai dokumen PDF">
+                                <i class="fa-solid fa-print"></i> Cetak / Simpan PDF
+                            </button>
+                        </div>
                     </div>
                     <div class="table-wrapper">
                         <table class="fasil-table">
@@ -527,8 +575,12 @@
                         <h2><i class="fa-solid fa-bell"></i> Peringatan Dini</h2>
                         <div class="ews-list" id="fasil-ews-list"></div>
                     </div>
-                    <div class="admin-panel">
-                        <h2>Administrasi</h2>
+                    <div class="admin-panel danger-card">
+                        <div class="danger-header">
+                            <i class="fa-solid fa-triangle-exclamation" style="color: #dc2626; font-size: 1.15rem;"></i>
+                            <h2>Zona Bahaya</h2>
+                        </div>
+                        <p class="danger-desc">Tindakan ini menghapus seluruh profil pemain dan data riwayat di perangkat ini.</p>
                         <button class="btn-reset-data">
                             <i class="fa-solid fa-trash-can"></i> Reset Semua Data Perangkat
                         </button>
@@ -544,10 +596,10 @@
             <div class="modal-card modal-pin-card">
                 <h3><i class="fa-solid fa-lock"></i> PIN Fasilitator</h3>
                 <p>Masukkan PIN (default: 1234)</p>
-                <input type="password" id="pin-input" class="form-input text-center font-mono">
-                <div class="modal-actions">
-                    <button class="btn-secondary">Batal</button>
-                    <button class="btn-primary">Masuk</button>
+                <input type="password" id="pin-input" class="form-input text-center font-mono" placeholder="••••">
+                <div class="modal-actions modal-pin-actions">
+                    <button id="btn-pin-cancel" class="btn-secondary btn-pin-cancel">Batal</button>
+                    <button id="btn-pin-submit" class="btn-primary btn-pin-submit">Masuk</button>
                 </div>
             </div>
         </div>
@@ -584,7 +636,7 @@
                     </div>
                     <div class="student-stat-card">
                         <span class="stat-label">Akurasi Rumus</span>
-                        <span id="student-stat-acc" class="stat-value text-accent font-bold">100%</span>
+                        <span id="student-stat-acc" class="stat-value text-accent font-bold">–</span>
                     </div>
                     <div class="student-stat-card">
                         <span class="stat-label">Status Sesi</span>
@@ -612,7 +664,27 @@
                 </div>
 
                 <div class="modal-actions" style="margin-top: 1rem; justify-content: flex-end;">
-                    <button id="btn-done-student-detail" class="btn-primary" style="padding: 0.5rem 1.5rem;">Tutup</button>
+                    <button id="btn-done-student-detail" class="btn-primary" style="padding: 0.6rem 2.2rem; border-radius: 9999px; border: none; font-weight: 700;">Tutup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             MODAL: DETAIL LENCANA PRESTASI
+             ============================== -->
+        <div id="modal-badge-detail" class="modal-overlay hidden">
+            <div class="modal-card modal-badge-detail-card text-center">
+                <div id="badge-detail-icon-wrapper" class="badge-detail-icon-wrapper">
+                    <i id="badge-detail-icon" class="fa-solid fa-award"></i>
+                </div>
+                <div id="badge-detail-category" class="badge-category-tag">Kategori</div>
+                <h3 id="badge-detail-name">Nama Lencana</h3>
+                <div id="badge-detail-status" class="badge-detail-status-pill">Sudah Terbuka</div>
+                <div class="badge-detail-desc-box">
+                    <p id="badge-detail-desc">Deskripsi persyaratan membuka lencana.</p>
+                </div>
+                <div class="modal-actions" style="margin-top: 1.25rem; justify-content: center;">
+                    <button id="btn-close-badge-detail" class="btn-primary" style="padding: 0.6rem 2.2rem; border-radius: 9999px; border: none;">Paham</button>
                 </div>
             </div>
         </div>
@@ -623,16 +695,56 @@
         <div id="modal-join-room" class="modal-overlay hidden">
             <div class="modal-card modal-join-room-card">
                 <h3><i class="fa-solid fa-chalkboard-user"></i> Gabung Kelas Guru</h3>
-                <p>Masukkan 6 karakter Kode Ruang dari fasilitator/guru untuk menyinkronkan progres belajarmu secara daring.</p>
+                <p class="join-room-desc">Masukkan 6 karakter Kode Ruang dari fasilitator/guru untuk menyinkronkan progres belajarmu secara daring.</p>
                 <div class="room-input-container">
-                    <input type="text" id="input-room-code" maxlength="6" placeholder="Contoh: ALJ7A1" class="form-input text-center font-mono room-code-input" autocomplete="off" spellcheck="false">
+                    <input type="text" id="input-room-code" maxlength="6" placeholder="ALJ7A1" class="form-input text-center font-mono room-code-input" autocomplete="off" spellcheck="false">
                 </div>
-                <p id="join-room-status" class="room-status-text"></p>
-                <div class="modal-actions">
-                    <button id="btn-cancel-join-room" class="btn-secondary">Batal</button>
-                    <button id="btn-leave-room" class="btn-danger hidden">Keluar Kelas</button>
-                    <button id="btn-submit-join-room" class="btn-primary">Gabung</button>
+                <div id="join-room-status" class="room-status-text"></div>
+                <div class="modal-actions-join">
+                    <button id="btn-cancel-join-room" class="btn-ghost btn-md">Batal</button>
+                    <button id="btn-leave-room" class="btn-destructive btn-md hidden">Keluar Kelas</button>
+                    <button id="btn-submit-join-room" class="btn-primary btn-md">Gabung</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- ==============================
+             MODAL: STRUK TRANSAKSI
+             ============================== -->
+        <div class="modal-overlay" id="receipt-modal" style="display: none;">
+            <div class="final-receipt-card">
+                <h3>STRUK TRANSAKSI</h3>
+                <div class="receipt-divider">======================================</div>
+
+                <div class="receipt-section-title">-- KALKULASI HARGA --</div>
+                <div class="receipt-row"><span>Rumus:</span> <span id="struk-rumus"></span></div>
+                <div class="receipt-row"><span>Proses:</span> <span id="struk-proses"></span></div>
+                <div class="receipt-row"><span>Rincian:</span> <span id="struk-rincian"></span></div>
+                <div class="receipt-row total-row"><span>Total Harga:</span> <strong id="struk-total"></strong></div>
+
+                <div class="receipt-divider">--------------------------------------</div>
+
+                <div class="receipt-section-title">-- PEMBAYARAN --</div>
+                <div class="receipt-row flex-col">
+                    <div class="flex-row-between">
+                        <span>Tunai Dibayar:</span> <strong id="struk-bayar-total"></strong>
+                    </div>
+                    <span class="small-detail" id="struk-bayar-rincian"></span>
+                </div>
+
+                <div class="receipt-divider">--------------------------------------</div>
+
+                <div class="receipt-section-title">-- KEMBALIAN --</div>
+                <div class="receipt-row flex-col">
+                    <span class="small-detail">Persamaan: Kembalian = Tunai Dibayar - Total Harga</span>
+                    <span class="small-detail math-step" id="struk-kembalian-hitung"></span>
+                </div>
+                <div class="receipt-row change-row">
+                    <span>KEMBALIAN:</span> <strong id="struk-kembalian-final"></strong>
+                </div>
+
+                <div class="receipt-divider">======================================</div>
+                <button id="btn-close-modal">Lanjut Level</button>
             </div>
         </div>
 
@@ -643,7 +755,7 @@
             <div class="modal-card text-center">
                 <h3 id="msg-title">Pesan</h3>
                 <div id="msg-desc">Deskripsi</div>
-                <button class="btn-primary btn-full">OK</button>
+                <button id="btn-msg-ok" class="btn-primary">OK</button>
             </div>
         </div>
 
@@ -651,13 +763,15 @@
              TUTORIAL OVERLAY & WALKTHROUGH
              ============================== -->
         <div id="tutorial-overlay" class="tutorial-overlay hidden">
+            <svg id="tutorial-svg-mask" class="tutorial-svg-mask" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <path id="tutorial-mask-path" d="" fill="rgba(0, 0, 0, 0.65)" fill-rule="evenodd" />
+            </svg>
             <div id="tutorial-highlight" class="tutorial-highlight"></div>
         </div>
 
         <div id="tutorial-tooltip" class="tutorial-tooltip hidden">
             <p id="tutorial-text">Teks panduan akan muncul di sini.</p>
             <div class="tutorial-actions">
-                <button id="tutorial-btn-skip" class="tutorial-btn-skip">Lewati Panduan</button>
                 <button id="tutorial-btn" class="tutorial-btn hidden">Paham!</button>
             </div>
         </div>
@@ -665,6 +779,268 @@
         <div id="tutorial-hand-container" class="tutorial-hand-container hidden">
             <div class="pulse-ring pulse-left"></div>
             <img id="tutorial-hand-img" class="tutorial-hand-img hand-left" src="image/indexfingerleft.svg" alt="Petunjuk">
+        </div>
+
+        <!-- ==============================
+             MODAL: LEVEL 0 - PENGENALAN KONSEP ALJABAR KASIR
+             ============================== -->
+        <div id="modal-level-zero" class="modal-overlay hidden">
+            <div class="modal-card modal-level-zero-card">
+                <!-- Header Modal -->
+                <div class="level-zero-header">
+                    <div class="level-zero-title-wrap">
+                        <span class="level-zero-pill"><i class="fa-solid fa-graduation-cap"></i> LEVEL 0</span>
+                        <h3 class="level-zero-title">Pengenalan Konsep Aljabar Kasir</h3>
+                    </div>
+                    <div class="level-zero-header-actions">
+                        <button id="btn-level-zero-narrate" class="btn-voice-narrate" title="Dengarkan Penjelasan Suara">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                        <button id="btn-close-level-zero" class="settings-close-x" title="Tutup">&times;</button>
+                    </div>
+                </div>
+
+                <!-- Navigasi Tahap: Sebelumnya & Setelahnya -->
+                <div class="level-zero-nav-bar">
+                    <button id="btn-zero-nav-prev" class="btn-zero-nav btn-zero-nav-prev" type="button">
+                        <i class="fa-solid fa-arrow-left"></i> Sebelumnya
+                    </button>
+                    <div class="zero-nav-stage-info" id="zero-nav-stage-info">
+                        <span class="zero-nav-badge" id="zero-nav-badge">Tahap 1 / 3</span>
+                        <span class="zero-nav-title-text" id="zero-nav-title-text">3 Komponen Aljabar</span>
+                    </div>
+                    <button id="btn-zero-nav-next" class="btn-zero-nav btn-zero-nav-next" type="button">
+                        Setelahnya <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <div class="level-zero-content-scroll">
+                    <!-- TAHAP 1: DEFINISI 3 KOMPONEN KONKRET -->
+                    <div id="zero-stage-1" class="zero-stage-container">
+                        <p class="zero-stage-intro">
+                            Sebelum melayani pelanggan di kasir, pahami bagaimana <strong>3 komponen aljabar</strong> bekerja dalam transaksi belanja sehari-hari:
+                        </p>
+
+                        <div class="algebra-components-deck">
+                            <!-- 1. Koefisien -->
+                            <div class="algebra-component-card comp-koefisien">
+                                <div class="comp-header">
+                                    <span class="comp-type-badge badge-koefisien">KOEFISIEN (Angka)</span>
+                                </div>
+                                <div class="comp-visual-box">
+                                    <div class="comp-shelf-items">
+                                        <img src="assets/barangbelanja/padamaran.png" alt="Kue Padamaran" class="comp-product-img">
+                                        <div class="comp-multi-stack">
+                                            <span class="stack-badge">5 Kotak</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <h4 class="comp-title">Banyaknya Unit Barang</h4>
+                                <p class="comp-desc">
+                                    Jumlah atau kuantitas barang yang dibeli oleh pelanggan. Dalam bentuk aljabar, angka ini menjadi pengali (koefisien).
+                                </p>
+                                <div class="comp-example-box">
+                                    Membeli <strong>5</strong> kotak kue &rarr; Koefisien: <span class="highlight-koef">5</span>
+                                </div>
+                            </div>
+
+                            <!-- 2. Variabel -->
+                            <div class="algebra-component-card comp-variabel">
+                                <div class="comp-header">
+                                    <span class="comp-type-badge badge-variabel">VARIABEL (Simbol)</span>
+                                </div>
+                                <div class="comp-visual-box">
+                                    <div class="variable-tag-box">
+                                        <span class="variable-math-symbol">x</span>
+                                        <span class="variable-price-label">Rp ? / kue</span>
+                                    </div>
+                                </div>
+                                <h4 class="comp-title">Harga Satuan Barang</h4>
+                                <p class="comp-desc">
+                                    Nilai harga satu buah barang yang belum diketahui kasir. Diwakili oleh simbol huruf seperti <em>x</em>.
+                                </p>
+                                <div class="comp-example-box">
+                                    Harga 1 kue = <span class="highlight-var">x</span> rupiah
+                                </div>
+                            </div>
+
+                            <!-- 3. Konstanta -->
+                            <div class="algebra-component-card comp-konstanta">
+                                <div class="comp-header">
+                                    <span class="comp-type-badge badge-konstanta">KONSTANTA (Nilai Tetap)</span>
+                                </div>
+                                <div class="comp-visual-box">
+                                    <div class="constant-bag-box">
+                                        <i class="fa-solid fa-bag-shopping"></i>
+                                        <span class="bag-price-tag">Rp 2.000</span>
+                                    </div>
+                                </div>
+                                <h4 class="comp-title">Biaya Tambahan Tetap</h4>
+                                <p class="comp-desc">
+                                    Biaya belanja yang nilainya sudah pasti dan tidak bergantung pada berapa banyak kue yang dibeli pelanggan.
+                                </p>
+                                <div class="comp-example-box">
+                                    Kantong belanja = <span class="highlight-const">+ 2.000</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Struktur Persamaan Belanja Aljabar -->
+                        <div class="algebra-formula-banner">
+                            <div class="formula-banner-header">
+                                <i class="fa-solid fa-receipt"></i> Struktur Bentuk Aljabar di Mesin Kasir:
+                            </div>
+                            <div class="formula-expression-row">
+                                <div class="formula-term term-koef">
+                                    <span class="term-val">5</span>
+                                    <span class="term-role">Koefisien<br>(5 kotak kue)</span>
+                                </div>
+                                <div class="formula-term term-var">
+                                    <span class="term-val">x</span>
+                                    <span class="term-role">Variabel<br>(harga satuan)</span>
+                                </div>
+                                <div class="formula-term term-operator">
+                                    <span class="term-val">+</span>
+                                </div>
+                                <div class="formula-term term-const">
+                                    <span class="term-val">2.000</span>
+                                    <span class="term-role">Konstanta<br>(kantong tetap)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stage-footer-actions">
+                            <button id="btn-zero-goto-stage-2" class="btn-primary btn-lg">
+                                Lanjut ke Simulasi Pencocokan <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TAHAP 2: SIMULASI INTERAKTIF PENCOCOKAN NILAI -->
+                    <div id="zero-stage-2" class="zero-stage-container hidden">
+                        <!-- Kotak Kasus Toko -->
+                        <div class="sim-mission-box">
+                            <div class="mission-icon"><i class="fa-solid fa-store"></i></div>
+                            <div class="mission-text">
+                                <div class="mission-title">Kasus Belanja: 5 Kotak Kue Seharga Rp 25.000</div>
+                                <div class="mission-desc">
+                                    Pelanggan membeli 5 kotak kue seharga total <strong>Rp 25.000</strong> (<span class="code-math">5x = 25.000</span>).
+                                    Bantulah kasir mencari harga satuan 1 kue (<span class="code-math">x</span>) dengan mencocokkan lembar uang <strong>Rp 5.000</strong> ke masing-masing kotak kue!
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rak 5 Kotak Kue -->
+                        <div class="sim-cakes-area">
+                            <div class="sim-section-label">
+                                <span><i class="fa-solid fa-boxes-stacked"></i> 5 Kotak Kue di Meja Transaksi:</span>
+                                <span id="sim-status-label" class="sim-status-label">Belum dialokasikan</span>
+                            </div>
+                            <div class="sim-cakes-grid" id="sim-cakes-grid">
+                                <!-- 5 slot kue dirender dinamis -->
+                            </div>
+                        </div>
+
+                        <!-- Dompet Kasir / Baki Uang Rp 5.000 -->
+                        <div class="sim-wallet-area">
+                            <div class="sim-wallet-header">
+                                <div class="sim-wallet-title">
+                                    <i class="fa-solid fa-wallet"></i> Uang Pelanggan: <strong>Rp 25.000</strong> (5 Lembar Rp 5.000)
+                                </div>
+                                <div class="sim-wallet-count" id="sim-wallet-count">
+                                    Teralokasi: <strong>0 / 5</strong> Kue (Rp 0 / Rp 25.000)
+                                </div>
+                            </div>
+
+                            <div class="sim-cash-tray" id="sim-cash-tray">
+                                <!-- 5 lembar uang Rp 5.000 -->
+                            </div>
+
+                            <p class="sim-instructions-hint" id="sim-instructions-hint">
+                                <i class="fa-solid fa-hand-pointer"></i> Klik lembar uang Rp 5.000 di atas atau klik kotak kue untuk mencocokkan harga!
+                            </p>
+                        </div>
+
+                        <div class="sim-progress-strip">
+                            <div class="sim-progress-fill" id="sim-progress-fill" style="width: 0%;"></div>
+                        </div>
+
+                        <div class="stage-footer-actions space-between">
+                            <button id="btn-zero-back-to-1" class="btn-ghost">
+                                <i class="fa-solid fa-arrow-left"></i> Kembali ke Teori
+                            </button>
+                            <div class="right-actions">
+                                <button id="btn-zero-reset-sim" class="btn-secondary">
+                                    <i class="fa-solid fa-rotate-left"></i> Reset Uang
+                                </button>
+                                <button id="btn-zero-goto-stage-3" class="btn-primary btn-lg" disabled>
+                                    Periksa Pembuktian <i class="fa-solid fa-check"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAHAP 3: KESIMPULAN & PEMBUKTIAN MATEMATIS -->
+                    <div id="zero-stage-3" class="zero-stage-container hidden">
+                        <div class="proof-success-banner animate-pop">
+                            <div class="proof-trophy-icon">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div class="proof-header-content">
+                                <h3>Pencocokan Berhasil Sempurna!</h3>
+                                <p>Setiap 1 kotak kue tepat dipasangkan dengan uang <strong>Rp 5.000</strong>.</p>
+                            </div>
+                        </div>
+
+                        <!-- Kartu Bukti Persamaan -->
+                        <div class="proof-math-card">
+                            <div class="proof-card-header">
+                                <i class="fa-solid fa-calculator"></i> Pembuktian Operasi Aljabar Satu Variabel:
+                            </div>
+
+                            <div class="proof-equation-flow">
+                                <div class="eq-step-card">
+                                    <span class="eq-badge">Langkah 1</span>
+                                    <div class="eq-main">5x = 25.000</div>
+                                    <div class="eq-sub">5 kue dikalikan harga per kue (x) bernilai total Rp 25.000</div>
+                                </div>
+                                <div class="eq-arrow-divider"><i class="fa-solid fa-arrow-right"></i></div>
+                                <div class="eq-step-card">
+                                    <span class="eq-badge">Langkah 2</span>
+                                    <div class="eq-main">x = 25.000 ÷ 5</div>
+                                    <div class="eq-sub">Kedua ruas persamaan dibagi 5 secara adil</div>
+                                </div>
+                                <div class="eq-arrow-divider"><i class="fa-solid fa-arrow-right"></i></div>
+                                <div class="eq-step-card eq-final-highlight">
+                                    <span class="eq-badge badge-gold">Solusi Akhir</span>
+                                    <div class="eq-main gold-text">x = 5.000</div>
+                                    <div class="eq-sub">Harga satuan 1 kue adalah <strong>Rp 5.000</strong></div>
+                                </div>
+                            </div>
+
+                            <div class="proof-summary-box">
+                                <div class="summary-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+                                <div class="summary-body">
+                                    <h4>Pemahaman Inti Kasir:</h4>
+                                    <p>
+                                        Variabel <strong>x</strong> bukanlah sekadar huruf biasa, melainkan <strong>harga 1 kue yang kamu cari</strong>.
+                                        Dengan membagi total belanja Rp 25.000 dengan 5 kotak kue, kamu menemukan bahwa <strong>nilai x adalah 5.000</strong>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stage-footer-actions space-between">
+                            <button id="btn-zero-back-to-2" class="btn-ghost">
+                                <i class="fa-solid fa-rotate-left"></i> Ulangi Simulasi
+                            </button>
+                            <button id="btn-zero-start-level-1" class="btn-primary btn-lg btn-start-game-glow">
+                                <i class="fa-solid fa-cash-register"></i> Mulai Tantangan Level 1
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ==============================
@@ -706,32 +1082,21 @@
                         </div>
                     </div>
 
-                    <!-- Tombol Layar Penuh -->
-                    <div class="settings-section">
-                        <button id="btn-toggle-fullscreen" class="btn-settings-action btn-fullscreen-toggle">
-                            <i class="fa-solid fa-expand"></i> <span id="fullscreen-btn-text">Layar Penuh (Fullscreen)</span>
+                    <!-- Tombol Aksi Pengaturan: Kanan dan Kiri (Side-by-Side 50%-50%) -->
+                    <div id="settings-actions-grid" class="settings-actions-grid">
+                        <!-- Tombol Kiri (Kontekstual): Fasilitator di Login, Ganti Pemain di Layar Lainnya -->
+                        <button id="btn-settings-fasil" class="btn-settings-action btn-settings-secondary hidden">
+                            <i class="fa-solid fa-user-tie"></i> Fasilitator
+                        </button>
+                        <button id="btn-settings-switch-user" class="btn-settings-action btn-settings-secondary hidden">
+                            <i class="fa-solid fa-users"></i> Ganti Pemain
+                        </button>
+
+                        <!-- Tombol Kanan: Keluar Game (Universal) -->
+                        <button id="btn-settings-exit-game" class="btn-settings-action btn-settings-danger">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar Game
                         </button>
                     </div>
-
-                    <!-- Aksi Kontekstual Dinamis Berdasarkan Layar Aktif -->
-                    <div id="settings-context-actions" class="settings-section settings-context-group">
-                        <!-- Khusus Layar Login: Buka Ruang Fasilitator -->
-                        <button id="btn-settings-fasil" class="btn-settings-action btn-context-fasil hidden">
-                            <i class="fa-solid fa-user-tie"></i> Buka Ruang Fasilitator
-                        </button>
-                        <!-- Khusus Layar Lobi: Ganti Akun / Ganti Pemain -->
-                        <button id="btn-settings-switch-user" class="btn-settings-action btn-context-user hidden">
-                            <i class="fa-solid fa-users"></i> Ganti Akun / Ganti Pemain
-                        </button>
-                        <!-- Khusus Layar Permainan Kasir: Keluar ke Menu Level -->
-                        <button id="btn-settings-exit-game" class="btn-settings-action btn-context-exit hidden">
-                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar ke Menu Level
-                        </button>
-                    </div>
-                </div>
-
-                <div class="modal-actions settings-modal-actions">
-                    <button id="btn-close-settings" class="btn-secondary btn-full">Tutup Pengaturan</button>
                 </div>
             </div>
         </div>
@@ -744,9 +1109,9 @@
                 <div class="confirm-icon-wrap">
                     <i class="fa-solid fa-circle-question"></i>
                 </div>
-                <h3 id="confirm-exit-title">Keluar Permainan?</h3>
+                <h3 id="confirm-exit-title">Selesaikan Permainan?</h3>
                 <p id="confirm-exit-desc">
-                    Pesanan pelanggan saat ini belum selesai. Jika kembali ke menu, transaksi level ini akan diulang dari awal.
+                    Apakah Anda ingin menyelesaikan permainan dan kembali ke menu tantangan level?
                 </p>
                 <div class="confirm-actions">
                     <button id="btn-cancel-exit-game">Batal</button>
@@ -778,8 +1143,81 @@
              NOTIFIKASI LENCANA DIBUKA (TOAST / POP-UP)
              ============================== -->
         <div id="badge-toast-container" class="badge-toast-container"></div>
-
     </div>
+
+    <!-- ==============================
+         OVERLAY DETEKSI ROTASI GAWAI (LANDSCAPE ONLY)
+         Ditempatkan di luar #app-container agar fixed fullscreen 100vw/100vh sejati di layar fisik HP
+         ============================== -->
+    <div id="rotate-device-overlay" class="rotate-overlay hidden">
+        <div class="rotate-content">
+            <div class="rotate-icon-wrapper">
+                <i class="fa-solid fa-mobile-screen-button rotate-icon"></i>
+            </div>
+            <h3>Putar Gawai Anda</h3>
+            <p>Algebra-Mart dirancang khusus untuk dimainkan dalam orientasi Lanskap (Landscape).</p>
+            <p class="rotate-subtext">Silakan miringkan layar HP Anda untuk melanjutkan transaksi kasir.</p>
+        </div>
+    </div>
+
+    <!-- Immediate Auto-Scaling Script (No FOUC & Full-Bleed Ultra-Wide Fit) -->
+    <script>
+        (function() {
+            function autoFit() {
+                var el = document.getElementById('app-container');
+                if (el) {
+                    var winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
+                    var winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+                    var aspect = winW / winH;
+                    var targetAspect = 1280 / 720;
+                    var scale, virtualWidth, virtualHeight;
+
+                    if (aspect >= targetAspect) {
+                        // Layar Ultra-Wide Landscape (e.g. 18:9, 19.5:9, 20:9)
+                        // Kunci tinggi 720px, lebarkan canvas agar mengisi penuh 100vw tanpa pilar hitam di samping (+4px subpixel buffer)
+                        scale = winH / 720;
+                        virtualWidth = Math.max(1280, Math.ceil(winW / scale) + 4);
+                        virtualHeight = 720;
+                    } else {
+                        // Layar lebih sempit dari 16:9 (tablet 4:3, dll)
+                        scale = winW / 1280;
+                        virtualWidth = 1280;
+                        virtualHeight = Math.max(720, Math.ceil(winH / scale) + 4);
+                    }
+
+                    el.style.width = virtualWidth + 'px';
+                    el.style.height = virtualHeight + 'px';
+                    el.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
+                    el.dataset.scale = String(scale);
+                    el.dataset.virtualWidth = String(virtualWidth);
+                    el.dataset.virtualHeight = String(virtualHeight);
+                    window.__appScale = scale;
+                    window.__virtualWidth = virtualWidth;
+                    window.__virtualHeight = virtualHeight;
+
+                    var rotateOverlay = document.getElementById('rotate-device-overlay');
+                    if (rotateOverlay) {
+                        if (winH > winW) {
+                            rotateOverlay.classList.remove('hidden');
+                        } else {
+                            rotateOverlay.classList.add('hidden');
+                        }
+                    }
+                }
+            }
+            autoFit();
+            window.addEventListener('resize', autoFit);
+            window.addEventListener('orientationchange', function() {
+                setTimeout(autoFit, 50);
+                setTimeout(autoFit, 200);
+            });
+            if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
+                window.screen.orientation.addEventListener('change', function() {
+                    setTimeout(autoFit, 50);
+                });
+            }
+        })();
+    </script>
 
     <!-- ES Module Entry Point -->
     <script type="module" src="js/app.js"></script>
