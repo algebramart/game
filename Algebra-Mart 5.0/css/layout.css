@@ -1,0 +1,403 @@
+/* =========================================
+   layout.css — Struktur Layar & Container
+   ========================================= */
+
+/* =========================================
+   SCREEN DISPLAY LOGIC
+   ========================================= */
+.screen:not(.active) {
+    display: none !important;
+}
+
+.screen {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* =========================================
+   STAGE BACKGROUND LAYER (FULLSCREEN VIEWPORT BLEED)
+   ========================================= */
+.stage-bg-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background-image: linear-gradient(rgba(15, 23, 42, 0.45), rgba(15, 23, 42, 0.45)), url(../image/background-1.png);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* PEMBUNGKUS UTAMA (VIRTUAL DESKTOP RESOLUTION 1280x720 - AUTO-SCALING FULL-BLEED) */
+#app-container {
+    position: absolute;
+    width: 1280px;
+    height: 720px;
+    min-width: 1280px;
+    min-height: 720px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    overflow: hidden;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    background-color: transparent;
+    z-index: 1;
+}
+
+/* =========================================
+   SCREEN: WELCOME GATEWAY
+   ========================================= */
+.welcome-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background-image: radial-gradient(circle at center, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95)), url(../image/background.png);
+    background-size: cover;
+    background-position: center;
+    text-align: center;
+}
+
+/* =========================================
+   SCREEN: LOGIN
+   ========================================= */
+.login-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(../image/background.png);
+    background-size: cover;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+.main-title {
+    font-size: clamp(3rem, 5vw, 4.5rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, #fde047 0%, #f59e0b 50%, #d97706 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.05em;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+    margin-bottom: 0.5rem;
+}
+
+/* =========================================
+   SCREEN: LOBBY
+   ========================================= */
+.lobby-screen {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(../image/background-1.png);
+    background-size: cover;
+}
+
+.lobby-layout {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    max-width: 98%;
+    margin: 0 auto;
+    padding: 1rem 1.75rem;
+    height: 100%;
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+}
+
+.lobby-info-panel {
+    width: 53%;
+    max-width: 740px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0;
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+.lobby-character-panel {
+    width: 45%;
+    max-width: 620px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    position: relative;
+    margin-top: 0;
+    opacity: 0;
+    animation: fadeIn 0.4s ease-out 0.2s forwards;
+}
+
+/* Cahaya keemasan hangat di belakang karakter */
+.lobby-character-panel::before {
+    content: '';
+    position: absolute;
+    width: 24rem;
+    height: 24rem;
+    background: #f59e0b;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.35;
+    bottom: 2.5rem;
+}
+
+/* =========================================
+   SCREEN: LEVELS
+   ========================================= */
+.levels-screen {
+    padding: 1.25rem 2rem;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(../image/background-1.png);
+    background-size: cover;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.levels-screen .btn-back {
+    position: absolute;
+    top: 1.25rem;
+    left: 2rem;
+    z-index: 20;
+}
+
+.level-grid-wrapper {
+    width: 95%;
+    max-width: 1320px;
+    margin: 0 auto;
+    background: linear-gradient(180deg, #ffffff 0%, #fffbf5 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1.5px solid rgba(251, 191, 36, 0.35);
+    box-shadow: 0 25px 60px -10px rgba(180, 83, 9, 0.25), 0 0 0 1px rgba(251, 191, 36, 0.25);
+}
+
+.level-grid {
+    padding: 1.75rem 2.25rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1.5rem 1.25rem;
+    justify-items: center;
+    align-items: center;
+}
+
+/* =========================================
+   SCREEN: BUKU KAS
+   ========================================= */
+.bukukas-screen {
+    padding: 1.25rem 2rem;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(../image/background-1.png);
+    background-size: cover;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.bukukas-screen .btn-back {
+    align-self: flex-start;
+    width: fit-content;
+    max-width: fit-content;
+    flex-shrink: 0;
+}
+
+.bukukas-layout {
+    max-width: 76rem;
+    width: 100%;
+    margin: 0 auto;
+    background-color: #fffdfa;
+    border: none;
+    border-radius: 1.25rem;
+    overflow: hidden;
+    box-shadow: 0 20px 45px -10px rgba(180, 83, 9, 0.15);
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    min-height: 0;
+    max-height: calc(100% - 4.5rem);
+}
+
+.bukukas-chart-panel {
+    width: 50%;
+    padding: 1.15rem 1.35rem;
+    border-right: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.bukukas-history-panel {
+    width: 50%;
+    padding: 1.15rem 1.35rem;
+    background-color: #fdfaf4;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+    max-height: 100%;
+}
+
+/* =========================================
+   SCREEN: PRESTASI
+   ========================================= */
+.prestasi-screen {
+    padding: 1.25rem 2rem;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(../image/background-1.png);
+    background-size: cover;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.prestasi-screen .btn-back {
+    align-self: flex-start;
+    width: fit-content;
+    max-width: fit-content;
+    flex-shrink: 0;
+}
+
+.prestasi-layout {
+    max-width: 76rem;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: row;
+    gap: 1.25rem;
+    flex: 1;
+    min-height: 0;
+    max-height: calc(100% - 4.5rem);
+    align-items: stretch;
+}
+
+/* =========================================
+   SCREEN: FASILITATOR
+   ========================================= */
+.fasilitator-screen {
+    background-color: #fcfaf6;
+    color: #1e293b;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.fasil-topbar {
+    background-color: #ffffff;
+    color: #1e293b;
+    padding: 0 2rem;
+    height: 72px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1.5px solid #fde68a;
+    box-shadow: 0 2px 10px rgba(180, 83, 9, 0.06);
+}
+
+.fasil-layout {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 1.25rem 1.75rem;
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.fasil-main-panel {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    max-height: 100%;
+    background-color: var(--color-white);
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+}
+
+.fasil-sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-sizing: border-box;
+}
+
+/* =========================================
+   SCREEN: GAME (FULL VIEWPORT ADAPTIVE)
+   ========================================= */
+.game-screen {
+    background-color: transparent;
+    color: var(--color-slate-900);
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.game-container {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    position: relative;
+    background-color: transparent;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+/* Grup Navigasi Kiri Atas Universal (Pengaturan) */
+.top-nav-left {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    pointer-events: auto;
+}

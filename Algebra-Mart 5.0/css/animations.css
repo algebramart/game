@@ -1,0 +1,150 @@
+/* =========================================
+   animations.css — Semua @keyframes & Kelas Animasi
+   ========================================= */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes floatBounce {
+    0%,
+    100% {
+        transform: translateY(0) rotate(-6deg);
+    }
+    50% {
+        transform: translateY(-15px) rotate(-6deg);
+    }
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    80% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInTutorial {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Kelas yang bergantung pada animasi */
+
+/* Item di nampan pesanan */
+.tray-product {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: popIn 0.3s ease-out;
+}
+
+/* Flash merah saat rumus salah */
+.error-flash {
+    background-color: #7f1d1d !important;
+    border-color: var(--color-red-500) !important;
+    transition: all 0.3s ease;
+}
+
+/* Tutorial overlay animation */
+.tutorial-overlay:not(.hidden) {
+    display: block;
+    animation: fadeInTutorial 0.3s ease-out forwards;
+}
+
+.tutorial-tooltip:not(.hidden) {
+    animation: fadeInTutorial 0.25s ease-out forwards;
+}
+
+.tutorial-hand-container:not(.hidden) {
+    animation: fadeInTutorial 0.25s ease-out forwards;
+}
+
+/* Animasi Ketukan Tangan Penunjuk */
+@keyframes tapLeft {
+    0%, 100% {
+        transform: translate(0, 0);
+    }
+    50% {
+        transform: translate(-10px, -10px);
+    }
+}
+
+@keyframes tapRight {
+    0%, 100% {
+        transform: translate(0, 0);
+    }
+    50% {
+        transform: translate(10px, -10px);
+    }
+}
+
+/* Riak Gelombang Ujung Jari */
+@keyframes pulseRing {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0.9;
+    }
+    70% {
+        transform: translate(-50%, -50%) scale(1.6);
+        opacity: 0.35;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.4);
+        opacity: 0;
+    }
+}
+
+/* Efek Glow Kuning Target Aktif */
+@keyframes pulseTarget {
+    0% {
+        box-shadow: 0 0 0 2px #facc15, 0 0 8px rgba(250, 204, 21, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 0 5px #facc15, 0 0 20px rgba(250, 204, 21, 0.95);
+    }
+}
+
+/* Animasi Pop-up Lencana Baru Terbuka */
+@keyframes badgePopIn {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -40px) scale(0.8);
+    }
+    60% {
+        opacity: 1;
+        transform: translate(-50%, 8px) scale(1.04);
+    }
+    80% {
+        transform: translate(-50%, -3px) scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+}
+
+@keyframes badgeGlowPulse {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(250, 204, 21, 0.4), inset 0 0 10px rgba(250, 204, 21, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(250, 204, 21, 0.85), inset 0 0 15px rgba(250, 204, 21, 0.4);
+    }
+}
+
+
