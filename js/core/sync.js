@@ -37,16 +37,16 @@ try {
 }
 
 /**
- * Menghasilkan Kode Ruang acak 4 karakter (misal ALJ-8K9P)
+ * Menghasilkan Kode Ruang acak 6 karakter (misal ALJ7A1)
  * @returns {string}
  */
 export function generateRoomCode() {
     const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
     let randomPart = '';
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
         randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return `ALJ-${randomPart}`;
+    return `ALJ${randomPart}`;
 }
 
 /**
@@ -244,9 +244,17 @@ export async function joinRoom(code) {
     if (!code) {
         return { success: false, message: 'Kode ruang tidak boleh kosong.' };
     }
-    let cleanedCode = code.trim().toUpperCase();
-    if (cleanedCode.length < 3 || cleanedCode.length > 10) {
-        return { success: false, message: 'Kode ruang tidak valid (harus 4-8 karakter).' };
+    // Bersihkan karakter strip, spasi, atau simbol lain yang mungkin diketik murid
+    let raw = code.trim().toUpperCase();
+    let cleanedCode = raw.replace(/[^A-Z0-9]/g, '');
+
+    // Jika murid hanya mengetik 3 karakter belakang (misal 7A1), lengkapi prefix ALJ
+    if (cleanedCode.length === 3) {
+        cleanedCode = 'ALJ' + cleanedCode;
+    }
+
+    if (cleanedCode.length < 4 || cleanedCode.length > 8) {
+        return { success: false, message: 'Kode ruang tidak valid (harus 6 karakter, contoh: ALJ7A1).' };
     }
 
     // Validasi keberadaan ruang kelas di Firebase Realtime Database
@@ -254,10 +262,10 @@ export async function joinRoom(code) {
         let checkCode = cleanedCode;
         let snapshot = await get(ref(db, 'rooms/' + checkCode));
 
-        // Jika tidak ditemukan dan input belum memiliki prefix ALJ-, cek dengan prefix ALJ-
-        if (!snapshot.exists() && !checkCode.startsWith('ALJ-')) {
-            const altCode = 'ALJ-' + checkCode;
-            const altSnapshot = await get(ref(db, 'rooms/' + altCode));
+        // Kompatibilitas dengan sesi lama yang mungkin memiliki strip (ALJ-XXX)
+        if (!snapshot.exists()) {
+            let altCode = checkCode.startsWith('ALJ') ? 'ALJ-' + checkCode.substring(3) : checkCode;
+            let altSnapshot = await get(ref(db, 'rooms/' + altCode));
             if (altSnapshot.exists()) {
                 checkCode = altCode;
                 snapshot = altSnapshot;
