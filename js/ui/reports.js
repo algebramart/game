@@ -2,7 +2,7 @@ import { state } from '../core/state.js';
 import { BADGES_DB } from '../data/items.js';
 import { getTitle, saveData, checkBadgeUnlocks } from '../core/engine.js';
 import { switchScreen, showMsg, closeModal } from './screens.js';
-import { startHostRoom, stopHostRoom, API_URL } from '../core/sync.js';
+import { startHostRoom, stopHostRoom, refreshHostStudents } from '../core/sync.js';
 
 let fasilChartInstance = null;
 
@@ -354,36 +354,7 @@ export async function forceRefreshFasilData() {
 
     try {
         if (state.hostedRoomCode) {
-            const res = await fetch(`${API_URL}/api/students/${state.hostedRoomCode}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.students && Array.isArray(data.students)) {
-                    data.students.forEach(s => {
-                        const studentId = s.id || s.studentId;
-                        if (!studentId) return;
-                        if (!state.onlineStudents[studentId]) {
-                            state.onlineStudents[studentId] = {};
-                        }
-                        const st = state.onlineStudents[studentId];
-                        st.studentId = studentId;
-                        st.name = s.name;
-                        st.kelas = s.kelas;
-                        st.gender = s.gender;
-                        st.level = s.level;
-                        st.laba = s.money !== undefined ? s.money : s.laba;
-                        st.errorCount = s.error_count !== undefined ? s.error_count : (s.errorCount || 0);
-                        st.quizCorrect = s.quiz_correct !== undefined ? s.quiz_correct : (s.quizCorrect || 0);
-                        st.quizTotal = s.quiz_total !== undefined ? s.quiz_total : (s.quizTotal || 0);
-                        st.quizScore = s.quizScore || `${st.quizCorrect}/${st.quizTotal}`;
-                        if (s.activeLevel !== undefined) st.activeLevel = s.activeLevel;
-                        if (s.maxLevel !== undefined) st.maxLevel = s.maxLevel;
-                        if (s.accuracy !== undefined) st.accuracy = s.accuracy;
-                        if (s.quizWrong !== undefined) st.quizWrong = s.quizWrong;
-                        if (s.history !== undefined) st.history = s.history;
-                        if (s.lastUpdated !== undefined) st.lastUpdated = s.lastUpdated;
-                    });
-                }
-            }
+            await refreshHostStudents();
         }
     } catch (err) {
         console.warn('[Reports] Gagal memuat ulang data fasilitator secara manual:', err);

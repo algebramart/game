@@ -1,23 +1,33 @@
 // ==========================================
-// core/sync.js — Sinkronisasi Hybrid (Lokal Node.js + BroadcastChannel)
+// core/sync.js — Sinkronisasi Hybrid (Firebase Realtime Database + BroadcastChannel)
 // ==========================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, off } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
 import { state } from './state.js';
 
+// ==========================================
+// KONFIGURASI FIREBASE REALTIME DATABASE
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBWAqxM-Vf5eLdYz-8pAhqhxM_16XMz3fA",
+  authDomain: "algebramart-f0255.firebaseapp.com",
+  databaseURL: "https://algebramart-f0255-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "algebramart-f0255",
+  storageBucket: "algebramart-f0255.firebasestorage.app",
+  messagingSenderId: "1062066477662",
+  appId: "1:1062066477662:web:f0569b13e3b825f5f032cf"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+export { app, db };
+
+// Channel & listener states
 let syncChannel = null;
-let pollingInterval = null;
 let storageEventHandler = null;
 
-// Penentuan URL API Server secara dinamis (mendukung cross-device via IP lokal maupun localhost)
-export const API_URL = (() => {
-    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
-        const host = window.location.hostname;
-        const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-        return `${protocol}//${host}:3000`;
-    }
-    return 'http://localhost:3000';
-})();
-
-// Inisialisasi BroadcastChannel untuk komunikasi antar-tab/perangkat luring instan
+// Inisialisasi BroadcastChannel untuk komunikasi antar-tab/perangkat luring instan (Cadangan Luring)
 try {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         syncChannel = new BroadcastChannel('algebra_mart_room_sync');
@@ -27,44 +37,31 @@ try {
 }
 
 /**
- * Menghasilkan Kode Ruang acak lokal (Fallback jika server mati)
+ * Menghasilkan Kode Ruang acak 4 karakter (misal ALJ-8K9P)
  * @returns {string}
  */
 export function generateRoomCode() {
     const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
     let randomPart = '';
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
         randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return `ALJ-${randomPart}`;
 }
 
 /**
- * Memulai sesi hosting oleh Fasilitator/Guru.
+ * Memulai sesi hosting oleh Fasilitator/Guru menggunakan Firebase onValue.
+ * @param {Function} onStudentsUpdate Callback yang dipanggil saat ada update data siswa
+ * @param {boolean} forceNew Apakah memaksa membuat kode ruang baru
+ * @returns {string} roomCode Kode ruang yang aktif
  */
-export async function startHostRoom(onStudentsUpdate, forceNew = false) {
-    // Bersihkan interval sebelumnya
-    if (pollingInterval) clearInterval(pollingInterval);
-
+export function startHostRoom(onStudentsUpdate, forceNew = false) {
     let roomCode = state.hostedRoomCode;
-    
-    // Minta kode ruang dari server jika perlu
     if (forceNew || !roomCode) {
-        try {
-            const res = await fetch(`${API_URL}/api/room`, { method: 'POST' });
-            if (res.ok) {
-                const data = await res.json();
-                roomCode = data.roomCode;
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (err) {
-            console.warn('[Sync] Gagal mendapat kode ruang dari server, menggunakan fallback lokal.');
-            roomCode = generateRoomCode();
-        }
+        roomCode = generateRoomCode();
         state.hostedRoomCode = roomCode;
     }
-    
+
     try {
         localStorage.setItem('algebraMart_hostedRoom', roomCode);
     } catch (e) { /* ignore */ }
@@ -72,7 +69,7 @@ export async function startHostRoom(onStudentsUpdate, forceNew = false) {
     state.onlineStudents = {};
     console.log(`[Sync] Fasilitator membuka sesi kelas: ${roomCode}`);
 
-    // 1. Kanal Lokal / Luring (BroadcastChannel & Storage Event)
+    // 1. Kanal Lokal / Luring (BroadcastChannel & Storage Event) sebagai cadangan
     if (syncChannel) {
         syncChannel.onmessage = (event) => {
             try {
@@ -110,52 +107,83 @@ export async function startHostRoom(onStudentsUpdate, forceNew = false) {
         window.addEventListener('storage', storageEventHandler);
     }
 
-    // 2. Kanal Server Lokal (Polling Node.js API setiap 3 detik)
-    pollingInterval = setInterval(async () => {
-        try {
-            const res = await fetch(`${API_URL}/api/students/${roomCode}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.students && data.students.length > 0) {
-                    data.students.forEach(s => {
-                        const studentId = s.id;
-                        if (!state.onlineStudents[studentId]) {
-                            state.onlineStudents[studentId] = {};
+    // 2. Kanal Firebase Realtime Database
+    try {
+        // Tulis info room ke Firebase agar terdaftar aktif
+        set(ref(db, 'rooms/' + roomCode + '/info'), {
+            code: roomCode,
+            active: true,
+            createdAt: Date.now()
+        }).catch(err => console.warn('[Sync] Gagal inisialisasi room info di Firebase:', err));
+
+        // Pasang realtime listener onValue pada data murid di room
+        onValue(ref(db, 'rooms/' + roomCode + '/students'), (snapshot) => {
+            try {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    if (data && typeof data === 'object') {
+                        Object.values(data).forEach(s => {
+                            if (!s || !s.studentId) return;
+                            const studentId = s.studentId;
+                            if (!state.onlineStudents[studentId]) {
+                                state.onlineStudents[studentId] = {};
+                            }
+                            const st = state.onlineStudents[studentId];
+                            st.studentId = s.studentId;
+                            st.name = s.name;
+                            st.kelas = s.kelas;
+                            st.gender = s.gender;
+                            st.level = s.level;
+                            st.laba = s.laba !== undefined ? s.laba : (s.money || 0);
+                            st.money = st.laba;
+                            st.errorCount = s.errorCount !== undefined ? s.errorCount : (s.error_count || 0);
+                            st.quizCorrect = s.quizCorrect !== undefined ? s.quizCorrect : (s.quiz_correct || 0);
+                            st.quizTotal = s.quizTotal !== undefined ? s.quizTotal : (s.quiz_total || 0);
+                            st.quizScore = s.quizScore || `${st.quizCorrect}/${st.quizTotal}`;
+                            st.quizWrong = s.quizWrong !== undefined ? s.quizWrong : 0;
+                            if (s.activeLevel !== undefined) st.activeLevel = s.activeLevel;
+                            if (s.maxLevel !== undefined) st.maxLevel = s.maxLevel;
+                            if (s.accuracy !== undefined) st.accuracy = s.accuracy;
+                            if (s.history !== undefined) st.history = s.history;
+                            if (s.lastUpdated !== undefined) st.lastUpdated = s.lastUpdated;
+                        });
+                        if (typeof onStudentsUpdate === 'function') {
+                            onStudentsUpdate(state.onlineStudents);
                         }
-                        const st = state.onlineStudents[studentId];
-                        st.studentId = s.id;
-                        st.name = s.name;
-                        st.kelas = s.kelas;
-                        st.gender = s.gender;
-                        st.level = s.level;
-                        st.laba = s.money;
-                        st.errorCount = s.error_count;
-                        st.quizCorrect = s.quiz_correct;
-                        st.quizTotal = s.quiz_total;
-                        st.quizScore = `${s.quiz_correct}/${s.quiz_total}`; 
-                    });
-                    if (typeof onStudentsUpdate === 'function') {
-                        onStudentsUpdate(state.onlineStudents);
                     }
                 }
+            } catch (err) {
+                console.warn('[Sync] Gagal memproses pembaruan data murid dari Firebase:', err);
             }
-        } catch (err) {
-            // Server error / offline, abaikan diam-diam krn fallback lokal aktif
-        }
-    }, 3000);
+        });
+        console.log(`[Sync] Berhasil mendengarkan data murid di Firebase: rooms/${roomCode}/students`);
+    } catch (err) {
+        console.warn('[Sync] Gagal memasang Firebase onValue listener:', err);
+    }
 
     return roomCode;
 }
 
+/**
+ * Mematikan sesi hosting fasilitator dan memutus listener data Firebase.
+ */
 export function stopHostRoom() {
-    if (pollingInterval) {
-        clearInterval(pollingInterval);
-        pollingInterval = null;
+    if (state.hostedRoomCode) {
+        try {
+            off(ref(db, 'rooms/' + state.hostedRoomCode + '/students'));
+        } catch (e) {
+            console.warn('[Sync] Gagal mematikan listener Firebase via off:', e);
+        }
+        try {
+            set(ref(db, 'rooms/' + state.hostedRoomCode + '/info/active'), false);
+        } catch (e) { /* ignore */ }
     }
+
     if (typeof window !== 'undefined' && storageEventHandler) {
         window.removeEventListener('storage', storageEventHandler);
         storageEventHandler = null;
     }
+
     state.hostedRoomCode = null;
     state.onlineStudents = {};
     try {
@@ -164,15 +192,102 @@ export function stopHostRoom() {
     console.log('[Sync] Sesi host fasilitator telah dihentikan.');
 }
 
-export function joinRoom(code) {
+/**
+ * Memperbarui data murid secara manual dari Firebase Realtime Database.
+ */
+export async function refreshHostStudents() {
+    if (!state.hostedRoomCode) return;
+    try {
+        const snapshot = await get(ref(db, 'rooms/' + state.hostedRoomCode + '/students'));
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            if (data && typeof data === 'object') {
+                Object.values(data).forEach(s => {
+                    if (!s || !s.studentId) return;
+                    const studentId = s.studentId;
+                    if (!state.onlineStudents[studentId]) {
+                        state.onlineStudents[studentId] = {};
+                    }
+                    const st = state.onlineStudents[studentId];
+                    st.studentId = s.studentId;
+                    st.name = s.name;
+                    st.kelas = s.kelas;
+                    st.gender = s.gender;
+                    st.level = s.level;
+                    st.laba = s.laba !== undefined ? s.laba : (s.money || 0);
+                    st.money = st.laba;
+                    st.errorCount = s.errorCount !== undefined ? s.errorCount : (s.error_count || 0);
+                    st.quizCorrect = s.quizCorrect !== undefined ? s.quizCorrect : (s.quiz_correct || 0);
+                    st.quizTotal = s.quizTotal !== undefined ? s.quizTotal : (s.quiz_total || 0);
+                    st.quizScore = s.quizScore || `${st.quizCorrect}/${st.quizTotal}`;
+                    st.quizWrong = s.quizWrong !== undefined ? s.quizWrong : 0;
+                    if (s.activeLevel !== undefined) st.activeLevel = s.activeLevel;
+                    if (s.maxLevel !== undefined) st.maxLevel = s.maxLevel;
+                    if (s.accuracy !== undefined) st.accuracy = s.accuracy;
+                    if (s.history !== undefined) st.history = s.history;
+                    if (s.lastUpdated !== undefined) st.lastUpdated = s.lastUpdated;
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('[Sync] Gagal memuat ulang data manual dari Firebase:', e);
+    }
+}
+
+/**
+ * Bergabung ke sesi kelas oleh Murid.
+ * Memvalidasi apakah kode ruang aktif/ada di Firebase sebelum bergabung.
+ * @param {string} code
+ * @returns {Promise<{success: boolean, message: string, code?: string}>}
+ */
+export async function joinRoom(code) {
     if (!code) {
         return { success: false, message: 'Kode ruang tidak boleh kosong.' };
     }
-    const cleanedCode = code.trim().toUpperCase();
-    // Mendukung kode 4 karakter (Node Server) atau 6 karakter (Fallback lama)
-    if (cleanedCode.length < 4 || cleanedCode.length > 6) {
-        return { success: false, message: 'Kode ruang tidak valid (harus 4-6 karakter).' };
+    let cleanedCode = code.trim().toUpperCase();
+    if (cleanedCode.length < 3 || cleanedCode.length > 10) {
+        return { success: false, message: 'Kode ruang tidak valid (harus 4-8 karakter).' };
     }
+
+    // Validasi keberadaan ruang kelas di Firebase Realtime Database
+    try {
+        let checkCode = cleanedCode;
+        let snapshot = await get(ref(db, 'rooms/' + checkCode));
+
+        // Jika tidak ditemukan dan input belum memiliki prefix ALJ-, cek dengan prefix ALJ-
+        if (!snapshot.exists() && !checkCode.startsWith('ALJ-')) {
+            const altCode = 'ALJ-' + checkCode;
+            const altSnapshot = await get(ref(db, 'rooms/' + altCode));
+            if (altSnapshot.exists()) {
+                checkCode = altCode;
+                snapshot = altSnapshot;
+            }
+        }
+
+        if (!snapshot.exists()) {
+            return {
+                success: false,
+                message: `Ruang kelas "${cleanedCode}" tidak ditemukan atau belum dibuka oleh Fasilitator.`
+            };
+        }
+
+        const roomData = snapshot.val();
+        if (roomData && roomData.info && roomData.info.active === false) {
+            return {
+                success: false,
+                message: `Sesi kelas "${cleanedCode}" sudah ditutup oleh Fasilitator.`
+            };
+        }
+
+        cleanedCode = checkCode;
+    } catch (err) {
+        console.warn('[Sync] Gagal memvalidasi kode ruang via Firebase:', err);
+        return {
+            success: false,
+            message: 'Gagal terhubung ke database Firebase. Pastikan koneksi internet stabil.'
+        };
+    }
+
     state.activeRoomCode = cleanedCode;
     try {
         localStorage.setItem('algebraMart_roomCode', cleanedCode);
@@ -190,6 +305,10 @@ export function leaveRoom() {
     console.log('[Sync] Murid keluar dari kelas.');
 }
 
+/**
+ * Mengirim progres murid ke fasilitator via Firebase Realtime Database
+ * (dan cadangan lokal BroadcastChannel/localStorage).
+ */
 export async function sendStudentProgress(user, levelIdx, errors = 0, quizCorrect = 0, quizTotal = 0) {
     if (!user) return false;
     const roomCode = state.activeRoomCode;
@@ -227,7 +346,7 @@ export async function sendStudentProgress(user, levelIdx, errors = 0, quizCorrec
 
     console.log(`[Sync] Mengirim progres murid ke ruang [${roomCode}]:`, payload);
 
-    // 1. Kirim via BroadcastChannel lokal
+    // 1. Cadangan Lokal (BroadcastChannel)
     if (syncChannel) {
         try {
             syncChannel.postMessage({
@@ -240,7 +359,7 @@ export async function sendStudentProgress(user, levelIdx, errors = 0, quizCorrec
         }
     }
 
-    // 2. Kirim via localStorage event
+    // 2. Cadangan Lokal (localStorage event)
     try {
         localStorage.setItem('algebramart_sync_msg', JSON.stringify({
             roomCode: roomCode,
@@ -249,20 +368,13 @@ export async function sendStudentProgress(user, levelIdx, errors = 0, quizCorrec
         }));
     } catch (e) { /* ignore */ }
 
-    // 3. Kirim via Node.js Server Lokal API
+    // 3. Kirim ke Firebase Realtime Database
     try {
-        await fetch(`${API_URL}/api/sync`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-        console.log('[Sync] Progres murid tersinkron ke Server Lokal.');
+        await set(ref(db, 'rooms/' + roomCode + '/students/' + studentId), payload);
+        console.log(`[Sync] Progres murid tersinkron ke Firebase: rooms/${roomCode}/students/${studentId}`);
     } catch (err) {
-        console.warn('[Sync] Gagal sinkronisasi ke Server Lokal (tetap tersimpan luring/broadcast):', err.message);
+        console.warn('[Sync] Gagal sinkronisasi ke Firebase (tetap tersimpan luring/broadcast):', err.message);
     }
 
     return true;
 }
-

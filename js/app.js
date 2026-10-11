@@ -218,12 +218,15 @@ function openJoinRoomModal() {
     input.focus();
 }
 
-function submitJoinRoom() {
+async function submitJoinRoom() {
     const input = document.getElementById('input-room-code');
     const status = document.getElementById('join-room-status');
     if (!input || !status) return;
 
-    const result = joinRoom(input.value);
+    status.className = 'room-status-text';
+    status.textContent = 'Memeriksa kode kelas ke server...';
+
+    const result = await joinRoom(input.value);
     if (result.success) {
         status.className = 'room-status-text status-success';
         status.textContent = result.message;
