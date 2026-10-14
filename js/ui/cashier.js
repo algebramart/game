@@ -136,17 +136,17 @@ export function updateVariableHelperSubtext(highlightVar = null) {
 
     if (highlightVar && ITEM_DB[highlightVar]) {
         const itemName = ITEM_DB[highlightVar].name.toLowerCase();
-        helper.textContent = `(${highlightVar} = harga satuan ${itemName})`;
+        helper.innerHTML = `(<span class="math-var">${highlightVar}</span> = harga satuan <b class="item-name-bold">${itemName}</b>)`;
         return;
     }
 
     const order = state.currentLevelParams?.order || {};
     const varsInOrder = Object.keys(order).filter(v => order[v] > 0);
     if (varsInOrder.length > 0) {
-        const textParts = varsInOrder.map(v => `${v} = harga satuan ${(ITEM_DB[v]?.name || '').toLowerCase()}`);
-        helper.textContent = `(${textParts.join(', ')})`;
+        const textParts = varsInOrder.map(v => `<span class="math-var">${v}</span> = harga satuan <b class="item-name-bold">${(ITEM_DB[v]?.name || '').toLowerCase()}</b>`);
+        helper.innerHTML = `(${textParts.join(', ')})`;
     } else {
-        helper.textContent = "";
+        helper.innerHTML = "";
     }
 }
 

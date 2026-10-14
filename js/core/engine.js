@@ -238,10 +238,35 @@ export function renderMathExpression(expr) {
     return formatMathText(expr);
 }
 
+// Daftar nama barang belanjaan yang perlu ditebalkan (bold) dalam kalimat transaksi
+const ITEM_NAMES_LIST = [
+    'kue padamaran', 'padamaran',
+    'dodol nanas', 'dodol',
+    'buku tulis', 'buku',
+    'kue gandus', 'gandus',
+    'bungkus gula', 'gula',
+    'buah jeruk', 'jeruk',
+    'buah apel', 'apel',
+    'bungkus kopi', 'kopi aaa', 'kopi',
+    'botol minyak goreng', 'minyak goreng', 'botol minyak', 'minyak',
+    'pena',
+    'roti',
+    'sabun',
+    'butir telur', 'telur',
+    'tempoyak',
+    'tepung',
+    'terong',
+    'karung beras', 'beras'
+].sort((a, b) => b.length - a.length);
+
+const ITEM_NAME_REGEX = new RegExp('\\b(' + ITEM_NAMES_LIST.map(s => s.replace(/\s+/g, '\\s+')).join('|') + ')\\b', 'gi');
+
 /**
- * Memformat teks campuran (seperti balon pesan atau kuis) agar variabel aljabar (a sampai q)
- * dirender miring (italic math-serif) menggunakan font matematika,
- * serta notasi pangkat (^ eksponen) diformat dengan elegan.
+ * Memformat teks campuran (seperti balon pesan atau kuis) agar:
+ * 1. Kalimat utama tetap font biasa (normal weight).
+ * 2. Nama barang otomatis ditebalkan (<b class="item-name-bold">...</b>).
+ * 3. Variabel aljabar (a-q, x, y) dan suku aljabar ditebalkan dan berfont matematika.
+ * 4. Notasi eksponen/pangkat dan operator diformat rapi.
  * @param {string} text
  * @returns {string}
  */
@@ -262,9 +287,14 @@ export function formatMathText(text) {
         return parts.join('');
     };
 
-    // 1. Format notasi eksponen / pangkat aljabar: misal c^5 atau 5a^2
+    // 1. Tebalkan nama-nama barang belanjaan jika berada di luar tag HTML
     formatted = processNonHtmlParts(formatted, (s) => {
-        return s.replace(/(^|[\s+=\-(>,])(\d*)([a-q])\^(\d+)(?=[\s+=\-)<,]|$)/gi, (match, prefix, num, v, p) => {
+        return s.replace(ITEM_NAME_REGEX, '<b class="item-name-bold">$1</b>');
+    });
+
+    // 2. Format notasi eksponen / pangkat aljabar: misal c^5 atau 5a^2
+    formatted = processNonHtmlParts(formatted, (s) => {
+        return s.replace(/(^|[\s+=\-(>,])(\d*)([a-qxy])\^(\d+)(?=[\s+=\-)<,.?!;:]|$)/gi, (match, prefix, num, v, p) => {
             if (hasKaTeX) {
                 try {
                     let texTerm = `${num || ''}${v}^{${p}}`;
@@ -272,13 +302,13 @@ export function formatMathText(text) {
                 } catch (e) {}
             }
             let numHtml = num ? `<span class="math-num">${num}</span>` : "";
-            return `${prefix}${numHtml}${v}<sup>${p}</sup>`;
+            return `${prefix}${numHtml}<span class="math-var">${v}</span><sup>${p}</sup>`;
         });
     });
 
     // Format eksponen angka murni jika ada (misal 2^3)
     formatted = processNonHtmlParts(formatted, (s) => {
-        return s.replace(/(^|[\s+=\-(>,])(\d+)\^(\d+)(?=[\s+=\-)<,]|$)/g, (match, prefix, base, exp) => {
+        return s.replace(/(^|[\s+=\-(>,])(\d+)\^(\d+)(?=[\s+=\-)<,.?!;:]|$)/g, (match, prefix, base, exp) => {
             if (hasKaTeX) {
                 try {
                     return prefix + window.katex.renderToString(`${base}^{${exp}}`, { throwOnError: false, displayMode: false });
@@ -288,21 +318,22 @@ export function formatMathText(text) {
         });
     });
 
-    // 2. Ganti huruf variabel aljabar tunggal dalam kurung, misal (a) -> (<span class="math-var">a</span>)
+    // 3. Ganti huruf variabel aljabar tunggal dalam kurung, misal (a) -> (<span class="math-var">a</span>)
     formatted = processNonHtmlParts(formatted, (s) => {
-        return s.replace(/\(([a-q])\)/gi, '(<span class="math-var">$1</span>)');
+        return s.replace(/\(([a-qxy])\)/gi, '(<span class="math-var">$1</span>)');
     });
 
-    // 3. Ganti suku aljabar dengan koefisien atau ekspresi, misal 3a -> 3<span class="math-var">a</span> atau 5ab -> 5<span class="math-var">ab</span>
+    // 4. Ganti suku aljabar dengan koefisien atau ekspresi, misal 3a -> 3<span class="math-var">a</span> atau 5ab -> 5<span class="math-var">ab</span>
+    // Serta variabel tunggal yang berdiri sendiri, misal " a " -> " <span class="math-var">a</span> "
     formatted = processNonHtmlParts(formatted, (s) => {
-        return s.replace(/(^|[\s+=\-\(\/])(?:(\d+)([a-q]+)|([a-q]))(?=[\s+=\-\)<,\/]|$)/gi, (match, prefix, num, varsMulti, varsSingle) => {
+        return s.replace(/(^|[\s+=\-\(\/])(?:(\d+)([a-qxy]+)|([a-qxy]))(?=[\s+=\-\)<,\/.?!;:]|$)/gi, (match, prefix, num, varsMulti, varsSingle) => {
             let numHtml = num ? `<span class="math-num">${num}</span>` : "";
             let v = varsMulti || varsSingle;
             return `${prefix}${numHtml}<span class="math-var">${v}</span>`;
         });
     });
 
-    // 4. Ganti simbol perkalian unicode '×' agar terbungkus span rapi jika bukan di dalam tag HTML
+    // 5. Ganti simbol perkalian unicode '×' agar terbungkus span rapi jika bukan di dalam tag HTML
     formatted = processNonHtmlParts(formatted, (s) => {
         return s.replace(/(^|[\s\d\)])×([\s\d\(]|$)/g, '$1<span class="math-op">×</span>$2');
     });

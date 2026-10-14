@@ -4,6 +4,7 @@
 
 import { state } from './state.js';
 import { speakNarrator, stopNarrator } from './audio.js';
+import { formatMathText } from './engine.js';
 
 /**
  * Konfigurasi 9 Langkah Tutorial Interaktif (Level 1 Pelanggan 1)
@@ -17,7 +18,7 @@ export const TUTORIAL_STEPS = [
         reqCount: 1,
         handPos: 'left',
         title: 'Pesanan Pelanggan',
-        text: 'Halo Kasir! Perhatikan baik-baik pesanan pelanggan. Klik balon pesan untuk mulai mencatat pesanan.'
+        text: 'Halo Kasir! Perhatikan baik-baik pesanan pelanggan. Klik <b>balon pesan</b> untuk mulai mencatat pesanan.'
     },
     {
         step: 2,
@@ -27,7 +28,7 @@ export const TUTORIAL_STEPS = [
         reqCount: 4,
         handPos: 'left',
         title: 'Pilih Kue Padamaran (j)',
-        text: 'Harga satu kue padamaran adalah j rupiah. Pelanggan membeli 4 kue padamaran (4j). Klik Kue Padamaran di rak sebanyak 4 kali!'
+        text: 'Harga satu <b>kue padamaran</b> adalah <b>j</b> rupiah. Pelanggan membeli 4 <b>kue padamaran</b> (<b>4j</b>). Klik <b>Kue Padamaran</b> di rak sebanyak <b>4 kali</b>!'
     },
     {
         step: 3,
@@ -36,7 +37,7 @@ export const TUTORIAL_STEPS = [
         reqCount: 1,
         handPos: 'left',
         title: 'Kalkulasi Rumus Aljabar',
-        text: 'Rumus aljabar pesanan sudah tersusun (4j). Tekan tombol "=" untuk mengalkulasi harga belanjaan!'
+        text: 'Rumus aljabar pesanan sudah tersusun (<b>4j</b>). Tekan tombol <b>"="</b> untuk mengalkulasi harga belanjaan!'
     },
     {
         step: 4,
@@ -46,7 +47,7 @@ export const TUTORIAL_STEPS = [
         reqCount: 1,
         handPos: 'left',
         title: 'Ambil Uang Pelanggan',
-        text: 'Pelanggan membayar dengan uang Rp 20.000. Klik uang di dompet pelanggan untuk dimasukkan ke mesin kasir.'
+        text: 'Pelanggan membayar dengan uang <b>Rp 20.000</b>. Klik uang di dompet pelanggan untuk dimasukkan ke mesin kasir.'
     },
     {
         step: 5,
@@ -55,7 +56,7 @@ export const TUTORIAL_STEPS = [
         reqCount: 1,
         handPos: 'right',
         title: 'Konfirmasi Transaksi',
-        text: 'Harga belanja dan nominal bayar sudah sesuai. Tekan tombol "Konfirmasi" untuk mencetak struk transaksi!'
+        text: 'Harga belanja dan nominal bayar sudah sesuai. Tekan tombol <b>"Konfirmasi"</b> untuk mencetak struk transaksi!'
     },
     {
         step: 6,
@@ -64,7 +65,7 @@ export const TUTORIAL_STEPS = [
         reqCount: 1,
         handPos: 'left',
         title: 'Periksa Struk Transaksi',
-        text: 'Belanja Rp 8.000, dibayar Rp 20.000. Kembalian: Rp 12.000. Klik tombol "Berikan Kembalian" di bawah struk!'
+        text: 'Belanja <b>Rp 8.000</b>, dibayar <b>Rp 20.000</b>. Kembalian: <b>Rp 12.000</b>. Klik tombol <b>"Berikan Kembalian"</b> di bawah struk!'
     },
     {
         step: 7,
@@ -74,7 +75,7 @@ export const TUTORIAL_STEPS = [
         reqCount: 1,
         handPos: 'left',
         title: 'Ambil Uang Rp 10.000',
-        text: 'Laci kasir terbuka! Siapkan kembalian Rp 12.000. Pertama, ambil 1 lembar Rp 10.000 dari laci kasir.'
+        text: 'Laci kasir terbuka! Siapkan kembalian <b>Rp 12.000</b>. Pertama, ambil 1 lembar <b>Rp 10.000</b> dari laci kasir.'
     },
     {
         step: 8,
@@ -84,7 +85,7 @@ export const TUTORIAL_STEPS = [
         reqCount: 1,
         handPos: 'left',
         title: 'Ambil Uang Rp 2.000',
-        text: 'Sisa kembalian adalah Rp 2.000. Klik uang Rp 2.000 sebanyak 1 kali!'
+        text: 'Sisa kembalian adalah <b>Rp 2.000</b>. Klik uang <b>Rp 2.000</b> sebanyak <b>1 kali</b>!'
     },
     {
         step: 9,
@@ -93,7 +94,7 @@ export const TUTORIAL_STEPS = [
         reqCount: 1,
         handPos: 'right',
         title: 'Serahkan Kembalian',
-        text: 'Uang kembalian sudah tepat Rp 12.000! Tekan tombol "Konfirmasi" untuk menyerahkan ke pelanggan.'
+        text: 'Uang kembalian sudah tepat <b>Rp 12.000</b>! Tekan tombol <b>"Konfirmasi"</b> untuk menyerahkan ke pelanggan.'
     }
 ];
 
@@ -222,7 +223,7 @@ function updateProgressText(stepObj) {
     if (stepObj.reqCount > 1) {
         progressStr = `<br><span class="tutorial-progress">Hitungan: ${currentActionCount} / ${stepObj.reqCount}</span>`;
     }
-    tooltipText.innerHTML = `<strong>${stepObj.title}</strong><br>${stepObj.text}${progressStr}`;
+    tooltipText.innerHTML = `<strong>${stepObj.title}</strong><br>${formatMathText(stepObj.text)}${progressStr}`;
 }
 
 /**

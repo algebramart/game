@@ -179,11 +179,11 @@ textarea {
     -ms-user-select: text;
 }
 
-/* Tipografi Matematika */
+/* Tipografi Matematika & Penegasan Barang Penting */
 .math-var {
     font-family: var(--font-math) !important;
     font-style: italic !important;
-    font-weight: normal;
+    font-weight: 800 !important;
 }
 
 .math-roman,
@@ -191,6 +191,13 @@ textarea {
 .math-op {
     font-family: var(--font-math-main);
     font-style: normal !important;
+    font-weight: 700;
+}
+
+/* Penegasan Nama Barang Penting dalam Kalimat */
+.item-name-bold {
+    font-weight: 800 !important;
+    color: #1e3a8a;
 }
 
 /* Class utilitas global */

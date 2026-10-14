@@ -301,10 +301,10 @@
 
 .welcome-subtitle {
     color: var(--color-slate-300);
-    font-size: 1.05rem;
+    font-size: 1.25rem;
     font-weight: 500;
     margin-bottom: 1.5rem;
-    line-height: 1.4;
+    line-height: 1.45;
 }
 
 .welcome-features {
@@ -319,10 +319,10 @@
     background: rgba(15, 23, 42, 0.6);
     border: none;
     color: var(--color-slate-200);
-    padding: 0.35rem 0.75rem;
+    padding: 0.45rem 0.95rem;
     border-radius: 0.5rem;
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 1rem;
+    font-weight: 500;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -960,10 +960,12 @@
     margin: 0;
 }
 .chart-empty-desc {
-    font-size: 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
     color: #64748b;
     margin: 0;
-    max-width: 260px;
+    max-width: 290px;
+    line-height: 1.45;
 }
 
 .stats-grid {
@@ -1397,12 +1399,14 @@
     padding: 1rem 1.15rem;
     border-radius: 14px;
     color: #451a03;
-    font-size: 0.92rem;
-    line-height: 1.45;
+    font-size: 1.15rem;
+    font-weight: 500;
+    line-height: 1.55;
     margin-bottom: 0.25rem;
 }
 .badge-detail-desc-box p {
     margin: 0;
+    font-weight: 500;
 }
 
 .badge-icon { font-size: 1.3rem; }
@@ -1922,9 +1926,10 @@
     margin: 0;
 }
 .admin-panel .danger-desc {
-    font-size: 0.78rem;
+    font-size: 1.02rem;
+    font-weight: 500;
     color: #64748b;
-    line-height: 1.4;
+    line-height: 1.45;
     margin-bottom: 0.85rem;
 }
 .btn-reset-data {
@@ -2149,15 +2154,15 @@
     position: absolute;
     top: 6px;
     right: -45px;
-    width: 420px;
-    max-width: 450px;
+    width: 440px;
+    max-width: 470px;
     box-sizing: border-box;
     background-color: #ffffff;
     color: #0f172a;
-    padding: 9px 18px;
-    font-size: 1.15rem;
-    font-weight: 700;
-    line-height: 1.34;
+    padding: 10px 18px;
+    font-size: 1.38rem;
+    font-weight: 500;
+    line-height: 1.42;
     border-radius: 16px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     border: 1.5px solid #e2e8f0;
@@ -2166,6 +2171,25 @@
     cursor: pointer;
     z-index: 10;
     overflow: visible;
+}
+
+.speech-bubble b,
+.speech-bubble strong,
+.speech-bubble .item-name-bold {
+    font-weight: 800;
+    color: #1e3a8a;
+}
+
+.speech-bubble .math-var {
+    font-family: var(--font-math) !important;
+    font-style: italic !important;
+    font-weight: 800 !important;
+    color: #b45309;
+}
+
+.speech-bubble .math-num {
+    font-weight: 800;
+    color: #0f172a;
 }
 
 .speech-bubble::before {
@@ -2250,21 +2274,29 @@
 .screen-label { font-weight: 800; color: #a7f3d0; text-shadow: 0 0 4px rgba(167, 243, 208, 0.3); }
 
 .variable-helper-subtext {
-    font-size: 0.72rem;
-    font-weight: 600;
-    font-style: italic;
-    color: #a7f3d0;
-    text-shadow: 0 0 4px rgba(167, 243, 208, 0.3);
+    font-size: 1.05rem;
+    font-weight: 500;
+    font-style: normal;
+    color: #e2e8f0;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
     text-align: right;
-    min-height: 14px;
-    line-height: 1.1;
-    margin-top: -3px;
+    min-height: 18px;
+    line-height: 1.25;
+    margin-top: -2px;
     margin-bottom: 2px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     letter-spacing: 0.2px;
     transition: color 0.2s ease;
+}
+.variable-helper-subtext .math-var {
+    font-weight: 800 !important;
+    color: #fde047 !important;
+}
+.variable-helper-subtext .item-name-bold {
+    font-weight: 800 !important;
+    color: #93c5fd !important;
 }
 
 .kasir-input {
@@ -2738,9 +2770,9 @@
 .receipt-row {
     display: flex;
     justify-content: space-between;
-    font-size: 1.08rem;
+    font-size: 1.12rem;
     line-height: 1.35;
-    font-weight: 600;
+    font-weight: 500;
     color: #1e293b;
     padding: 1.5px 0;
 }
@@ -2755,10 +2787,11 @@
     color: #0f172a;
 }
 .small-detail {
-    font-size: 0.92rem;
+    font-size: 1rem;
+    font-weight: 500;
     color: #475569;
     margin-top: 1px;
-    line-height: 1.3;
+    line-height: 1.35;
 }
 .math-step {
     color: #1d4ed8;
@@ -2863,6 +2896,7 @@
 
 #msg-desc {
     font-size: 1.25rem;
+    font-weight: 500;
     line-height: 1.7;
     color: #1e293b;
     margin-bottom: 1.5rem;
@@ -2884,7 +2918,7 @@
     font-size: 1.25rem;
     line-height: 1.65;
     color: #1e293b;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 #msg-desc li::before,
@@ -2969,6 +3003,7 @@
 }
 #confirm-exit-desc {
     font-size: 1.25rem;
+    font-weight: 500;
     color: #334155;
     line-height: 1.65;
     margin-bottom: 1.5rem;
@@ -3170,7 +3205,8 @@
 .modal-join-room-card .join-room-desc,
 .modal-join-room-card p {
     color: #475569;
-    font-size: 1.1rem;
+    font-size: 1.18rem;
+    font-weight: 500;
     line-height: 1.55;
     margin-bottom: 1.25rem;
 }
@@ -3529,11 +3565,23 @@
     box-shadow: 0 1px 3px rgba(180, 83, 9, 0.1);
 }
 .quiz-question-text {
-    font-size: 1.15rem;
-    font-weight: 700;
-    line-height: 1.65;
+    font-size: 1.35rem;
+    font-weight: 500;
+    line-height: 1.55;
     margin-bottom: 1.5rem;
     color: #1e293b;
+}
+.quiz-question-text b,
+.quiz-question-text strong,
+.quiz-question-text .item-name-bold {
+    font-weight: 800;
+    color: #1e3a8a;
+}
+.quiz-question-text .math-var {
+    font-family: var(--font-math) !important;
+    font-style: italic !important;
+    font-weight: 800 !important;
+    color: #b45309;
 }
 .quiz-options-container {
     display: flex;
@@ -3549,8 +3597,8 @@
     padding: 0.95rem 1.25rem;
     border-radius: 12px;
     text-align: left;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 1.18rem;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     color: #1e293b;
@@ -3572,14 +3620,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 30px;
-    height: 30px;
+    min-width: 34px;
+    height: 34px;
     padding: 0 6px;
     border-radius: 8px;
     background: #f1f5f9;
     color: #475569;
     font-weight: 800;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     flex-shrink: 0;
     transition: all 0.2s ease;
 }
@@ -3592,6 +3640,19 @@
     text-align: left;
     line-height: 1.5;
     color: inherit;
+    font-size: 1.18rem;
+    font-weight: 500;
+}
+.quiz-option-text b,
+.quiz-option-text strong,
+.quiz-option-text .item-name-bold {
+    font-weight: 800;
+}
+.quiz-option-text .math-var {
+    font-family: var(--font-math) !important;
+    font-style: italic !important;
+    font-weight: 800 !important;
+    color: #b45309;
 }
 .btn-quiz-option.selected {
     background: #fffbeb !important;
@@ -3599,7 +3660,6 @@
     box-shadow: 0 0 0 2px #f59e0b, 0 6px 18px rgba(245, 158, 11, 0.25) !important;
     color: #78350f !important;
     transform: translateY(-2px);
-    font-weight: 800;
 }
 .btn-quiz-option.selected .quiz-option-letter {
     background: #f59e0b !important;
@@ -3610,7 +3670,6 @@
     border-color: #10b981 !important;
     color: #065f46 !important;
     box-shadow: 0 0 0 2px #10b981, 0 6px 18px rgba(16, 185, 129, 0.25) !important;
-    font-weight: 800;
 }
 .btn-quiz-option.correct .quiz-option-letter {
     background: #10b981 !important;
@@ -3621,7 +3680,6 @@
     border-color: #ef4444 !important;
     color: #991b1b !important;
     box-shadow: 0 0 0 2px #ef4444, 0 6px 18px rgba(239, 68, 68, 0.25) !important;
-    font-weight: 800;
 }
 .btn-quiz-option.wrong .quiz-option-letter {
     background: #ef4444 !important;
@@ -3634,12 +3692,17 @@
 /* Feedback Box Kuis */
 .quiz-feedback {
     text-align: center;
-    font-weight: 800;
-    font-size: 1.05rem;
+    font-weight: 500;
+    font-size: 1.18rem;
+    line-height: 1.45;
     padding: 0.9rem 1.25rem;
     border-radius: 12px;
     margin-bottom: 1.25rem;
     border: 1.5px solid transparent;
+}
+.quiz-feedback b,
+.quiz-feedback strong {
+    font-weight: 800;
 }
 .feedback-correct {
     background: #ecfdf5;
@@ -3741,10 +3804,10 @@
 .tutorial-tooltip {
     position: absolute;
     background-color: #ffffff;
-    padding: 1.15rem 1.45rem;
-    border-radius: 1.15rem;
-    width: 380px;
-    max-width: 390px;
+    padding: 1.25rem 1.5rem;
+    border-radius: 1.25rem;
+    width: 420px;
+    max-width: 440px;
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
     border: none;
     z-index: 28000 !important;
@@ -3760,8 +3823,8 @@
 
 .tutorial-tooltip p {
     color: #1e293b;
-    font-size: 1.12rem;
-    font-weight: 650;
+    font-size: 1.32rem;
+    font-weight: 500;
     line-height: 1.45;
     margin-bottom: 0.6rem;
     text-align: center;
@@ -3769,16 +3832,31 @@
 
 .tutorial-tooltip p strong {
     color: #2563eb;
-    font-size: 1.35rem;
+    font-size: 1.42rem;
+    font-weight: 800;
     display: block;
     margin-bottom: 0.35rem;
+}
+
+.tutorial-tooltip b,
+.tutorial-tooltip strong.inline-bold,
+.tutorial-tooltip .item-name-bold {
+    font-weight: 800;
+    color: #1e3a8a;
+}
+
+.tutorial-tooltip .math-var {
+    font-family: var(--font-math) !important;
+    font-style: italic !important;
+    font-weight: 800 !important;
+    color: #b45309;
 }
 
 .tutorial-progress {
     display: inline-block;
     color: #e65100;
     font-weight: 800;
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     margin-top: 0.35rem;
 }
 
@@ -4738,17 +4816,17 @@
 }
 
 .level-intro-title {
-    font-size: 1.05rem;
+    font-size: 1.18rem;
     font-weight: 800;
     color: #78350f;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.25rem;
 }
 
 .level-intro-desc {
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     color: #92400e;
     font-weight: 500;
-    line-height: 1.35;
+    line-height: 1.45;
 }
 
 .btn-play-level-0 {
@@ -4997,9 +5075,10 @@
 }
 
 .zero-stage-intro {
-    font-size: 0.95rem;
+    font-size: 1.18rem;
+    font-weight: 500;
     color: #334155;
-    line-height: 1.5;
+    line-height: 1.55;
     margin-bottom: 1.25rem;
 }
 
@@ -5148,25 +5227,27 @@
 }
 
 .comp-title {
-    font-size: 0.95rem;
+    font-size: 1.15rem;
     font-weight: 800;
     color: #1e293b;
     margin-bottom: 0.4rem;
 }
 
 .comp-desc {
-    font-size: 0.8rem;
+    font-size: 1.05rem;
+    font-weight: 500;
     color: #475569;
-    line-height: 1.45;
+    line-height: 1.48;
     margin-bottom: 0.75rem;
     flex: 1;
 }
 
 .comp-example-box {
     background: rgba(255, 255, 255, 0.8);
-    padding: 0.45rem 0.65rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 10px;
-    font-size: 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
     color: #334155;
     width: 100%;
 }
@@ -5275,16 +5356,17 @@
 }
 
 .mission-title {
-    font-size: 1rem;
+    font-size: 1.18rem;
     font-weight: 800;
     color: #1e3a8a;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
 }
 
 .mission-desc {
-    font-size: 0.85rem;
+    font-size: 1.15rem;
+    font-weight: 500;
     color: #1e40af;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .code-math {
@@ -5460,8 +5542,9 @@
 
 .sim-instructions-hint {
     text-align: center;
-    font-size: 0.78rem;
-    color: #64748b;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #475569;
     margin-top: 0.75rem;
     margin-bottom: 0;
 }
@@ -5504,7 +5587,8 @@
 }
 
 .proof-header-content p {
-    font-size: 0.85rem;
+    font-size: 1.15rem;
+    font-weight: 500;
     color: #166534;
     margin: 0;
 }
@@ -5517,8 +5601,8 @@
 }
 
 .proof-card-header {
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 1.05rem;
+    font-weight: 800;
     color: #334155;
     margin-bottom: 1rem;
 }
@@ -5546,7 +5630,7 @@
 }
 
 .eq-badge {
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: #64748b;
     background: #f1f5f9;
@@ -5574,9 +5658,10 @@
 }
 
 .eq-sub {
-    font-size: 0.72rem;
+    font-size: 1rem;
+    font-weight: 500;
     color: #64748b;
-    line-height: 1.35;
+    line-height: 1.4;
 }
 
 .eq-arrow-divider {
@@ -5601,16 +5686,17 @@
 }
 
 .summary-body h4 {
-    font-size: 0.9rem;
+    font-size: 1.15rem;
     font-weight: 800;
     color: #1e293b;
     margin: 0 0 0.25rem 0;
 }
 
 .summary-body p {
-    font-size: 0.82rem;
-    color: #475569;
-    line-height: 1.5;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: #334155;
+    line-height: 1.55;
     margin: 0;
 }
 
@@ -5748,14 +5834,16 @@
 }
 
 .rotate-content p {
-    font-size: 0.95rem;
+    font-size: 1.18rem;
+    font-weight: 500;
     line-height: 1.55;
     color: #e2e8f0;
     margin-bottom: 0.5rem;
 }
 
 .rotate-content .rotate-subtext {
-    font-size: 0.85rem;
+    font-size: 1.05rem;
+    font-weight: 500;
     color: #94a3b8;
     margin-bottom: 0;
 }
