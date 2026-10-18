@@ -2,7 +2,8 @@ import { state } from '../core/state.js';
 import { BADGES_DB } from '../data/items.js';
 import { getTitle, saveData, checkBadgeUnlocks } from '../core/engine.js';
 import { switchScreen, showMsg, closeModal } from './screens.js';
-import { startHostRoom, stopHostRoom, refreshHostStudents } from '../core/sync.js';
+import { startHostRoom, stopHostRoom, refreshHostStudents, loadSpecificHostRoom, updateStudentProfileInRoom } from '../core/sync.js';
+import { playSFX } from '../core/audio.js';
 
 let fasilChartInstance = null;
 
@@ -303,21 +304,28 @@ export function updateFasilTopBarUI() {
     const roomCodeDisplay = document.getElementById('fasil-room-code-display');
     const modeDesc = document.getElementById('fasil-mode-desc');
     const btnCreateRoom = document.getElementById('btn-create-room');
+    const roomInput = document.getElementById('input-fasil-room-code');
 
     if (state.hostedRoomCode) {
         if (roomBadge) roomBadge.classList.remove('hidden');
         if (roomCodeDisplay) roomCodeDisplay.innerText = state.hostedRoomCode;
         if (modeDesc) modeDesc.innerText = `Sesi Aktif: ${state.hostedRoomCode} (Menerima Progres Realtime Daring & Luring)`;
-        if (btnCreateRoom) btnCreateRoom.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> Ganti Kode Ruang`;
+        if (btnCreateRoom) btnCreateRoom.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> Buat Ruang Baru`;
+        if (roomInput && document.activeElement !== roomInput) {
+            roomInput.value = state.hostedRoomCode;
+        }
     } else {
         if (roomBadge) roomBadge.classList.add('hidden');
         if (modeDesc) modeDesc.innerText = 'Mode Luring - Data Perangkat Lokal';
         if (btnCreateRoom) btnCreateRoom.innerHTML = `<i class="fa-solid fa-tower-broadcast"></i> Buat Sesi Kelas Online`;
+        if (roomInput && document.activeElement !== roomInput) {
+            roomInput.value = '';
+        }
     }
 }
 
 /**
- * Guru membuat sesi kelas online / membuka ruang baru.
+ * Guru membuat sesi kelas online / membuka ruang baru secara acak.
  */
 export function handleCreateHostRoom() {
     // forceNew = true: menghasilkan kode baru saat guru sengaja klik Buat / Ganti Ruang
@@ -328,6 +336,220 @@ export function handleCreateHostRoom() {
     updateFasilTopBarUI();
     renderFasilTableAndEWS();
     showMsg('Sesi Kelas Aktif', `Kode Ruang Kelas: ${code}\nBagikan kode 6 digit ini kepada murid-murid.`);
+}
+
+/**
+ * Fasilitator memuat data kelas tertentu berdasarkan input Kode Ruang dinamis.
+ */
+export async function handleLoadSpecificRoom() {
+    const roomInput = document.getElementById('input-fasil-room-code');
+    const loadBtn = document.getElementById('btn-load-fasil-room');
+    if (!roomInput) return;
+
+    const rawCode = roomInput.value.trim();
+    if (!rawCode) {
+        showMsg('Kode Ruang Kosong', 'Masukkan kode ruang kelas yang ingin dimuat (contoh: ALJ7A1).');
+        roomInput.focus();
+        return;
+    }
+
+    const origBtnHtml = loadBtn ? loadBtn.innerHTML : '';
+    if (loadBtn) {
+        loadBtn.disabled = true;
+        loadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memuat...';
+    }
+
+    try {
+        const result = await loadSpecificHostRoom(rawCode, () => {
+            renderFasilTableAndEWS();
+        });
+
+        updateFasilTopBarUI();
+        renderFasilTableAndEWS();
+
+        if (!result.success) {
+            showMsg('Gagal Memuat Ruang', result.message);
+        } else {
+            roomInput.value = result.code || rawCode.toUpperCase();
+            showMsg(result.isOffline ? 'Mode Luring Aktif' : 'Ruang Kelas Dimuat', result.message);
+        }
+    } catch (err) {
+        console.warn('[Reports] Gagal memuat kode ruang spesifik:', err);
+        showMsg('Peringatan', 'Terjadi kendala saat memuat kode ruang. Pastikan format kode benar.');
+    } finally {
+        if (loadBtn) {
+            loadBtn.disabled = false;
+            loadBtn.innerHTML = origBtnHtml;
+        }
+    }
+}
+
+/**
+ * Mengatur pengurutan (sorting) kolom pada tabel fasilitator saat header diklik.
+ * @param {string} field 'name' | 'kelas' | 'level' | 'money' | 'accuracy' | 'quiz'
+ */
+export function handleSortFasilTable(field) {
+    if (!field) return;
+    if (state.fasilSortField === field) {
+        state.fasilSortOrder = state.fasilSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        state.fasilSortField = field;
+        // Default: Nama & Kelas urut A-Z ('asc'), metrik numerik urut tertinggi ('desc') atau 'asc'
+        state.fasilSortOrder = 'asc';
+    }
+    renderFasilTableAndEWS();
+}
+
+/**
+ * Mengurutkan daftar murid berdasarkan state.fasilSortField dan state.fasilSortOrder.
+ * @param {Array<Object>} students
+ * @returns {Array<Object>}
+ */
+export function sortFasilStudents(students) {
+    if (!Array.isArray(students)) return [];
+    const sorted = [...students];
+    const field = state.fasilSortField;
+    if (!field) return sorted;
+
+    const dir = state.fasilSortOrder === 'desc' ? -1 : 1;
+
+    const getQuizRatio = (s) => {
+        if (!s || !s.quizStr || !s.quizStr.includes('/')) return -1;
+        const [c, t] = s.quizStr.split('/').map(Number);
+        if (!t || isNaN(c) || isNaN(t)) return -1;
+        return (c / t) * 1000 + c;
+    };
+
+    sorted.sort((a, b) => {
+        let cmp = 0;
+        switch (field) {
+            case 'name':
+                cmp = String(a.name || '').localeCompare(String(b.name || ''), 'id-ID', { sensitivity: 'base', numeric: true });
+                break;
+            case 'kelas':
+                cmp = String(a.kelas || '').localeCompare(String(b.kelas || ''), 'id-ID', { sensitivity: 'base', numeric: true });
+                break;
+            case 'level': {
+                const lvlA = Number(a.maxLevel) || 1;
+                const lvlB = Number(b.maxLevel) || 1;
+                cmp = lvlA !== lvlB ? (lvlA - lvlB) : ((Number(a.level) || 1) - (Number(b.level) || 1));
+                break;
+            }
+            case 'money':
+                cmp = (Number(a.money) || 0) - (Number(b.money) || 0);
+                break;
+            case 'accuracy':
+                cmp = (Number(a.accuracyNum) || 0) - (Number(b.accuracyNum) || 0);
+                break;
+            case 'quiz':
+                cmp = getQuizRatio(a) - getQuizRatio(b);
+                break;
+            default:
+                cmp = 0;
+        }
+        return cmp * dir;
+    });
+
+    return sorted;
+}
+
+/**
+ * Memperbarui ikon indikator sorting pada elemen <th> tabel fasilitator.
+ */
+export function updateFasilSortHeadersUI() {
+    const headers = document.querySelectorAll('.fasil-table thead th.sortable-th');
+    headers.forEach(th => {
+        const field = th.dataset.sort;
+        const icon = th.querySelector('.sort-icon');
+        if (!icon) return;
+
+        if (state.fasilSortField === field) {
+            th.classList.add('sorted-active');
+            icon.className = state.fasilSortOrder === 'asc'
+                ? 'fa-solid fa-sort-up sort-icon active'
+                : 'fa-solid fa-sort-down sort-icon active';
+        } else {
+            th.classList.remove('sorted-active');
+            icon.className = 'fa-solid fa-sort sort-icon';
+        }
+    });
+}
+
+// Pelacak ID murid yang barisnya sedang dalam mode edit di dasbor fasilitator
+export let activeEditingStudentId = null;
+
+export function setActiveEditingStudentId(id) {
+    activeEditingStudentId = id;
+}
+
+/**
+ * Menyimpan editan fasilitator (HANYA nama_fasil dan kelas_fasil) ke Firebase
+ * serta cache lokal tanpa menimpa data asli perangkat murid.
+ * @param {string} studentId
+ */
+export async function handleSaveStudentEdit(studentId) {
+    if (!studentId) return;
+    const tbody = document.getElementById('fasil-table-body');
+    const row = tbody?.querySelector(`tr[data-student-id="${studentId}"]`);
+    if (!row) return;
+
+    const nameInput = row.querySelector('.fasil-edit-name');
+    const kelasInput = row.querySelector('.fasil-edit-kelas');
+    const newName = nameInput ? nameInput.value.trim() : '';
+    const newKelas = kelasInput ? kelasInput.value.trim() : '';
+
+    if (!newName) {
+        showMsg('Peringatan', 'Nama siswa tidak boleh kosong.');
+        if (nameInput) nameInput.focus();
+        return;
+    }
+
+    try {
+        playSFX('success');
+    } catch (e) { /* ignore */ }
+
+    // 1. Simpan ke local user jika akun lokal
+    if (Array.isArray(state.users)) {
+        const localUser = state.users.find(u => String(u.id) === String(studentId) || String(u.name) === String(studentId));
+        if (localUser) {
+            localUser.nama_fasil = newName;
+            if (newKelas) localUser.kelas_fasil = newKelas;
+            saveData();
+        }
+    }
+
+    // 2. Simpan secara parsial (HANYA nama_fasil & kelas_fasil) ke Firebase & cache lokal
+    await updateStudentProfileInRoom(studentId, {
+        nama_fasil: newName,
+        kelas_fasil: newKelas || '-'
+    });
+
+    // 3. Matikan mode edit dan render ulang tabel
+    const savedId = studentId;
+    activeEditingStudentId = null;
+    renderFasilTableAndEWS();
+
+    // 4. Efek visual flash tersimpan pada baris yang baru diedit
+    const updatedRow = tbody.querySelector(`tr[data-student-id="${savedId}"]`);
+    if (updatedRow) {
+        updatedRow.classList.add('row-saved-flash');
+        setTimeout(() => {
+            updatedRow.classList.remove('row-saved-flash');
+        }, 1200);
+    }
+
+    // 5. Perbarui grafik kelas
+    const updatedStudents = sortFasilStudents(getAggregatedStudents());
+    renderFasilClassChart(updatedStudents);
+}
+
+/**
+ * Wrapper kompatibilitas mundur untuk pembaruan inline jika dipanggil langsung
+ */
+export async function handleInlineStudentUpdate(studentId, field, newValue, inputEl) {
+    if (field !== 'name' && field !== 'kelas' && field !== 'nama_fasil' && field !== 'kelas_fasil') return;
+    const targetKey = (field === 'name' || field === 'nama_fasil') ? 'nama_fasil' : 'kelas_fasil';
+    await updateStudentProfileInRoom(studentId, { [targetKey]: newValue });
 }
 
 /**
@@ -421,10 +643,20 @@ export function getAggregatedStudents() {
         }
         let lastTimestamp = lastHistory && lastHistory.timestamp ? lastHistory.timestamp : Date.now();
 
-        studentMap.set(String(u.id || u.name), {
+        const localIdStr = String(u.id || u.name);
+        const fasilName = u.nama_fasil || (state.fasilEdits && (state.fasilEdits[localIdStr]?.nama_fasil || state.fasilEdits[String(u.name)]?.nama_fasil));
+        const fasilKelas = u.kelas_fasil || (state.fasilEdits && (state.fasilEdits[localIdStr]?.kelas_fasil || state.fasilEdits[String(u.name)]?.kelas_fasil));
+        const resolvedName = fasilName || u.name;
+        const resolvedKelas = fasilKelas || u.kelas || u.class || '-';
+
+        studentMap.set(localIdStr, {
             id: u.id,
-            name: u.name,
-            kelas: u.kelas || u.class || '-',
+            name: resolvedName,
+            rawName: u.name,
+            nama_fasil: fasilName || null,
+            kelas: resolvedKelas,
+            rawKelas: u.kelas || u.class || '-',
+            kelas_fasil: fasilKelas || null,
             gender: u.gender || 'Laki-laki',
             maxLevel: u.maxLevel || 1,
             level: lastHistory ? lastHistory.level : (u.maxLevel || 1),
@@ -461,7 +693,17 @@ export function getAggregatedStudents() {
                 }
             }
 
+            const cleanKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const onlineFasilName = s.nama_fasil || (state.fasilEdits && (state.fasilEdits[key]?.nama_fasil || state.fasilEdits[cleanKey]?.nama_fasil));
+            const onlineFasilKelas = s.kelas_fasil || (state.fasilEdits && (state.fasilEdits[key]?.kelas_fasil || state.fasilEdits[cleanKey]?.kelas_fasil));
+
             if (existing) {
+                if (s.name) existing.rawName = s.name;
+                if (s.kelas) existing.rawKelas = s.kelas;
+                existing.nama_fasil = onlineFasilName || existing.nama_fasil || null;
+                existing.kelas_fasil = onlineFasilKelas || existing.kelas_fasil || null;
+                existing.name = existing.nama_fasil || s.name || existing.name;
+                existing.kelas = existing.kelas_fasil || s.kelas || existing.kelas;
                 existing.maxLevel = Math.max(existing.maxLevel, s.maxLevel || s.level || 1);
                 existing.level = s.level || existing.level;
                 existing.activeLevel = s.activeLevel || null;
@@ -479,10 +721,16 @@ export function getAggregatedStudents() {
                 }
                 existing.isOnline = true;
             } else {
+                const resolvedName = onlineFasilName || s.name || 'Siswa';
+                const resolvedKelas = onlineFasilKelas || s.kelas || '-';
                 studentMap.set(key, {
                     id: s.studentId,
-                    name: s.name,
-                    kelas: s.kelas || '-',
+                    name: resolvedName,
+                    rawName: s.name || 'Siswa',
+                    nama_fasil: onlineFasilName || null,
+                    kelas: resolvedKelas,
+                    rawKelas: s.kelas || '-',
+                    kelas_fasil: onlineFasilKelas || null,
                     gender: s.gender || 'Laki-laki',
                     maxLevel: s.maxLevel || s.level || 1,
                     level: s.level || 1,
@@ -508,6 +756,19 @@ export function getAggregatedStudents() {
 }
 
 /**
+ * Helper mengamankan teks di dalam atribut HTML value="..."
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeHtmlAttr(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+/**
  * Render tabel murid aktif dan panel Peringatan Dini (EWS).
  */
 export function renderFasilTableAndEWS() {
@@ -515,16 +776,31 @@ export function renderFasilTableAndEWS() {
     const ewsList = document.getElementById('fasil-ews-list');
     if (!tbody || !ewsList) return;
 
-    tbody.innerHTML = '';
-    ewsList.innerHTML = '';
+    updateFasilSortHeadersUI();
 
-    const students = getAggregatedStudents();
+    const rawStudents = getAggregatedStudents();
+    const students = sortFasilStudents(rawStudents);
+
+    // Ambil nilai yang sedang diketik jika mode edit sedang aktif pada salah satu baris
+    let typingName = null;
+    let typingKelas = null;
+    if (activeEditingStudentId) {
+        const activeRow = tbody.querySelector(`tr[data-student-id="${activeEditingStudentId}"]`);
+        if (activeRow) {
+            const nIn = activeRow.querySelector('.fasil-edit-name');
+            const kIn = activeRow.querySelector('.fasil-edit-kelas');
+            if (nIn) typingName = nIn.value;
+            if (kIn) typingKelas = kIn.value;
+        }
+    }
+
+    tbody.innerHTML = '';
 
     if (students.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 1.5rem; color: #64748b;">Belum ada data murid yang terhubung atau tersimpan.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 1.5rem; color: #64748b;">Belum ada data murid yang terhubung atau tersimpan.</td></tr>';
     } else {
-        students.forEach(u => {
-            const onlineBadge = u.isOnline ? '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-right:4px;" title="Online"></span>' : '';
+        students.forEach((u, idx) => {
+            const onlineBadge = u.isOnline ? '<span class="fasil-online-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-right:6px; flex-shrink:0;" title="Online"></span>' : '';
 
             let levelDisplay = `<span style="color:#94a3b8;">Lvl ${u.maxLevel}</span>`;
             if (u.isOnline) {
@@ -535,24 +811,126 @@ export function renderFasilTableAndEWS() {
                 }
             }
 
-            tbody.innerHTML += `
-                <tr class="fasil-tr">
-                    <td class="fasil-td">${onlineBadge}<strong>${u.name}</strong></td>
-                    <td class="fasil-td">${u.kelas}</td>
-                    <td class="fasil-td text-center">${levelDisplay}</td>
-                    <td class="fasil-td text-right">${u.money.toLocaleString('id-ID')}</td>
-                    <td class="fasil-td text-center">${u.accuracyStr}</td>
-                    <td class="fasil-td text-center font-bold" style="color:#1976d2;">${u.quizStr}</td>
-                    <td class="fasil-td text-center">
-                        <div style="display:inline-flex; gap:6px; align-items:center; justify-content:center;">
-                            <button class="btn-detail-user" data-id="${u.id}" title="Lihat Rapor Belajar Siswa">
-                                <i class="fa-solid fa-chart-line"></i> Detail
-                            </button>
-                            ${u.isLocal ? `<button class="btn-delete-user" data-id="${u.id}" title="Hapus"><i class="fa-solid fa-trash"></i></button>` : '<span style="color:#94a3b8; font-size:0.75rem;">Sesi Live</span>'}
-                        </div>
-                    </td>
-                </tr>
-            `;
+            const safeId = escapeHtmlAttr(u.id);
+            const safeName = escapeHtmlAttr(u.name);
+            const safeKelas = escapeHtmlAttr(u.kelas);
+            const isEditing = (activeEditingStudentId !== null && String(u.id) === String(activeEditingStudentId));
+
+            if (isEditing) {
+                const valName = escapeHtmlAttr(typingName !== null ? typingName : u.name);
+                const valKelas = escapeHtmlAttr(typingKelas !== null ? typingKelas : u.kelas);
+
+                tbody.innerHTML += `
+                    <tr class="fasil-tr fasil-tr-editing" data-student-id="${safeId}">
+                        <td class="fasil-td text-center font-bold fasil-col-no">${idx + 1}</td>
+                        <td class="fasil-td">
+                            <div class="fasil-edit-cell">
+                                ${onlineBadge}
+                                <input type="text" class="fasil-edit-input fasil-edit-name" data-id="${safeId}" value="${valName}" placeholder="Nama Siswa" aria-label="Edit Nama Siswa">
+                            </div>
+                        </td>
+                        <td class="fasil-td text-center">
+                            <div class="fasil-edit-cell fasil-edit-cell-center">
+                                <input type="text" class="fasil-edit-input fasil-edit-kelas" data-id="${safeId}" value="${valKelas}" placeholder="Kelas" aria-label="Edit Kelas Siswa">
+                                <small class="fasil-jk-suffix">(${u.gender === 'Perempuan' ? 'P' : 'L'})</small>
+                            </div>
+                        </td>
+                        <td class="fasil-td text-center">${levelDisplay}</td>
+                        <td class="fasil-td text-right">${u.money.toLocaleString('id-ID')}</td>
+                        <td class="fasil-td text-center">${u.accuracyStr}</td>
+                        <td class="fasil-td text-center font-bold" style="color:#1976d2;">${u.quizStr}</td>
+                        <td class="fasil-td text-center">
+                            <div class="fasil-action-buttons">
+                                <button class="btn-save-student" data-id="${safeId}" title="Simpan Perubahan Nama & Kelas">
+                                    <i class="fa-solid fa-floppy-disk"></i> Simpan
+                                </button>
+                                <button class="btn-cancel-edit" data-id="${safeId}" title="Batal Mengedit">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML += `
+                    <tr class="fasil-tr" data-student-id="${safeId}">
+                        <td class="fasil-td text-center font-bold fasil-col-no">${idx + 1}</td>
+                        <td class="fasil-td">
+                            <div class="fasil-inline-cell">
+                                ${onlineBadge}
+                                <span class="fasil-student-name font-bold">${safeName}</span>
+                            </div>
+                        </td>
+                        <td class="fasil-td text-center">
+                            <span class="fasil-student-kelas">${safeKelas} <small class="fasil-jk-suffix">(${u.gender === 'Perempuan' ? 'P' : 'L'})</small></span>
+                        </td>
+                        <td class="fasil-td text-center">${levelDisplay}</td>
+                        <td class="fasil-td text-right">${u.money.toLocaleString('id-ID')}</td>
+                        <td class="fasil-td text-center">${u.accuracyStr}</td>
+                        <td class="fasil-td text-center font-bold" style="color:#1976d2;">${u.quizStr}</td>
+                        <td class="fasil-td text-center">
+                            <div class="fasil-action-buttons">
+                                <button class="btn-detail-user" data-id="${safeId}" title="Lihat Rapor Belajar Siswa">
+                                    <i class="fa-solid fa-chart-line"></i> Detail
+                                </button>
+                                <button class="btn-edit-student" data-id="${safeId}" title="Edit Nama & Kelas Siswa">
+                                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                                </button>
+                                ${u.isLocal ? `<button class="btn-delete-user" data-id="${safeId}" title="Hapus"><i class="fa-solid fa-trash"></i></button>` : '<span style="color:#94a3b8; font-size:0.75rem;">Sesi Live</span>'}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        });
+
+        // Pasang event listener tombol edit
+        tbody.querySelectorAll('.btn-edit-student').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                try { playSFX('click'); } catch (err) {}
+                activeEditingStudentId = String(btn.dataset.id);
+                renderFasilTableAndEWS();
+                const activeRow = tbody.querySelector(`tr[data-student-id="${activeEditingStudentId}"]`);
+                const nameInput = activeRow?.querySelector('.fasil-edit-name');
+                if (nameInput) {
+                    nameInput.focus();
+                    nameInput.select();
+                }
+            });
+        });
+
+        // Pasang event listener tombol batal
+        tbody.querySelectorAll('.btn-cancel-edit').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                try { playSFX('click'); } catch (err) {}
+                activeEditingStudentId = null;
+                renderFasilTableAndEWS();
+            });
+        });
+
+        // Pasang event listener tombol simpan
+        tbody.querySelectorAll('.btn-save-student').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleSaveStudentEdit(btn.dataset.id);
+            });
+        });
+
+        // Keyboard navigation pada input edit
+        tbody.querySelectorAll('.fasil-edit-input').forEach(input => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveStudentEdit(input.dataset.id);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    try { playSFX('click'); } catch (err) {}
+                    activeEditingStudentId = null;
+                    renderFasilTableAndEWS();
+                }
+            });
         });
 
         // Pasang event listener tombol detail
@@ -569,6 +947,8 @@ export function renderFasilTableAndEWS() {
             btn.addEventListener('click', () => deleteUser(btn.dataset.id));
         });
     }
+
+    ewsList.innerHTML = '';
 
     // Evaluasi EWS (Early Warning System)
     // Filter HANYA mendeteksi kejadian nyata pada level berjalan:

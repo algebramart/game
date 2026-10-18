@@ -240,23 +240,23 @@ export function renderMathExpression(expr) {
 
 // Daftar nama barang belanjaan yang perlu ditebalkan (bold) dalam kalimat transaksi
 const ITEM_NAMES_LIST = [
-    'kue padamaran', 'padamaran',
-    'dodol nanas', 'dodol',
-    'buku tulis', 'buku',
-    'kue gandus', 'gandus',
+    'wadah kue padamaran', 'takir kue padamaran', 'kue padamaran', 'padamaran',
+    'batang dodol nanas', 'batang dodol', 'dodol nanas', 'dodol',
+    'kantong beras', 'karung beras', 'beras',
+    'kantong minyak goreng', 'kemasan minyak goreng', 'kantong minyak', 'kemasan minyak', 'botol minyak goreng', 'botol minyak', 'minyak goreng', 'minyak',
+    'mangkuk tempoyak', 'tempoyak',
+    'kantong tepung', 'bungkus tepung', 'tepung',
+    'batang sabun', 'sabun',
+    'bungkus roti', 'buah roti', 'roti',
+    'piring kue gandus', 'kue gandus', 'gandus',
     'bungkus gula', 'gula',
     'buah jeruk', 'jeruk',
     'buah apel', 'apel',
     'bungkus kopi', 'kopi aaa', 'kopi',
-    'botol minyak goreng', 'minyak goreng', 'botol minyak', 'minyak',
-    'pena',
-    'roti',
-    'sabun',
+    'batang pena', 'buah pena', 'pena',
     'butir telur', 'telur',
-    'tempoyak',
-    'tepung',
-    'terong',
-    'karung beras', 'beras'
+    'buah terong', 'terong',
+    'buku tulis', 'buku'
 ].sort((a, b) => b.length - a.length);
 
 const ITEM_NAME_REGEX = new RegExp('\\b(' + ITEM_NAMES_LIST.map(s => s.replace(/\s+/g, '\\s+')).join('|') + ')\\b', 'gi');

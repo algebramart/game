@@ -19,7 +19,7 @@ export const QUIZ_DB = {
             ans: 0 
         },
         { 
-            q: "Jika harga satu kotak kue padamaran adalah j rupiah, maka bentuk aljabar untuk pembelian 4 kotak kue padamaran adalah...", 
+            q: "Jika harga satu wadah kue padamaran adalah j rupiah, maka bentuk aljabar untuk pembelian 4 wadah kue padamaran adalah...", 
             options: [
                 "A. j + 4",
                 "B. 4j",
@@ -65,7 +65,7 @@ export const QUIZ_DB = {
             ans: 0 
         },
         { 
-            q: "Pelanggan memesan 5 kotak kue padamaran (5j) tetapi membatalkan 2 kotak (-2j). Bentuk aljabar penyederhanaannya adalah...", 
+            q: "Pelanggan memesan 5 wadah kue padamaran (5j) tetapi membatalkan 2 wadah (-2j). Bentuk aljabar penyederhanaannya adalah...", 
             options: [
                 "A. 5j - 2j = 7j",
                 "B. 5j - 2j = 3j",
@@ -81,7 +81,7 @@ export const QUIZ_DB = {
     // ----------------------------------------------------
     4: [ // Fase 2: Pengenalan Dua Variabel Berbeda
         { 
-            q: "Harga 1 karung beras adalah b rupiah dan harga 1 botol minyak adalah i rupiah. Bentuk aljabar untuk 2 karung beras dan 3 botol minyak adalah...", 
+            q: "Harga 1 kantong beras adalah b rupiah dan harga 1 kantong minyak adalah i rupiah. Bentuk aljabar untuk 2 kantong beras dan 3 kantong minyak adalah...", 
             options: [
                 "A. 2b + 3i",
                 "B. 5bi",
@@ -114,7 +114,7 @@ export const QUIZ_DB = {
             ans: 0 
         },
         { 
-            q: "Pelanggan memesan 3 apel (3a) dan 2 karung beras (2b), lalu menambah 2 apel lagi (2a). Bentuk sederhananya adalah...", 
+            q: "Pelanggan memesan 3 apel (3a) dan 2 kantong beras (2b), lalu menambah 2 apel lagi (2a). Bentuk sederhananya adalah...", 
             options: [
                 "A. 7ab",
                 "B. 5a + 2b",
@@ -199,7 +199,7 @@ export const QUIZ_DB = {
 
     9: [ // Makna Koefisien Nol (0)
         { 
-            q: "Pelanggan memesan 4 apel seharga a rupiah dan 0 karung beras (4a + 0b). Bentuk aljabar paling sederhana yang dicatat kasir adalah...", 
+            q: "Pelanggan memesan 4 apel seharga a rupiah dan 0 kantong beras (4a + 0b). Bentuk aljabar paling sederhana yang dicatat kasir adalah...", 
             options: [
                 "A. 4ab",
                 "B. 4a + 0b",
@@ -271,7 +271,7 @@ export const QUIZ_DB = {
 
     12: [ // C4 - Revisi Keranjang Bertingkat
         { 
-            q: "Pelanggan membawa belanjaan awal (5b + 4i), lalu mengembalikan 2 karung beras (-2b) dan menambah 1 botol minyak (+i). Bentuk aljabar akhirnya adalah...", 
+            q: "Pelanggan membawa belanjaan awal (5b + 4i), lalu mengembalikan 2 kantong beras (-2b) dan menambah 1 kantong minyak (+i). Bentuk aljabar akhirnya adalah...", 
             options: [
                 "A. 7b + 5i",
                 "B. 3b + 3i",
@@ -361,9 +361,9 @@ export const QUIZ_DB = {
         }
     ],
 
-    16: [ // C6 - Sifat Distributif Paket Parcel
+    16: [ // C6 - Sifat Distributif Paket
         { 
-            q: "Pelanggan membeli 3 paket parcel hajatan, di mana tiap paket berisi 2 apel dan 1 karung beras (2a + b). Bentuk distributif 3(2a + b) adalah...", 
+            q: "Pelanggan membeli 3 paket hajatan, di mana tiap paket berisi 2 apel dan 1 kantong beras (2a + b). Bentuk distributif 3(2a + b) adalah...", 
             options: [
                 "A. 5a + 3b",
                 "B. 6a + 3b",
@@ -407,7 +407,7 @@ export const QUIZ_DB = {
         }
     ],
 
-    18: [ // C6 - Distributif Parcel Bertingkat (Kurung Ganda)
+    18: [ // C6 - Distributif Paket Bertingkat (Kurung Ganda)
         { 
             q: "Selesaikan bentuk aljabar kurung ganda: 2(3g + 2a) + 1(g + 4a)...", 
             options: [

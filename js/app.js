@@ -6,7 +6,7 @@ import { state }             from './core/state.js';
 import { saveData, requestFullScreen, exitFullScreen } from './core/engine.js';
 import { switchScreen, renderUserList, showMsg, closeModal, renderLevels, updateUniversalSettingsContext } from './ui/screens.js';
 import { initGameListeners, startLevel, addVariable, tambahUangKembalian, nextQuizQuestion, confirmQuizAnswer } from './ui/cashier.js';
-import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleDonate, destroyFasilChart, handlePrintDetailedPDF, handlePrintReport, handleCopyWhatsAppReport, forceRefreshFasilData } from './ui/reports.js';
+import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleLoadSpecificRoom, handleSortFasilTable, handleDonate, destroyFasilChart, handlePrintDetailedPDF, handlePrintReport, handleCopyWhatsAppReport, forceRefreshFasilData } from './ui/reports.js';
 import { joinRoom, leaveRoom, sendStudentProgress } from './core/sync.js';
 import { startTutorial, skipTutorial, endTutorial, updateTutorialPosition, initTutorialEvents } from './core/tutorial.js';
 import { openLevelZeroModal, closeLevelZeroModal, initLevelZeroEvents } from './ui/levelZero.js';
@@ -583,6 +583,27 @@ function bindEvents() {
     document.querySelector('.btn-reset-data')?.addEventListener('click', resetAllData);
     document.getElementById('btn-create-room')?.addEventListener('click', handleCreateHostRoom);
     document.getElementById('btn-copy-room-code')?.addEventListener('click', handleCopyHostRoomCode);
+    document.getElementById('btn-load-fasil-room')?.addEventListener('click', handleLoadSpecificRoom);
+    const inputFasilRoomCode = document.getElementById('input-fasil-room-code');
+    if (inputFasilRoomCode) {
+        inputFasilRoomCode.addEventListener('input', e => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+        inputFasilRoomCode.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleLoadSpecificRoom();
+            }
+        });
+    }
+    document.querySelectorAll('.fasil-table thead th.sortable-th').forEach(th => {
+        th.addEventListener('click', () => {
+            if (th.dataset.sort) {
+                playSFX('click');
+                handleSortFasilTable(th.dataset.sort);
+            }
+        });
+    });
 
     // --- Modal PIN ---
     document.getElementById('btn-pin-cancel')?.addEventListener('click', () => closeModal('modal-pin'));

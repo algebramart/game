@@ -6,12 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Algebra-Mart</title>
 
-    <!-- External Libraries -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Pustaka Lokal (100% Offline) -->
+    <link href="libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <link rel="stylesheet" href="libs/katex/katex.min.css">
+    <script src="libs/chartjs/chart.umd.min.js"></script>
+    <script src="libs/katex/katex.min.js"></script>
+    <!-- Firebase Realtime Database Compat Lokal -->
+    <script src="libs/firebase/firebase-app-compat.js"></script>
+    <script src="libs/firebase/firebase-database-compat.js"></script>
 
     <!-- Modular CSS -->
     <link rel="stylesheet" href="css/main.css">
@@ -262,7 +265,7 @@
 
                     <div class="npc-container">
                         <div class="speech-bubble">
-                            Harga satu kotak <b class="item-name-bold">kue padamaran</b> adalah <span class="math-var">j</span> rupiah.<br>Tolong bungkuskan 4 kotak <b class="item-name-bold">kue padamaran</b> ya.
+                            Harga satu wadah <b class="item-name-bold">kue padamaran</b> adalah <span class="math-var">j</span> rupiah.<br>Tolong bungkuskan 4 wadah <b class="item-name-bold">kue padamaran</b> ya.
                         </div>
                         <img src="image/anaksmp.png" alt="Pelanggan" class="npc-image">
                     </div>
@@ -479,6 +482,12 @@
                             <i class="fa-solid fa-copy"></i>
                         </button>
                     </div>
+                    <div class="fasil-room-switcher">
+                        <input type="text" id="input-fasil-room-code" class="fasil-room-input" placeholder="Kode Ruang (mis. ALJ7A1)" maxlength="8">
+                        <button id="btn-load-fasil-room" class="btn-secondary btn-load-room" title="Muat Data Kelas berdasarkan Kode Ruang">
+                            <i class="fa-solid fa-folder-open"></i> Muat Kelas
+                        </button>
+                    </div>
                     <button id="btn-create-room" class="btn-primary btn-room-action">
                         <i class="fa-solid fa-tower-broadcast"></i> Buat Sesi Kelas Online
                     </button>
@@ -557,12 +566,13 @@
                         <table class="fasil-table">
                             <thead>
                                 <tr>
-                                    <th>Nama</th>
-                                    <th>Kls/JK</th>
-                                    <th class="text-center">Level</th>
-                                    <th class="text-right">Laba (Rp)</th>
-                                    <th class="text-center">Akurasi</th>
-                                    <th class="text-center">Kuis (B/S)</th>
+                                    <th class="text-center" style="width: 52px;">No</th>
+                                    <th class="sortable-th" data-sort="name" title="Urutkan berdasarkan Nama">Nama <i class="fa-solid fa-sort sort-icon"></i></th>
+                                    <th class="sortable-th" data-sort="kelas" title="Urutkan berdasarkan Kelas">Kls/JK <i class="fa-solid fa-sort sort-icon"></i></th>
+                                    <th class="sortable-th text-center" data-sort="level" title="Urutkan berdasarkan Level">Level <i class="fa-solid fa-sort sort-icon"></i></th>
+                                    <th class="sortable-th text-right" data-sort="money" title="Urutkan berdasarkan Laba">Laba (Rp) <i class="fa-solid fa-sort sort-icon"></i></th>
+                                    <th class="sortable-th text-center" data-sort="accuracy" title="Urutkan berdasarkan Akurasi">Akurasi <i class="fa-solid fa-sort sort-icon"></i></th>
+                                    <th class="sortable-th text-center" data-sort="quiz" title="Urutkan berdasarkan Skor Kuis">Kuis (B/S) <i class="fa-solid fa-sort sort-icon"></i></th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
@@ -1220,8 +1230,8 @@
         })();
     </script>
 
-    <!-- ES Module Entry Point -->
-    <script type="module" src="js/app.js"></script>
+    <!-- Skrip Utama Terpadu (Bundle Classic - Non-Module) -->
+    <script src="js/bundle.js"></script>
 </body>
 
 </html>

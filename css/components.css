@@ -5848,4 +5848,342 @@
     margin-bottom: 0;
 }
 
+/* =========================================
+   DASBOR FASILITATOR — SWITCH RUANG, SORTING & INLINE EDIT
+   ========================================= */
+.fasil-room-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    padding: 0.25rem 0.4rem;
+    border-radius: 10px;
+}
+
+.fasil-room-input {
+    width: 115px;
+    height: 30px;
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 6px;
+    padding: 0 0.55rem;
+    color: #fde047;
+    font-family: monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.fasil-room-input::placeholder {
+    color: #94a3b8;
+    font-family: inherit;
+    font-weight: 500;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.fasil-room-input:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+    background: #0f172a;
+}
+
+.btn-load-room {
+    height: 30px;
+    padding: 0 0.7rem;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+.btn-load-room:hover {
+    background: linear-gradient(135deg, #fbbf24, #b45309);
+    transform: translateY(-1px);
+}
+
+.btn-load-room:active {
+    transform: translateY(0);
+}
+
+.fasil-table thead th.sortable-th {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.fasil-table thead th.sortable-th:hover {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+}
+
+.fasil-table thead th.sortable-th .sort-icon {
+    margin-left: 0.35rem;
+    font-size: 0.75rem;
+    opacity: 0.45;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.fasil-table thead th.sortable-th:hover .sort-icon {
+    opacity: 0.85;
+}
+
+.fasil-table thead th.sortable-th.sort-asc,
+.fasil-table thead th.sortable-th.sort-desc {
+    color: #b45309;
+    background-color: rgba(245, 158, 11, 0.15);
+}
+
+.fasil-table thead th.sortable-th.sort-asc .sort-icon,
+.fasil-table thead th.sortable-th.sort-desc .sort-icon {
+    opacity: 1;
+    color: #d97706;
+}
+
+.fasil-inline-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.fasil-inline-cell-center {
+    justify-content: center;
+}
+
+.fasil-inline-input {
+    background: transparent;
+    border: 1px dashed rgba(148, 163, 184, 0.55);
+    border-radius: 6px;
+    padding: 0.22rem 0.45rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+    transition: all 0.18s ease;
+    outline: none;
+}
+
+.fasil-inline-name {
+    width: 100%;
+    min-width: 120px;
+    max-width: 210px;
+}
+
+.fasil-inline-kelas {
+    width: 68px;
+    text-align: center;
+    font-weight: 600;
+    color: #334155;
+}
+
+.fasil-inline-input:hover {
+    border-color: #f59e0b;
+    background: rgba(254, 243, 199, 0.45);
+}
+
+.fasil-inline-input:focus {
+    border: 1.5px solid #d97706;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    color: #0f172a;
+}
+
+.fasil-inline-input.inline-saved-flash {
+    border-color: #10b981 !important;
+    background: #ecfdf5 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+}
+
+.fasil-jk-suffix {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.fasil-student-name {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 0.92rem;
+}
+
+.fasil-student-kelas {
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.88rem;
+}
+
+.fasil-action-buttons {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+}
+
+.btn-edit-student {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.btn-edit-student:hover {
+    background: #fde68a;
+    color: #78350f;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(180, 83, 9, 0.15);
+}
+
+.btn-edit-student:active {
+    transform: translateY(0);
+}
+
+.btn-save-student {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+    white-space: nowrap;
+}
+
+.btn-save-student:hover {
+    background: linear-gradient(135deg, #34d399, #047857);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+}
+
+.btn-save-student:active {
+    transform: translateY(0);
+}
+
+.btn-cancel-edit {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-cancel-edit:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+.fasil-edit-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+}
+
+.fasil-edit-cell-center {
+    justify-content: center;
+}
+
+.fasil-edit-input {
+    background: #ffffff;
+    border: 1.5px solid #d97706;
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1e293b;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+    transition: all 0.18s ease;
+    box-sizing: border-box;
+}
+
+.fasil-edit-input:focus {
+    border-color: #b45309;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.28);
+}
+
+.fasil-edit-name {
+    width: 100%;
+    min-width: 120px;
+    max-width: 220px;
+}
+
+.fasil-edit-kelas {
+    width: 72px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.fasil-tr-editing {
+    background-color: rgba(254, 243, 199, 0.28) !important;
+}
+
+.row-saved-flash {
+    animation: rowSavedFlashAnim 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes rowSavedFlashAnim {
+    0% {
+        background-color: rgba(16, 185, 129, 0.35) !important;
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+@media print {
+    .fasil-room-switcher,
+    .btn-edit-student,
+    .btn-save-student,
+    .btn-cancel-edit {
+        display: none !important;
+    }
+    .fasil-inline-input,
+    .fasil-edit-input {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+    }
+}
+
+
 

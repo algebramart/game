@@ -2,7 +2,7 @@
 // core/sync.js — Sinkronisasi Hybrid (Firebase Realtime Database + BroadcastChannel)
 // ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, off } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
+import { getDatabase, ref, set, update, get, onValue, off } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
 import { state } from './state.js';
 
 // ==========================================
@@ -53,11 +53,26 @@ export function generateRoomCode() {
  * Memulai sesi hosting oleh Fasilitator/Guru menggunakan Firebase onValue.
  * @param {Function} onStudentsUpdate Callback yang dipanggil saat ada update data siswa
  * @param {boolean} forceNew Apakah memaksa membuat kode ruang baru
+ * @param {string|null} customRoomCode Kode ruang spesifik yang ingin dimuat fasilitator
  * @returns {string} roomCode Kode ruang yang aktif
  */
-export function startHostRoom(onStudentsUpdate, forceNew = false) {
+export function startHostRoom(onStudentsUpdate, forceNew = false, customRoomCode = null) {
+    // Putuskan listener pada ruang sebelumnya jika berpindah ruang
+    if (state.hostedRoomCode) {
+        try {
+            off(ref(db, 'rooms/' + state.hostedRoomCode + '/students'));
+        } catch (e) { /* ignore */ }
+    }
+
     let roomCode = state.hostedRoomCode;
-    if (forceNew || !roomCode) {
+    if (customRoomCode && typeof customRoomCode === 'string' && customRoomCode.trim() !== '') {
+        let cleaned = customRoomCode.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+        if (cleaned.length === 3) {
+            cleaned = 'ALJ' + cleaned;
+        }
+        roomCode = cleaned;
+        state.hostedRoomCode = roomCode;
+    } else if (forceNew || !roomCode) {
         roomCode = generateRoomCode();
         state.hostedRoomCode = roomCode;
     }
@@ -119,21 +134,24 @@ export function startHostRoom(onStudentsUpdate, forceNew = false) {
         // Pasang realtime listener onValue pada data murid di room
         onValue(ref(db, 'rooms/' + roomCode + '/students'), (snapshot) => {
             try {
+                state.onlineStudents = {};
                 if (snapshot.exists()) {
                     const data = snapshot.val();
                     if (data && typeof data === 'object') {
-                        Object.values(data).forEach(s => {
-                            if (!s || !s.studentId) return;
-                            const studentId = s.studentId;
+                        Object.entries(data).forEach(([keyId, s]) => {
+                            if (!s || typeof s !== 'object') return;
+                            const studentId = s.studentId || keyId;
                             if (!state.onlineStudents[studentId]) {
                                 state.onlineStudents[studentId] = {};
                             }
                             const st = state.onlineStudents[studentId];
-                            st.studentId = s.studentId;
-                            st.name = s.name;
-                            st.kelas = s.kelas;
-                            st.gender = s.gender;
-                            st.level = s.level;
+                            st.studentId = studentId;
+                            st.name = s.name || 'Siswa';
+                            st.kelas = s.kelas || '-';
+                            st.nama_fasil = s.nama_fasil || (state.fasilEdits && (state.fasilEdits[studentId]?.nama_fasil || state.fasilEdits[keyId]?.nama_fasil)) || null;
+                            st.kelas_fasil = s.kelas_fasil || (state.fasilEdits && (state.fasilEdits[studentId]?.kelas_fasil || state.fasilEdits[keyId]?.kelas_fasil)) || null;
+                            st.gender = s.gender || 'Laki-laki';
+                            st.level = s.level || 1;
                             st.laba = s.laba !== undefined ? s.laba : (s.money || 0);
                             st.money = st.laba;
                             st.errorCount = s.errorCount !== undefined ? s.errorCount : (s.error_count || 0);
@@ -147,10 +165,10 @@ export function startHostRoom(onStudentsUpdate, forceNew = false) {
                             if (s.history !== undefined) st.history = s.history;
                             if (s.lastUpdated !== undefined) st.lastUpdated = s.lastUpdated;
                         });
-                        if (typeof onStudentsUpdate === 'function') {
-                            onStudentsUpdate(state.onlineStudents);
-                        }
                     }
+                }
+                if (typeof onStudentsUpdate === 'function') {
+                    onStudentsUpdate(state.onlineStudents);
                 }
             } catch (err) {
                 console.warn('[Sync] Gagal memproses pembaruan data murid dari Firebase:', err);
@@ -199,21 +217,24 @@ export async function refreshHostStudents() {
     if (!state.hostedRoomCode) return;
     try {
         const snapshot = await get(ref(db, 'rooms/' + state.hostedRoomCode + '/students'));
+        state.onlineStudents = {};
         if (snapshot.exists()) {
             const data = snapshot.val();
             if (data && typeof data === 'object') {
-                Object.values(data).forEach(s => {
-                    if (!s || !s.studentId) return;
-                    const studentId = s.studentId;
+                Object.entries(data).forEach(([keyId, s]) => {
+                    if (!s || typeof s !== 'object') return;
+                    const studentId = s.studentId || keyId;
                     if (!state.onlineStudents[studentId]) {
                         state.onlineStudents[studentId] = {};
                     }
                     const st = state.onlineStudents[studentId];
-                    st.studentId = s.studentId;
-                    st.name = s.name;
-                    st.kelas = s.kelas;
-                    st.gender = s.gender;
-                    st.level = s.level;
+                    st.studentId = studentId;
+                    st.name = s.name || 'Siswa';
+                    st.kelas = s.kelas || '-';
+                    st.nama_fasil = s.nama_fasil || (state.fasilEdits && (state.fasilEdits[studentId]?.nama_fasil || state.fasilEdits[keyId]?.nama_fasil)) || null;
+                    st.kelas_fasil = s.kelas_fasil || (state.fasilEdits && (state.fasilEdits[studentId]?.kelas_fasil || state.fasilEdits[keyId]?.kelas_fasil)) || null;
+                    st.gender = s.gender || 'Laki-laki';
+                    st.level = s.level || 1;
                     st.laba = s.laba !== undefined ? s.laba : (s.money || 0);
                     st.money = st.laba;
                     st.errorCount = s.errorCount !== undefined ? s.errorCount : (s.error_count || 0);
@@ -232,6 +253,153 @@ export async function refreshHostStudents() {
     } catch (e) {
         console.warn('[Sync] Gagal memuat ulang data manual dari Firebase:', e);
     }
+}
+
+/**
+ * Memuat sesi kelas spesifik berdasarkan Kode Ruang yang dimasukkan oleh Fasilitator.
+ * Menangani kondisi luring (offline) maupun daring (Firebase) secara graceful.
+ * @param {string} rawCode
+ * @param {Function} onStudentsUpdate
+ * @returns {Promise<{success: boolean, code?: string, studentCount?: number, message: string, isOffline?: boolean}>}
+ */
+export async function loadSpecificHostRoom(rawCode, onStudentsUpdate) {
+    if (!rawCode || !rawCode.trim()) {
+        return { success: false, message: 'Masukkan Kode Ruang kelas terlebih dahulu (contoh: ALJ7A1).' };
+    }
+
+    let cleaned = rawCode.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    let stripped = cleaned.replace(/[^A-Z0-9]/g, '');
+    if (stripped.length === 3) {
+        cleaned = 'ALJ' + stripped;
+    } else {
+        cleaned = stripped;
+    }
+
+    if (cleaned.length < 4 || cleaned.length > 8) {
+        return { success: false, message: 'Format Kode Ruang tidak valid (harus 4–8 karakter, contoh: ALJ7A1).' };
+    }
+
+    let resolvedCode = cleaned;
+    let isOfflineFallback = false;
+
+    try {
+        if (!db || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+            isOfflineFallback = true;
+        } else {
+            let snapshot = await get(ref(db, 'rooms/' + resolvedCode));
+            if (!snapshot.exists() && resolvedCode.startsWith('ALJ')) {
+                const altCode = 'ALJ-' + resolvedCode.substring(3);
+                const altSnap = await get(ref(db, 'rooms/' + altCode));
+                if (altSnap.exists()) {
+                    resolvedCode = altCode;
+                    snapshot = altSnap;
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('[Sync] Mode luring / gagal memeriksa ruang di Firebase, beralih ke sesi lokal:', err);
+        isOfflineFallback = true;
+    }
+
+    // Aktifkan listener ruang kelas pada kode tersebut
+    startHostRoom(onStudentsUpdate, false, resolvedCode);
+
+    if (!isOfflineFallback) {
+        try {
+            await refreshHostStudents();
+            if (typeof onStudentsUpdate === 'function') {
+                onStudentsUpdate(state.onlineStudents);
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    const count = Object.keys(state.onlineStudents || {}).length;
+    if (isOfflineFallback) {
+        return {
+            success: true,
+            code: resolvedCode,
+            studentCount: count,
+            isOffline: true,
+            message: `Ruang ${resolvedCode} diaktifkan dalam Mode Luring (Koneksi server tidak tersedia).`
+        };
+    }
+
+    return {
+        success: true,
+        code: resolvedCode,
+        studentCount: count,
+        isOffline: false,
+        message: `Berhasil memuat ruang kelas ${resolvedCode} (${count} murid daring terdata).`
+    };
+}
+
+/**
+ * Memperbarui data identitas murid (HANYA nama_fasil dan kelas_fasil) secara parsial di Firebase
+ * Memisahkan data editan fasilitator dari data asli perangkat murid ('name' dan 'kelas').
+ * @param {string} studentId
+ * @param {{ nama_fasil?: string, kelas_fasil?: string, name?: string, kelas?: string }} partialData
+ * @returns {Promise<boolean>}
+ */
+export async function updateStudentProfileInRoom(studentId, partialData) {
+    if (!studentId || !partialData || typeof partialData !== 'object') return false;
+
+    const cleanId = String(studentId).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    // Filter ketat: Hanya izinkan key 'nama_fasil' dan 'kelas_fasil'
+    const safeUpdate = {};
+    const candidateName = partialData.nama_fasil !== undefined ? partialData.nama_fasil : partialData.name;
+    const candidateKelas = partialData.kelas_fasil !== undefined ? partialData.kelas_fasil : partialData.kelas;
+
+    if (typeof candidateName === 'string' && candidateName.trim() !== '') {
+        safeUpdate.nama_fasil = candidateName.trim();
+    }
+    if (typeof candidateKelas === 'string' && candidateKelas.trim() !== '') {
+        safeUpdate.kelas_fasil = candidateKelas.trim();
+    }
+
+    if (Object.keys(safeUpdate).length === 0) return false;
+
+    // 1. Simpan ke cache fasilEdits di state memory dan localStorage
+    if (!state.fasilEdits) state.fasilEdits = {};
+    if (!state.fasilEdits[cleanId]) state.fasilEdits[cleanId] = {};
+    if (!state.fasilEdits[studentId]) state.fasilEdits[studentId] = {};
+    if (safeUpdate.nama_fasil !== undefined) {
+        state.fasilEdits[cleanId].nama_fasil = safeUpdate.nama_fasil;
+        state.fasilEdits[studentId].nama_fasil = safeUpdate.nama_fasil;
+    }
+    if (safeUpdate.kelas_fasil !== undefined) {
+        state.fasilEdits[cleanId].kelas_fasil = safeUpdate.kelas_fasil;
+        state.fasilEdits[studentId].kelas_fasil = safeUpdate.kelas_fasil;
+    }
+
+    const roomCode = state.hostedRoomCode;
+    try {
+        const cacheKey = 'algebraMart_fasilEdits_' + (roomCode || 'default');
+        localStorage.setItem(cacheKey, JSON.stringify(state.fasilEdits));
+    } catch (e) { /* ignore */ }
+
+    // 2. Perbarui state memori onlineStudents jika ada
+    const targetOnline = (state.onlineStudents && state.onlineStudents[studentId]) || 
+                         (state.onlineStudents && state.onlineStudents[cleanId]);
+    if (targetOnline) {
+        if (safeUpdate.nama_fasil !== undefined) targetOnline.nama_fasil = safeUpdate.nama_fasil;
+        if (safeUpdate.kelas_fasil !== undefined) targetOnline.kelas_fasil = safeUpdate.kelas_fasil;
+    }
+
+    // 3. Jika ada kode ruang yang sedang aktif di-host, kirim pembaruan parsial ke Firebase
+    if (roomCode && db) {
+        try {
+            const studentRef = ref(db, 'rooms/' + roomCode + '/students/' + cleanId);
+            await update(studentRef, safeUpdate);
+            console.log(`[Sync] Pembaruan editan fasilitator berhasil disimpan ke Firebase (rooms/${roomCode}/students/${cleanId}):`, safeUpdate);
+            return true;
+        } catch (err) {
+            console.warn('[Sync] Gagal melakukan update parsial ke Firebase:', err);
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /**

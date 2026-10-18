@@ -42,9 +42,11 @@ export const state = {
     isTutorialActive: false,
     currentTutorialStep: 0,
 
-    // --- Sinkronisasi Kelas (Hybrid Offline + Realtime) ---
+    // --- Sinkronisasi Kelas & Dasbor Fasilitator (Hybrid Offline + Realtime) ---
     /** @type {string|null} */ activeRoomCode: localStorage.getItem('algebraMart_roomCode') || null,
     /** @type {string|null} */ hostedRoomCode: localStorage.getItem('algebraMart_hostedRoom') || null,
     /** @type {Object} */ onlineStudents: {},
+    /** @type {string|null} */ fasilSortField: null,
+    /** @type {'asc'|'desc'} */ fasilSortOrder: 'asc',
 };
 
