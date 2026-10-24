@@ -4,6 +4,11 @@ const https = require('https');
 
 function downloadFile(url, destPath) {
     return new Promise((resolve, reject) => {
+        if (fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
+            const size = fs.statSync(destPath).size;
+            console.log(`[SKIP] Sudah ada: ${path.relative('.', destPath)} (${(size / 1024).toFixed(1)} KB)`);
+            return resolve(size);
+        }
         const dir = path.dirname(destPath);
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
@@ -100,6 +105,24 @@ async function main() {
         {
             url: 'https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js',
             dest: 'libs/firebase/firebase-database-compat.js'
+        },
+
+        // 6. Roboto Offline Local Fonts (Regular 400, Medium 500, Bold 700, Black 900)
+        {
+            url: 'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-latin-400-normal.woff2',
+            dest: 'libs/roboto/Roboto-Regular.woff2'
+        },
+        {
+            url: 'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-latin-500-normal.woff2',
+            dest: 'libs/roboto/Roboto-Medium.woff2'
+        },
+        {
+            url: 'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-latin-700-normal.woff2',
+            dest: 'libs/roboto/Roboto-Bold.woff2'
+        },
+        {
+            url: 'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-latin-900-normal.woff2',
+            dest: 'libs/roboto/Roboto-Black.woff2'
         }
     ];
 
@@ -134,6 +157,58 @@ async function main() {
             console.warn(`[WARN] Lewati font KaTeX ${fontName}:`, e.message);
         }
     }
+
+    // Buat berkas CSS lokal untuk font Roboto
+    const robotoCssDir = 'libs/roboto';
+    if (!fs.existsSync(robotoCssDir)) {
+        fs.mkdirSync(robotoCssDir, { recursive: true });
+    }
+    const robotoCssContent = `/* Roboto Local Offline Font Faces */
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: local('Roboto'), local('Roboto-Regular'), url('Roboto-Regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: local('Roboto Medium'), local('Roboto-Medium'), url('Roboto-Medium.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: local('Roboto Medium'), local('Roboto-Medium'), url('Roboto-Medium.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: local('Roboto Bold'), local('Roboto-Bold'), url('Roboto-Bold.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+    src: local('Roboto Bold'), local('Roboto-Bold'), url('Roboto-Bold.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: local('Roboto Black'), local('Roboto-Black'), url('Roboto-Black.woff2') format('woff2');
+}
+`;
+    fs.writeFileSync(path.join(robotoCssDir, 'roboto.css'), robotoCssContent, 'utf8');
+    console.log('[OK] Berkas CSS lokal dibuat: libs/roboto/roboto.css');
 
     console.log('\n=== Seluruh Pengunduhan Pustaka Selesai! ===');
 }

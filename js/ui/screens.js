@@ -31,7 +31,15 @@ export function showMsg(title, desc, onCloseCallback = null) {
  * @param {string} id
  */
 export function closeModal(id) {
-    document.getElementById(id).classList.add('hidden');
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+
+    if (id === 'modal-join-room') {
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen) {
+            updateUniversalSettingsContext(activeScreen.id);
+        }
+    }
 }
 
 /**
@@ -40,9 +48,12 @@ export function closeModal(id) {
  */
 export function updateUniversalSettingsContext(screenId) {
     const btnUniversalSettings = document.getElementById('btn-universal-settings');
+    const modalJoinRoom = document.getElementById('modal-join-room');
+    const isJoinRoomOpen = modalJoinRoom && !modalJoinRoom.classList.contains('hidden');
 
     if (btnUniversalSettings) {
         if (
+            isJoinRoomOpen ||
             screenId === 'screen-welcome' ||
             screenId === 'screen-fasilitator' ||
             screenId === 'screen-levels' ||
@@ -147,13 +158,16 @@ export function showBadgeUnlockedPopup(badge) {
 
     const toast = document.createElement('div');
     toast.className = 'badge-toast animate-badge-pop';
+    const iconHtml = badge.badgeImg
+        ? `<img src="${badge.badgeImg}" class="badge-tier-img" alt="${badge.name}">`
+        : `<i class="fa-solid ${badge.icon || 'fa-award'}"></i>`;
     toast.innerHTML = `
         <div class="badge-toast-glow"></div>
-        <div class="badge-toast-icon-wrapper ${badge.colorClass || 'icon-gold'}">
-            <i class="fa-solid ${badge.icon || 'fa-award'}"></i>
+        <div class="badge-toast-icon-wrapper ${badge.badgeImg ? 'has-tier-img' : (badge.colorClass || 'icon-gold')}">
+            ${iconHtml}
         </div>
         <div class="badge-toast-content">
-            <div class="badge-toast-tag"><i class="fa-solid fa-star"></i> LENCANA DIBUKA!</div>
+            <div class="badge-toast-tag"><i class="fa-solid fa-star"></i> LENCANA TIER ${badge.tier || 1} DIBUKA!</div>
             <h4 class="badge-toast-name">${badge.name}</h4>
         </div>
         <button class="badge-toast-close" title="Tutup">&times;</button>
@@ -256,11 +270,11 @@ export function renderLevels() {
     if (tabHard) {
         if (!isHardUnlocked) {
             tabHard.className = 'tab-disabled';
-            tabHard.innerHTML = 'Tantangan Sulit (C4-C6) <i class="fa-solid fa-lock"></i>';
+            tabHard.innerHTML = 'Tantangan Sulit <i class="fa-solid fa-lock"></i>';
             tabHard.title = 'Selesaikan 10 Level Tantangan Mudah untuk membuka!';
         } else {
             tabHard.className = state.currentLevelTab === 'hard' ? 'tab-active tab-hard-theme' : 'tab-inactive';
-            tabHard.innerHTML = 'Tantangan Sulit (C4-C6) <i class="fa-solid fa-fire text-amber-400"></i>';
+            tabHard.innerHTML = 'Tantangan Sulit <i class="fa-solid fa-fire text-amber-400"></i>';
             tabHard.removeAttribute('title');
         }
     }

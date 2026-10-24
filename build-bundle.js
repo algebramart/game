@@ -13,6 +13,7 @@ const files = [
     'js/core/tutorial.js',
     'js/ui/levelZero.js',
     'js/ui/screens.js',
+    'js/ui/victory.js',
     'js/ui/cashier.js',
     'js/ui/reports.js',
     'js/app.js'

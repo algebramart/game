@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="t3-ribbon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="t3-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="45%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="t3-emerald" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#065f46"/>
+    </linearGradient>
+    <filter id="t3-shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#064e3b" flood-opacity="0.38"/>
+    </filter>
+  </defs>
+  <g filter="url(#t3-shadow)">
+    <!-- Sayap Emas -->
+    <path d="M24,42 L4,28 L12,48 L6,58 L26,62 Z" fill="url(#t3-gold)" stroke="#fef3c7" stroke-width="1.5"/>
+    <path d="M96,42 L116,28 L108,48 L114,58 L94,62 Z" fill="url(#t3-gold)" stroke="#fef3c7" stroke-width="1.5"/>
+    <!-- Pita Bawah -->
+    <polygon points="36,74 24,112 40,103 48,114 54,78" fill="url(#t3-ribbon)"/>
+    <polygon points="84,74 96,112 80,103 72,114 66,78" fill="url(#t3-ribbon)"/>
+    <!-- Lingkaran Bergerigi Medali Emas -->
+    <polygon points="60,6 71,12 84,10 89,22 100,28 98,41 104,52 96,63 96,76 84,80 77,90 65,87 60,94 55,87 43,90 36,80 24,76 24,63 16,52 22,41 20,28 31,22 36,10 49,12" fill="url(#t3-gold)" stroke="#ffffff" stroke-width="2"/>
+    <circle cx="60" cy="50" r="29" fill="url(#t3-emerald)" stroke="#fde68a" stroke-width="2.5"/>
+    <!-- Permata & 3 Bintang Emas -->
+    <polygon points="60,26 67,40 82,42 71,53 74,68 60,60 46,68 49,53 38,42 53,40" fill="url(#t3-gold)"/>
+    <circle cx="60" cy="17" r="3" fill="#ffffff"/>
+    <circle cx="44" cy="21" r="2.2" fill="#fef08a"/>
+    <circle cx="76" cy="21" r="2.2" fill="#fef08a"/>
+  </g>
+</svg>
+

@@ -48,5 +48,8 @@ export const state = {
     /** @type {Object} */ onlineStudents: {},
     /** @type {string|null} */ fasilSortField: null,
     /** @type {'asc'|'desc'} */ fasilSortOrder: 'asc',
+
+    // --- Papan Kehormatan / Leaderboard ---
+    /** @type {'accuracy'|'quiz'} */ leaderboardSortBy: 'accuracy',
 };
 

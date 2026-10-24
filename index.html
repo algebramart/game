@@ -8,7 +8,7 @@
 
     <!-- Pustaka Lokal (100% Offline) -->
     <link href="libs/fontawesome/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="libs/roboto/roboto.css" rel="stylesheet">
     <link rel="stylesheet" href="libs/katex/katex.min.css">
     <script src="libs/chartjs/chart.umd.min.js"></script>
     <script src="libs/katex/katex.min.js"></script>
@@ -169,8 +169,8 @@
 
             <div class="level-grid-wrapper">
                 <div class="level-tabs">
-                    <button id="tab-level-easy" class="tab-active">Tantangan Mudah (C1-C3)</button>
-                    <button id="tab-level-hard" class="tab-disabled">Tantangan Sulit (C4-C6) <i class="fa-solid fa-lock"></i></button>
+                    <button id="tab-level-easy" class="tab-active">Tantangan Mudah</button>
+                    <button id="tab-level-hard" class="tab-disabled">Tantangan Sulit <i class="fa-solid fa-lock"></i></button>
                 </div>
                 <div class="level-grid" id="level-grid-container"></div>
             </div>
@@ -275,15 +275,12 @@
                     <div class="cash-register">
                         <div class="register-display-panel">
                             <div class="green-indicator-screen">
-                                <div class="screen-row"><span class="screen-label">Harga:</span> <span id="harga-display" class="screen-value"></span></div>
-                                <div class="screen-row"><span class="screen-label">Rumus:</span> <input type="text" id="formula-box" class="kasir-input input-active" readonly></div>
+                                <div class="screen-row"><span class="screen-label" id="label-harga">Harga:</span> <span id="harga-display" class="screen-value"></span></div>
+                                <div class="screen-row"><span class="screen-label" id="label-rumus">Rumus:</span> <input type="text" id="formula-box" class="kasir-input input-active" readonly></div>
                                 <div id="variable-helper-subtext" class="variable-helper-subtext"></div>
                                 <div class="screen-row">
-                                    <span class="screen-label">Dibayar:</span>
-                                    <div style="display: flex; align-items: center; width: 60%; justify-content: flex-end;">
-                                        <span style="color: #c8e6c9; font-weight: bold; margin-right: 6px; font-size: 0.85rem;">Rp</span>
-                                        <input type="text" id="paid-box" class="kasir-input" style="width: 100%;" readonly>
-                                    </div>
+                                    <span class="screen-label">Dibayar: <span class="paid-currency-prefix">Rp</span></span>
+                                    <input type="text" id="paid-box" class="kasir-input" readonly>
                                 </div>
                             </div>
                             <button class="confirm-button" id="btn-final-checkout">Konfirmasi</button>
@@ -423,16 +420,27 @@
             <div class="prestasi-layout">
                 <div class="leaderboard-panel">
                     <div class="panel-header">
-                        <h2><i class="fa-solid fa-ranking-star"></i> Papan Kehormatan</h2>
-                        <p>Peringkat Lokal Perangkat Ini</p>
+                        <div class="panel-header-top">
+                            <h2><i class="fa-solid fa-ranking-star"></i> Papan Kehormatan</h2>
+                            <p>Peringkat Kasir Berdasarkan Kinerja</p>
+                        </div>
+                        <div class="leaderboard-sort-pills">
+                            <button type="button" id="btn-sort-accuracy" class="btn-sort-pill active" title="Urutkan berdasarkan Akurasi">
+                                <i class="fa-solid fa-bullseye"></i> Akurasi
+                            </button>
+                            <button type="button" id="btn-sort-quiz" class="btn-sort-pill" title="Urutkan berdasarkan Kuis Terjawab">
+                                <i class="fa-solid fa-circle-question"></i> Kuis Terjawab
+                            </button>
+                        </div>
                     </div>
                     <div class="table-wrapper">
                         <table class="leaderboard-table">
                             <thead>
                                 <tr>
-                                    <th>#</th>
+                                    <th style="width: 2.2rem; text-align: center;">#</th>
                                     <th>Nama Kasir</th>
-                                    <th class="text-right">Laba Bersih</th>
+                                    <th class="text-center" style="width: 5.8rem;" id="th-leaderboard-metric">Akurasi</th>
+                                    <th class="text-right" style="width: 4.8rem;">Waktu</th>
                                 </tr>
                             </thead>
                             <tbody id="leaderboard-body"></tbody>
@@ -607,7 +615,7 @@
             <div class="modal-card modal-pin-card">
                 <h3><i class="fa-solid fa-lock"></i> PIN Fasilitator</h3>
                 <p>Masukkan PIN (default: 1234)</p>
-                <input type="password" id="pin-input" class="form-input text-center font-mono" placeholder="••••">
+                <input type="password" id="pin-input" class="form-input text-center" placeholder="••••">
                 <div class="modal-actions modal-pin-actions">
                     <button id="btn-pin-cancel" class="btn-secondary btn-pin-cancel">Batal</button>
                     <button id="btn-pin-submit" class="btn-primary btn-pin-submit">Masuk</button>
@@ -643,7 +651,7 @@
                     </div>
                     <div class="student-stat-card">
                         <span class="stat-label">Total Laba Bersih</span>
-                        <span id="student-stat-money" class="stat-value text-success font-mono">Rp 0</span>
+                        <span id="student-stat-money" class="stat-value text-success">Rp 0</span>
                     </div>
                     <div class="student-stat-card">
                         <span class="stat-label">Akurasi Rumus</span>
@@ -675,7 +683,7 @@
                 </div>
 
                 <div class="modal-actions" style="margin-top: 1rem; justify-content: flex-end;">
-                    <button id="btn-done-student-detail" class="btn-primary" style="padding: 0.6rem 2.2rem; border-radius: 9999px; border: none; font-weight: 700;">Tutup</button>
+                    <button id="btn-done-student-detail" class="btn-primary" style="padding: 0.6rem 2.2rem; border-radius: 9999px; border: none; font-weight: 500;">Tutup</button>
                 </div>
             </div>
         </div>
@@ -708,7 +716,7 @@
                 <h3><i class="fa-solid fa-chalkboard-user"></i> Gabung Kelas Guru</h3>
                 <p class="join-room-desc">Masukkan 6 karakter Kode Ruang dari fasilitator/guru untuk menyinkronkan progres belajarmu secara daring.</p>
                 <div class="room-input-container">
-                    <input type="text" id="input-room-code" maxlength="8" placeholder="ALJ7A1" class="form-input text-center font-mono room-code-input" autocomplete="off" spellcheck="false">
+                    <input type="text" id="input-room-code" maxlength="8" placeholder="ALJ7A1" class="form-input text-center room-code-input" autocomplete="off" spellcheck="false">
                 </div>
                 <div id="join-room-status" class="room-status-text"></div>
                 <div class="modal-actions-join">
@@ -1151,6 +1159,86 @@
         </div>
 
         <!-- ==============================
+             MODAL: LEVEL SELESAI (VICTORY SCREEN)
+             ============================== -->
+        <div id="modal-level-complete" class="modal-overlay victory-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="vc-title">
+            <div class="victory-card" id="victory-card">
+                <div class="victory-ribbon">
+                    <span class="victory-badge-pill" id="vc-level-pill">LEVEL 1</span>
+                    <h2 class="victory-title" id="vc-title">Level Selesai!</h2>
+                    <p class="victory-subtitle" id="vc-subtitle">Transaksi kasir berjalan lancar!</p>
+                </div>
+
+                <!-- 3 Slot Bintang Mengambang -->
+                <div class="victory-stars" id="vc-stars-container" aria-label="Perolehan Bintang">
+                    <div class="victory-star-slot" data-star="1">
+                        <div class="star-glow-ring"></div>
+                        <div class="star-sparkles">
+                            <span></span><span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                        <div class="star-icon-wrap">
+                            <i class="fa-solid fa-star star-base"></i>
+                            <i class="fa-solid fa-star star-fill"></i>
+                        </div>
+                    </div>
+                    <div class="victory-star-slot star-center" data-star="2">
+                        <div class="star-glow-ring"></div>
+                        <div class="star-sparkles">
+                            <span></span><span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                        <div class="star-icon-wrap">
+                            <i class="fa-solid fa-star star-base"></i>
+                            <i class="fa-solid fa-star star-fill"></i>
+                        </div>
+                    </div>
+                    <div class="victory-star-slot" data-star="3">
+                        <div class="star-glow-ring"></div>
+                        <div class="star-sparkles">
+                            <span></span><span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                        <div class="star-icon-wrap">
+                            <i class="fa-solid fa-star star-base"></i>
+                            <i class="fa-solid fa-star star-fill"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ringkasan Statistik Performa Level (Grid 2x2) -->
+                <div class="victory-stats" id="vc-stats-grid">
+                    <div class="victory-stat-box" data-stat="accuracy">
+                        <div class="vc-stat-label"><i class="fa-solid fa-bullseye"></i> Akurasi Rumus</div>
+                        <div class="vc-stat-value" id="vc-accuracy">0%</div>
+                    </div>
+                    <div class="victory-stat-box" data-stat="quiz">
+                        <div class="vc-stat-label"><i class="fa-solid fa-circle-check"></i> Kuis Terjawab</div>
+                        <div class="vc-stat-value" id="vc-quiz">0 / 0</div>
+                    </div>
+                    <div class="victory-stat-box" data-stat="time">
+                        <div class="vc-stat-label"><i class="fa-regular fa-clock"></i> Waktu Pengerjaan</div>
+                        <div class="vc-stat-value" id="vc-time">0s</div>
+                    </div>
+                    <div class="victory-stat-box stat-profit-hero" data-stat="profit">
+                        <div class="vc-stat-label"><i class="fa-solid fa-coins"></i> Laba Bersih</div>
+                        <div class="vc-stat-value vc-profit-val" id="vc-profit">Rp 0</div>
+                    </div>
+                </div>
+
+                <!-- Tombol Navigasi Aksi -->
+                <div class="victory-actions">
+                    <button type="button" id="btn-vc-retry" class="btn-vc-action btn-vc-retry" title="Mainkan ulang level ini">
+                        <i class="fa-solid fa-rotate-right"></i> Ulangi
+                    </button>
+                    <button type="button" id="btn-vc-menu" class="btn-vc-action btn-vc-menu" title="Kembali ke daftar level">
+                        <i class="fa-solid fa-table-cells-large"></i> Menu
+                    </button>
+                    <button type="button" id="btn-vc-next" class="btn-vc-action btn-vc-next" title="Lanjut ke level berikutnya">
+                        <span>Lanjut Level</span> <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================
              NOTIFIKASI LENCANA DIBUKA (TOAST / POP-UP)
              ============================== -->
         <div id="badge-toast-container" class="badge-toast-container"></div>
@@ -1177,8 +1265,15 @@
             function autoFit() {
                 var el = document.getElementById('app-container');
                 if (el) {
-                    var winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
-                    var winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+                    var winW = window.innerWidth;
+                    var winH = window.innerHeight;
+                    if (window.visualViewport) {
+                        winW = Math.round(window.visualViewport.width);
+                        winH = Math.round(window.visualViewport.height);
+                    } else {
+                        winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
+                        winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+                    }
                     var aspect = winW / winH;
                     var targetAspect = 1280 / 720;
                     var scale, virtualWidth, virtualHeight;
@@ -1196,8 +1291,10 @@
                         virtualHeight = Math.max(720, Math.ceil(winH / scale) + 4);
                     }
 
+                    var sidePad = Math.max(14, Math.round((virtualWidth - 1240) / 2));
                     el.style.width = virtualWidth + 'px';
                     el.style.height = virtualHeight + 'px';
+                    el.style.setProperty('--side-pad', sidePad + 'px');
                     el.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
                     el.dataset.scale = String(scale);
                     el.dataset.virtualWidth = String(virtualWidth);
@@ -1205,6 +1302,10 @@
                     window.__appScale = scale;
                     window.__virtualWidth = virtualWidth;
                     window.__virtualHeight = virtualHeight;
+
+                    window.scrollTo(0, 0);
+                    if (document.documentElement.scrollLeft !== 0) document.documentElement.scrollLeft = 0;
+                    if (document.documentElement.scrollTop !== 0)  document.documentElement.scrollTop = 0;
 
                     var rotateOverlay = document.getElementById('rotate-device-overlay');
                     if (rotateOverlay) {
@@ -1225,8 +1326,20 @@
             if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
                 window.screen.orientation.addEventListener('change', function() {
                     setTimeout(autoFit, 50);
+                    setTimeout(autoFit, 200);
                 });
             }
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', autoFit);
+            }
+            document.addEventListener('fullscreenchange', function() {
+                setTimeout(autoFit, 50);
+                setTimeout(autoFit, 250);
+            });
+            document.addEventListener('webkitfullscreenchange', function() {
+                setTimeout(autoFit, 50);
+                setTimeout(autoFit, 250);
+            });
         })();
     </script>
 

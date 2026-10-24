@@ -13,7 +13,10 @@ export const SFX_MAP = {
     success_quiz_change:  'assets/sound/select_001.ogg',       // Kuis benar & kembalian pas
     error:                'assets/sound/confirmation_001.ogg', // Rumus salah, kembalian salah, & kuis salah
     badge_reward:         'assets/sound/confirmation_002.ogg', // Notifikasi lencana & reward bintang
-    nav:                  'assets/sound/select_006.ogg'        // Navigasi UI umum
+    nav:                  'assets/sound/select_006.ogg',       // Navigasi UI umum
+    star_pop:             'assets/sound/confirmation_002.ogg', // Pop bintang kemenangan
+    tally_tick:           'assets/sound/select_004.ogg',       // Tick counter angka skor
+    victory:              'assets/sound/select_001.ogg'        // Fanfar penyelesaian level
 };
 
 let bgmVolume = 0.35;

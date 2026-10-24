@@ -2,7 +2,7 @@ import { state } from '../core/state.js';
 import { BADGES_DB } from '../data/items.js';
 import { getTitle, saveData, checkBadgeUnlocks } from '../core/engine.js';
 import { switchScreen, showMsg, closeModal } from './screens.js';
-import { startHostRoom, stopHostRoom, refreshHostStudents, loadSpecificHostRoom, updateStudentProfileInRoom } from '../core/sync.js';
+import { startHostRoom, stopHostRoom, refreshHostStudents, loadSpecificHostRoom, updateStudentProfileInRoom, syncUserProfile } from '../core/sync.js';
 import { playSFX } from '../core/audio.js';
 
 let fasilChartInstance = null;
@@ -36,20 +36,22 @@ export function openBukuKas() {
     histList.innerHTML = '';
 
     if (totalLevels === 0) {
-        histList.innerHTML = '<div style="text-align:center; color:#92400e; font-style:italic; padding:1.25rem;">Belum ada riwayat permainan. Selesaikan pesanan pembeli di toko untuk mencatat performa kasir.</div>';
+        histList.innerHTML = '<div style="text-align:center; color:#92400e; font-style:italic; padding:1.25rem; font-size:0.75rem;">Belum ada riwayat permainan. Selesaikan pesanan pembeli di toko untuk mencatat performa kasir.</div>';
     } else {
         state.currentUser.history.forEach(h => {
             let d = new Date(h.timestamp);
+            let dateStr = d.toLocaleDateString('id-ID');
+            let durStr = h.duration ? `${h.duration}s` : '0s';
             histList.innerHTML += `
                 <div class="history-item">
-                    <div class="history-header">
-                        <span>Level ${h.level}</span>
-                        <span>${d.toLocaleDateString('id-ID')}</span>
+                    <div class="history-row-top">
+                        <span class="history-level-name">Level ${h.level}</span>
+                        <span class="history-profit text-success">+Rp ${h.profit.toLocaleString('id-ID')}</span>
                     </div>
-                    <div class="history-stats">
-                        <span><i class="fa-regular fa-clock"></i> ${h.duration}s</span>
-                        <span><i class="fa-solid fa-triangle-exclamation ${h.errors > 0 ? 'text-error' : 'text-success'}"></i> ${h.errors} Salah</span>
-                        <span class="text-success">+Rp ${h.profit.toLocaleString('id-ID')}</span>
+                    <div class="history-row-bottom history-meta">
+                        <span class="history-meta-item"><i class="fa-regular fa-clock"></i> ${durStr}</span>
+                        <span class="history-meta-item"><i class="fa-solid fa-triangle-exclamation ${h.errors > 0 ? 'text-error' : 'text-success'}"></i> ${h.errors || 0} Salah</span>
+                        <span class="history-meta-item"><i class="fa-regular fa-calendar"></i> ${dateStr}</span>
                     </div>
                 </div>
             `;
@@ -115,6 +117,13 @@ export function handleDonate(nominal) {
     state.currentUser.sumbangan = (state.currentUser.sumbangan || 0) + nominal;
     saveData();
 
+    // Sinkronisasi pembaruan profil ke Firebase
+    try {
+        syncUserProfile(state.currentUser);
+    } catch (profErr) {
+        console.warn('[Sync] Gagal sync profile setelah donasi:', profErr);
+    }
+
     // Evaluasi lencana dimensi hati
     checkBadgeUnlocks({
         type: 'donation',
@@ -145,20 +154,24 @@ export function showBadgeDetail(badge, isUnlocked) {
     if (!modal) return;
 
     const iconWrap = document.getElementById('badge-detail-icon-wrapper');
-    const iconEl = document.getElementById('badge-detail-icon');
     const categoryEl = document.getElementById('badge-detail-category');
     const nameEl = document.getElementById('badge-detail-name');
     const statusEl = document.getElementById('badge-detail-status');
     const descEl = document.getElementById('badge-detail-desc');
 
-    if (iconWrap && iconEl) {
-        iconWrap.className = isUnlocked
-            ? `badge-detail-icon-wrapper ${badge.colorClass || 'icon-gold'}`
-            : 'badge-detail-icon-wrapper icon-disabled';
-        iconEl.className = `fa-solid ${isUnlocked ? (badge.icon || 'fa-award') : 'fa-lock'}`;
+    if (iconWrap) {
+        if (badge.badgeImg) {
+            iconWrap.className = `badge-detail-icon-wrapper has-tier-img ${isUnlocked ? '' : 'icon-disabled'}`;
+            iconWrap.innerHTML = `<img src="${badge.badgeImg}" class="badge-tier-img" alt="${badge.name}" style="${isUnlocked ? '' : 'filter: grayscale(100%) opacity(0.55);'}">`;
+        } else {
+            iconWrap.className = isUnlocked
+                ? `badge-detail-icon-wrapper ${badge.colorClass || 'icon-gold'}`
+                : 'badge-detail-icon-wrapper icon-disabled';
+            iconWrap.innerHTML = `<i id="badge-detail-icon" class="fa-solid ${isUnlocked ? (badge.icon || 'fa-award') : 'fa-lock'}"></i>`;
+        }
     }
 
-    if (categoryEl) categoryEl.textContent = badge.category || 'Prestasi';
+    if (categoryEl) categoryEl.textContent = `${badge.category || 'Prestasi'} • Tier ${badge.tier || 1}`;
     if (nameEl) nameEl.textContent = badge.name;
 
     if (statusEl) {
@@ -200,13 +213,26 @@ export function openPrestasi() {
         card.className = `badge-card ${hasBadge ? 'badge-unlocked' : 'badge-locked'}`;
         card.setAttribute('role', 'button');
         card.setAttribute('tabindex', '0');
-        card.title = `Klik untuk melihat detail lencana: ${b.name}`;
+        card.title = `Klik untuk melihat detail lencana: ${b.name} (Tier ${b.tier || 1})`;
+        const badgeVisualHtml = b.badgeImg
+            ? `<div class="badge-insignia-platform">
+                <div class="badge-icon-wrapper has-tier-img">
+                    <img src="${b.badgeImg}" class="badge-tier-img" alt="${b.name}">
+                    ${!hasBadge ? '<span class="badge-lock-badge"><i class="fa-solid fa-lock"></i></span>' : ''}
+                </div>
+                <div class="badge-pedestal-shadow"></div>
+               </div>`
+            : `<div class="badge-insignia-platform">
+                <div class="badge-icon-wrapper ${hasBadge ? b.colorClass : 'icon-disabled'}">
+                    <i class="fa-solid badge-icon ${hasBadge ? b.icon : 'fa-lock'}"></i>
+                    ${!hasBadge ? '<span class="badge-lock-badge"><i class="fa-solid fa-lock"></i></span>' : ''}
+                </div>
+                <div class="badge-pedestal-shadow"></div>
+               </div>`;
         card.innerHTML = `
-            <div class="badge-icon-wrapper ${hasBadge ? b.colorClass : 'icon-disabled'}">
-                <i class="fa-solid badge-icon ${hasBadge ? b.icon : 'fa-lock'}"></i>
-            </div>
-            <span class="badge-category-tag">${b.category}</span>
-            <h4>${b.name}</h4>
+            ${badgeVisualHtml}
+            <span class="badge-category-tag">${b.category} • Tier ${b.tier || 1}</span>
+            <h4 class="badge-name">${b.name}</h4>
         `;
         card.addEventListener('click', () => {
             showBadgeDetail(b, hasBadge);
@@ -223,11 +249,127 @@ export function openPrestasi() {
     const tokenDisplay = document.getElementById('token-display');
     if (tokenDisplay) tokenDisplay.innerText = state.currentUser?.token || '';
 
-    const tbody = document.getElementById('leaderboard-body');
-    tbody.innerHTML = '';
-    let sortedUsers = [...state.users].sort((a, b) => b.money - a.money);
+    // Inisialisasi event listener toggle kriteria leaderboard (idempotent)
+    const btnSortAcc = document.getElementById('btn-sort-accuracy');
+    if (btnSortAcc && !btnSortAcc._hasLeaderboardListener) {
+        btnSortAcc._hasLeaderboardListener = true;
+        btnSortAcc.addEventListener('click', () => {
+            state.leaderboardSortBy = 'accuracy';
+            renderLeaderboard();
+        });
+    }
+    const btnSortQuiz = document.getElementById('btn-sort-quiz');
+    if (btnSortQuiz && !btnSortQuiz._hasLeaderboardListener) {
+        btnSortQuiz._hasLeaderboardListener = true;
+        btnSortQuiz.addEventListener('click', () => {
+            state.leaderboardSortBy = 'quiz';
+            renderLeaderboard();
+        });
+    }
 
-    sortedUsers.forEach((u, idx) => {
+    renderLeaderboard();
+}
+
+/**
+ * Format durasi detik ke format mudah dibaca (contoh: 45s, 1m 20s).
+ * @param {number} sec Durasi dalam detik
+ * @returns {string}
+ */
+export function formatDuration(sec) {
+    if (!sec || sec <= 0) return '–';
+    const m = Math.floor(sec / 60);
+    const s = Math.round(sec % 60);
+    if (m === 0) return `${s}s`;
+    return `${m}m ${s}s`;
+}
+
+/**
+ * Merender tabel Papan Kehormatan (Leaderboard) dengan pengurutan kriteria
+ * Akurasi atau Banyak Kuis Terjawab, disertai tie-breaker waktu pengerjaan tercepat.
+ */
+export function renderLeaderboard() {
+    const tbody = document.getElementById('leaderboard-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const sortBy = state.leaderboardSortBy || 'accuracy';
+    const thMetric = document.getElementById('th-leaderboard-metric');
+    if (thMetric) {
+        thMetric.textContent = sortBy === 'quiz' ? 'Kuis' : 'Akurasi';
+    }
+
+    // Sinkronisasi status aktif tombol pill pengurutan
+    const btnAcc = document.getElementById('btn-sort-accuracy');
+    const btnQuiz = document.getElementById('btn-sort-quiz');
+    if (btnAcc && btnQuiz) {
+        if (sortBy === 'quiz') {
+            btnAcc.classList.remove('active');
+            btnQuiz.classList.add('active');
+        } else {
+            btnAcc.classList.add('active');
+            btnQuiz.classList.remove('active');
+        }
+    }
+
+    // Kalkulasi metrik akurasi, kuis, dan total durasi untuk setiap pengguna
+    const enrichedUsers = state.users.map(u => {
+        const history = Array.isArray(u.history) ? u.history : [];
+        const totalLevels = history.length;
+        const zeroErrors = history.filter(h => (h.errors || 0) === 0).length;
+        const accuracy = totalLevels === 0 ? 0 : Math.round((zeroErrors / totalLevels) * 100);
+        const totalQuizCorrect = history.reduce((sum, h) => sum + (h.quizCorrect || 0), 0);
+        const totalQuizCount   = history.reduce((sum, h) => sum + (h.quizTotal   || 0), 0);
+        const totalDuration    = history.reduce((sum, h) => sum + (h.duration    || 0), 0);
+
+        return {
+            ...u,
+            totalLevels,
+            accuracy,
+            totalQuizCorrect,
+            totalQuizCount,
+            totalDuration
+        };
+    });
+
+    // Pengurutan bertingkat dengan tie-breaker waktu tercepat
+    enrichedUsers.sort((a, b) => {
+        // Pemain yang telah aktif menyelesaikan level selalu diprioritaskan di atas slot kosong
+        const aActive = a.totalLevels > 0;
+        const bActive = b.totalLevels > 0;
+        if (aActive !== bActive) {
+            return aActive ? -1 : 1;
+        }
+
+        if (sortBy === 'quiz') {
+            // Prioritas 1: Jumlah kuis dijawab benar terbanyak
+            if (b.totalQuizCorrect !== a.totalQuizCorrect) {
+                return b.totalQuizCorrect - a.totalQuizCorrect;
+            }
+            // Tie-breaker 1: Persentase akurasi rumus (%)
+            if (b.accuracy !== a.accuracy) {
+                return b.accuracy - a.accuracy;
+            }
+        } else {
+            // Default: Prioritas 1: Persentase akurasi rumus (%)
+            if (b.accuracy !== a.accuracy) {
+                return b.accuracy - a.accuracy;
+            }
+            // Tie-breaker 1: Jumlah kuis dijawab benar terbanyak
+            if (b.totalQuizCorrect !== a.totalQuizCorrect) {
+                return b.totalQuizCorrect - a.totalQuizCorrect;
+            }
+        }
+
+        // Tie-breaker 2 (utama): Waktu pengerjaan akumulasi tercepat (ascending duration)
+        if (a.totalDuration !== b.totalDuration) {
+            return a.totalDuration - b.totalDuration;
+        }
+
+        // Tie-breaker 3: Laba / Uang tersimpan
+        return (b.money || 0) - (a.money || 0);
+    });
+
+    enrichedUsers.forEach((u, idx) => {
         let rankIcon = idx === 0
             ? '<i class="fa-solid fa-trophy rank-1"></i>'
             : (idx === 1
@@ -236,23 +378,49 @@ export function openPrestasi() {
                     ? '<i class="fa-solid fa-medal rank-3"></i>'
                     : `${idx + 1}`));
 
-        let isMeClass = u.id === state.currentUser.id ? 'table-row-me' : '';
+        let isMeClass = (state.currentUser && u.id === state.currentUser.id) ? 'table-row-me' : '';
+
+        const mainMetricText = sortBy === 'quiz'
+            ? `${u.totalQuizCorrect} kuis`
+            : (u.totalLevels === 0 ? '–' : `${u.accuracy}%`);
+
+        const subMetricText = sortBy === 'quiz'
+            ? (u.totalLevels === 0 ? '(–)' : `(${u.accuracy}%)`)
+            : `(${u.totalQuizCorrect} kuis)`;
+
+        const timeStr = formatDuration(u.totalDuration);
+
         tbody.innerHTML += `
             <tr class="table-row ${isMeClass}">
-                <td>${rankIcon}</td>
-                <td><span class="rank-name">${u.name}</span><span class="rank-title">${getTitle(u.money, u.sumbangan || 0)}</span></td>
-                <td class="text-right font-mono">Rp ${u.money.toLocaleString('id-ID')}</td>
+                <td style="text-align: center;">${rankIcon}</td>
+                <td>
+                    <span class="rank-name" title="${u.name}">${u.name}</span>
+                    <span class="rank-title">${getTitle(u.money, u.sumbangan || 0)}</span>
+                </td>
+                <td class="text-center">
+                    <div class="lb-metric-cell">
+                        <span class="lb-metric-main">${mainMetricText}</span>
+                        <span class="lb-metric-sub">${subMetricText}</span>
+                    </div>
+                </td>
+                <td class="text-right">
+                    <span class="lb-time"><i class="fa-regular fa-clock" style="font-size:0.7rem; opacity:0.65;"></i> ${timeStr}</span>
+                </td>
             </tr>
         `;
     });
 
     const minSlots = 5;
-    for (let idx = sortedUsers.length; idx < minSlots; idx++) {
+    for (let idx = enrichedUsers.length; idx < minSlots; idx++) {
         tbody.innerHTML += `
             <tr class="table-row table-row-empty" style="opacity: 0.55;">
                 <td style="color:#94a3b8; text-align:center;">${idx + 1}</td>
-                <td><span class="rank-name" style="color:#94a3b8; font-style:italic;">Slot Kasir Kosong</span><span class="rank-title" style="color:#cbd5e1;">Belum ada data pemain</span></td>
-                <td class="text-right font-mono" style="color:#cbd5e1;">–</td>
+                <td>
+                    <span class="rank-name" style="color:#94a3b8; font-style:italic;">Slot Kasir Kosong</span>
+                    <span class="rank-title" style="color:#cbd5e1;">Belum ada data pemain</span>
+                </td>
+                <td class="text-center" style="color:#cbd5e1;">–</td>
+                <td class="text-right" style="color:#cbd5e1;">–</td>
             </tr>
         `;
     }
@@ -605,10 +773,21 @@ export function formatTimeAgo(timestamp) {
     }
     const diffMin = Math.floor(diffSec / 60);
     if (diffMin < 60) {
-        return `${diffMin} menit yang lalu`;
+        return `${diffMin} mnt lalu`;
     }
     const diffHours = Math.floor(diffMin / 60);
-    return `${diffHours} jam yang lalu`;
+    if (diffHours < 24) {
+        return `${diffHours} jam lalu`;
+    }
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) {
+        return 'Kemarin';
+    }
+    if (diffDays < 7) {
+        return `${diffDays} hari lalu`;
+    }
+    const d = new Date(Number(timestamp));
+    return `${d.getDate()}/${d.getMonth() + 1}`;
 }
 
 /**
@@ -971,29 +1150,23 @@ export function renderFasilTableAndEWS() {
         ewsAlerts.forEach(s => {
             const hasFormulaError = Number(s.errorCount) >= 3;
             const hasQuizError = s.quizFailed === true || (s.quizWrong !== undefined && Number(s.quizWrong) > 0);
-
-            let reasonHtml = '';
-            if (hasFormulaError) {
-                const errorCountText = s.errorCount >= 3 ? `${s.errorCount}x` : '3x';
-                reasonHtml += `<div class="ews-reason-item">⚠️ Terkendala Rumus di Level ${s.level}: Sudah ${errorCountText} salah memasukkan rumus kasir.</div>`;
-            }
-            if (hasQuizError) {
-                reasonHtml += `<div class="ews-reason-item">❌ Terkendala Konsep di Level ${s.level}: Salah saat menjawab evaluasi kuis.</div>`;
-            }
-
+            const cleanClass = (s.kelas || '-').replace(/^kelas\s*/i, '').trim();
             const timeAgoStr = formatTimeAgo(s.lastUpdated);
+            const errorCountNum = Number(s.errorCount) || 3;
 
             ewsList.innerHTML += `
                 <div class="ews-card">
                     <div class="ews-card-header">
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <span class="ews-card-name">${s.name}</span>
-                            <span class="ews-card-class">Kelas ${s.kelas}</span>
+                        <div class="ews-student-info">
+                            <span class="ews-card-name" title="${s.name}">${s.name}</span>
+                            <span class="ews-class-badge">${cleanClass || '-'}</span>
                         </div>
-                        <span class="ews-card-time" style="font-size:0.75rem; color:#94a3b8; font-weight:600;"><i class="fa-regular fa-clock"></i> ${timeAgoStr}</span>
+                        <span class="ews-card-time"><i class="fa-regular fa-clock"></i> ${timeAgoStr}</span>
                     </div>
-                    <div class="ews-card-reasons" style="margin-top:6px;">
-                        ${reasonHtml}
+                    <div class="ews-issue-chips">
+                        <span class="ews-chip chip-level">Lvl ${s.level}</span>
+                        ${hasFormulaError ? `<span class="ews-chip chip-formula"><i class="fa-solid fa-triangle-exclamation"></i> ${errorCountNum}x Rumus</span>` : ''}
+                        ${hasQuizError ? `<span class="ews-chip chip-quiz"><i class="fa-solid fa-xmark"></i> Kuis Gagal</span>` : ''}
                     </div>
                 </div>
             `;
@@ -1194,24 +1367,24 @@ export function openStudentDetailModal(student) {
                     : '-';
 
                 const errBadge = (h.errors || 0) === 0
-                    ? '<span style="color:#15803d; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> 0</span>'
-                    : `<span style="color:#dc2626; font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> ${h.errors}x</span>`;
+                    ? '<span style="color:#15803d; font-weight:500;"><i class="fa-solid fa-circle-check"></i> 0</span>'
+                    : `<span style="color:#dc2626; font-weight:500;"><i class="fa-solid fa-triangle-exclamation"></i> ${h.errors}x</span>`;
 
                 const quizTotal = h.quizTotal || 0;
                 let quizBadge = '-';
                 if (quizTotal > 0) {
                     const quizCorrect = h.quizCorrect || 0;
                     const isPerfect = quizCorrect === quizTotal;
-                    quizBadge = `<span style="color:${isPerfect ? '#15803d' : '#d97706'}; font-weight:bold;">${quizCorrect}/${quizTotal}</span>`;
+                    quizBadge = `<span style="color:${isPerfect ? '#15803d' : '#d97706'}; font-weight:500;">${quizCorrect}/${quizTotal}</span>`;
                 }
 
                 tbody.innerHTML += `
                     <tr>
-                        <td style="font-weight:800; color:#d97706;">Level ${h.level}</td>
+                        <td style="font-weight:500; color:#d97706;">Level ${h.level}</td>
                         <td><i class="fa-regular fa-clock" style="color:#b45309;"></i> ${h.duration || 0}s</td>
                         <td class="text-center">${errBadge}</td>
                         <td class="text-center">${quizBadge}</td>
-                        <td class="text-right font-mono" style="color:#78350f; font-size:0.75rem;">${timeStr}</td>
+                        <td class="text-right" style="color:#78350f; font-size:0.75rem;">${timeStr}</td>
                     </tr>
                 `;
             });
@@ -1499,9 +1672,9 @@ export function handlePrintDetailedPDF() {
                 <td class="text-center">${escapeHtml(s.kelas)}</td>
                 <td class="text-center">${escapeHtml(genderShort)}</td>
                 <td class="text-center font-bold">Level ${escapeHtml(s.maxLevel || 1)}</td>
-                <td class="text-center font-mono">${escapeHtml(acc)}</td>
-                <td class="text-center font-mono">${escapeHtml(quizDisplay)}</td>
-                <td class="text-right font-mono">Rp ${(s.money || 0).toLocaleString('id-ID')}</td>
+                <td class="text-center">${escapeHtml(acc)}</td>
+                <td class="text-center">${escapeHtml(quizDisplay)}</td>
+                <td class="text-right">Rp ${(s.money || 0).toLocaleString('id-ID')}</td>
                 <td class="text-center"><strong>${isCompleted ? 'Tuntas' : 'Belum Tuntas'}</strong></td>
             </tr>
         `;
@@ -1621,10 +1794,10 @@ export function handlePrintDetailedPDF() {
                         <td class="text-center font-bold">Level ${escapeHtml(h.level)}</td>
                         <td class="text-center">${escapeHtml(h.duration || 0)} detik</td>
                         <td class="text-center">${escapeHtml(h.errors || 0)} kali</td>
-                        <td class="text-center font-mono">${escapeHtml(quizScoreStr)}</td>
-                        <td class="text-right font-mono">Rp ${Number(revenueVal).toLocaleString('id-ID')}</td>
-                        <td class="text-right font-mono">Rp ${Number(costVal).toLocaleString('id-ID')}</td>
-                        <td class="text-right font-mono font-bold">Rp ${Number(profitVal).toLocaleString('id-ID')}</td>
+                        <td class="text-center">${escapeHtml(quizScoreStr)}</td>
+                        <td class="text-right">Rp ${Number(revenueVal).toLocaleString('id-ID')}</td>
+                        <td class="text-right">Rp ${Number(costVal).toLocaleString('id-ID')}</td>
+                        <td class="text-right font-bold">Rp ${Number(profitVal).toLocaleString('id-ID')}</td>
                         <td class="text-center" style="font-size: 7.5pt;">${escapeHtml(timeStr)}</td>
                     </tr>
                 `;
@@ -1672,7 +1845,7 @@ export function handlePrintDetailedPDF() {
             box-sizing: border-box;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Roboto', Arial, sans-serif;
             font-size: 8.5pt;
             line-height: 1.35;
             color: #111827;
@@ -1686,7 +1859,7 @@ export function handlePrintDetailedPDF() {
         }
         .doc-title {
             font-size: 13pt;
-            font-weight: 800;
+            font-weight: 500;
             color: #111827;
             margin: 0 0 3px 0;
             letter-spacing: 0.4px;
@@ -1715,7 +1888,7 @@ export function handlePrintDetailedPDF() {
         }
         .section-title {
             font-size: 9.5pt;
-            font-weight: 800;
+            font-weight: 500;
             color: #111827;
             text-transform: uppercase;
             margin: 14px 0 4px 0;
@@ -1746,7 +1919,7 @@ export function handlePrintDetailedPDF() {
         table.data-table th {
             background-color: #f1f5f9;
             color: #111827;
-            font-weight: 700;
+            font-weight: 500;
             border: 1px solid #94a3b8;
             padding: 5px 6px;
             text-align: left;
@@ -1765,8 +1938,8 @@ export function handlePrintDetailedPDF() {
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        .font-bold { font-weight: 700; }
-        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .font-bold { font-weight: 500; }
+        .font-mono { font-family: 'Roboto', Arial, sans-serif; }
 
         .student-history-block {
             margin-bottom: 12px;
@@ -1811,14 +1984,14 @@ export function handlePrintDetailedPDF() {
         }
         .sign-role {
             margin: 0;
-            font-weight: 600;
+            font-weight: 500;
         }
         .sign-space {
             height: 48px;
         }
         .sign-name {
             margin: 0;
-            font-weight: 700;
+            font-weight: 500;
             border-bottom: 1px solid #111827;
             display: inline-block;
             min-width: 170px;

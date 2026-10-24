@@ -257,10 +257,9 @@ function renderStep(index) {
     clearUnlocked();
     unlockElement(targetEl);
 
-    // Pastikan target tampak (misal di dalam laci kasir atau struk yang bisa di-scroll)
-    if (typeof targetEl.scrollIntoView === 'function') {
-        targetEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    }
+    // Pastikan target tampak HANYA jika berada di dalam kontainer yang dapat di-scroll
+    // (misal di dalam modal struk), TANPA pernah menggulir window atau seluruh layar game
+    scrollTargetIntoParentIfNeeded(targetEl);
 
     // Sembunyikan sementara tooltip & tangan selama jeda transisi
     tooltip.classList.add('hidden');
@@ -273,10 +272,8 @@ function renderStep(index) {
         if (!state.isTutorialActive || currentStepIndex !== index) return;
         isTransitioning = false;
 
-        // Pastikan kembali posisi scroll sudah stabil setelah layout settle
-        if (typeof targetEl.scrollIntoView === 'function') {
-            targetEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        }
+        // Pastikan kembali posisi scroll aman stabil setelah layout settle
+        scrollTargetIntoParentIfNeeded(targetEl);
 
         // Hitung koordinat relatif terhadap #app-container (dinormalisasi terhadap skala transform scale())
         const appContainer  = document.getElementById('app-container');
@@ -547,10 +544,40 @@ function renderStep(index) {
 }
 
 /**
+ * Menggulir kontainer modal internal jika target berada di dalam kontainer yang dapat di-scroll
+ * (seperti modal struk belanja), sekaligus mengunci window/dokumen agar tidak bergeser sama sekali.
+ * @param {HTMLElement} targetEl
+ */
+function scrollTargetIntoParentIfNeeded(targetEl) {
+    if (!targetEl) return;
+
+    const scrollParent = targetEl.closest('.final-receipt-card');
+    if (scrollParent) {
+        const pRect = scrollParent.getBoundingClientRect();
+        const tRect = targetEl.getBoundingClientRect();
+        if (tRect.bottom > pRect.bottom || tRect.top < pRect.top) {
+            scrollParent.scrollTop += (tRect.top - pRect.top) - (pRect.height / 2 - tRect.height / 2);
+        }
+    }
+
+    // Kunci mutlak agar window dan dokumen tidak pernah bergeser dari (0, 0)
+    window.scrollTo(0, 0);
+    if (document.documentElement.scrollLeft !== 0) document.documentElement.scrollLeft = 0;
+    if (document.documentElement.scrollTop !== 0)  document.documentElement.scrollTop = 0;
+    if (document.body.scrollLeft !== 0)            document.body.scrollLeft = 0;
+    if (document.body.scrollTop !== 0)             document.body.scrollTop = 0;
+}
+
+/**
  * Membuka akses interaksi untuk elemen target.
  */
 function unlockElement(targetEl) {
     targetEl.classList.add('tutorial-unlocked');
+    const compPos = window.getComputedStyle(targetEl).position;
+    if (compPos === 'static') {
+        targetEl.dataset.tutAddedRel = 'true';
+        targetEl.style.setProperty('position', 'relative', 'important');
+    }
     targetEl.style.setProperty('pointer-events', 'auto', 'important');
 }
 
@@ -560,7 +587,10 @@ function unlockElement(targetEl) {
 function clearUnlocked() {
     document.querySelectorAll('.tutorial-unlocked').forEach(el => {
         el.classList.remove('tutorial-unlocked');
-        el.style.removeProperty('position');
+        if (el.dataset.tutAddedRel === 'true') {
+            el.style.removeProperty('position');
+            delete el.dataset.tutAddedRel;
+        }
         el.style.removeProperty('z-index');
         el.style.removeProperty('pointer-events');
     });

@@ -5,11 +5,12 @@ import { state } from '../core/state.js';
 import { ITEM_DB } from '../data/items.js';
 import { LEVEL_DATA, LEVEL_OBJECTIVES } from '../data/levels.js';
 import { QUIZ_DB } from '../data/quiz.js';
-import { calculateFormula, tentukanPecahanUang, saveData, renderMathExpression, formatMathText, checkBadgeUnlocks } from '../core/engine.js';
+import { calculateFormula, tentukanPecahanUang, saveData, renderMathExpression, formatMathText, checkBadgeUnlocks, computeLevelStars, computeLevelAccuracy, requestWakeLock, requestFullScreen } from '../core/engine.js';
 import { switchScreen, showMsg } from './screens.js';
 import { checkTutorialAction, startTutorial, endTutorial } from '../core/tutorial.js';
-import { sendStudentProgress } from '../core/sync.js';
+import { sendStudentProgress, syncUserProfile } from '../core/sync.js';
 import { playSFX } from '../core/audio.js';
+import { showVictoryScreen, closeVictoryScreen } from './victory.js';
 
 // ==========================================
 // FOKUS INPUT
@@ -45,6 +46,7 @@ export function loadCustomer() {
     const formulaInput = document.getElementById("formula-box");
     const paidInput    = document.getElementById("paid-box");
     const hargaDisplay = document.getElementById("harga-display");
+    const labelHarga   = document.getElementById("label-harga");
     const trayItems    = document.getElementById("tray-items");
 
     if (formulaInput) {
@@ -52,6 +54,7 @@ export function loadCustomer() {
         formulaInput.classList.remove("input-error");
     }
     if (paidInput)    paidInput.value    = "";
+    if (labelHarga)   labelHarga.textContent = "Harga:";
     if (hargaDisplay) { hargaDisplay.textContent = ""; hargaDisplay.style.color = "#a5d6a7"; }
     if (trayItems)    trayItems.innerHTML = "";
     renderProdukDiNampan();
@@ -100,6 +103,9 @@ export function loadCustomer() {
 export function startLevel(lvl) {
     if (!LEVEL_DATA[lvl]) return showMsg("Level Terkunci", "Level sedang dikembangkan.");
 
+    closeVictoryScreen();
+    requestWakeLock();
+    requestFullScreen();
     state.currentLevelIdx      = lvl;
     state.activePlayingLevel   = lvl;
     try {
@@ -439,8 +445,10 @@ export function mulaiModeKembalian(jumlahKembalian) {
     state.arrayUangKembalian  = [];
     state.kembalianStartTime  = Date.now();
 
+    const labelHarga   = document.getElementById("label-harga");
     const priceDisplay = document.getElementById("harga-display");
-    priceDisplay.textContent = "Kembalikan: Rp " + state.targetKembalian.toLocaleString('id-ID');
+    if (labelHarga) labelHarga.textContent = "Kembalikan:";
+    priceDisplay.textContent = "Rp " + state.targetKembalian.toLocaleString('id-ID');
     priceDisplay.style.color = "#ffb74d";
 
     document.getElementById("formula-box").value = "Rp 0";
@@ -509,6 +517,7 @@ export function validasiUangKembalian() {
     } else {
         playSFX('error');
         state.currentLevelParams.errorCount++;
+        state.levelAccumulation.errors++;
         showMsg("Oops! Kembalian Salah", `Seharusnya Anda memberikan Rp ${state.targetKembalian.toLocaleString('id-ID')}, tetapi Anda malah menyiapkan Rp ${totalDiberikan.toLocaleString('id-ID')}. Ayo hitung lagi!`);
     }
 }
@@ -659,6 +668,19 @@ export function completeLevelAndSave() {
         state.currentUser.maxLevel = state.currentLevelIdx;
     }
 
+    const levelOrders = LEVEL_DATA[state.currentLevelIdx] || [];
+    const quizTotal = QUIZ_DB[state.currentLevelIdx]?.length || 0;
+    const customersCount = levelOrders.length || 1;
+    const stars = computeLevelStars({
+        errors: state.levelAccumulation.errors,
+        quizCorrect: state.currentQuizCorrect,
+        quizTotal
+    });
+    const accuracy = computeLevelAccuracy({
+        customers: customersCount,
+        errors: state.levelAccumulation.errors
+    });
+
     let existLog = state.currentUser.history.find(h => h.level === state.currentLevelIdx);
     if (!existLog) {
         state.currentUser.history.push({
@@ -669,17 +691,19 @@ export function completeLevelAndSave() {
             duration,
             errors:      state.levelAccumulation.errors,
             quizCorrect: state.currentQuizCorrect,
-            quizTotal:   QUIZ_DB[state.currentLevelIdx]?.length || 0,
+            quizTotal,
+            stars,
             timestamp:   new Date().toISOString()
         });
 
         state.currentUser.revenue += state.levelAccumulation.revenue;
         state.currentUser.cost    += state.levelAccumulation.cost;
         state.currentUser.money   += state.levelAccumulation.profit;
+    } else {
+        existLog.stars = Math.max(existLog.stars || 0, stars);
     }
 
     // Hitung jumlah variabel unik yang digunakan pada pesanan level ini
-    const levelOrders = LEVEL_DATA[state.currentLevelIdx] || [];
     const allVars = new Set();
     levelOrders.forEach(cust => {
         if (cust.order) Object.keys(cust.order).forEach(v => allVars.add(v));
@@ -692,13 +716,20 @@ export function completeLevelAndSave() {
         errors: state.levelAccumulation.errors,
         distinctVariables: allVars.size,
         quizCorrect: state.currentQuizCorrect,
-        quizTotal: QUIZ_DB[state.currentLevelIdx]?.length || 0
+        quizTotal
     });
 
     // Kosongkan penanda level aktif saat level selesai
     state.activePlayingLevel = null;
 
     saveData();
+
+    // Sinkronisasi profil akun pengguna ke Firebase (users/{studentId})
+    try {
+        syncUserProfile(state.currentUser);
+    } catch (profErr) {
+        console.warn('[Sync] Gagal sync profile setelah selesai level:', profErr);
+    }
 
     // Sinkronisasi data progres murid ke guru secara realtime (Hybrid Offline + Realtime)
     try {
@@ -707,26 +738,29 @@ export function completeLevelAndSave() {
             state.currentLevelIdx,
             state.levelAccumulation.errors,
             state.currentQuizCorrect,
-            QUIZ_DB[state.currentLevelIdx]?.length || 0
+            quizTotal
         );
     } catch (syncErr) {
         console.warn('[Sync] Progres gagal dikirim:', syncErr);
     }
 
     // Jika baru menyelesaikan Level 10 atau sedang di level sulit, pertahankan tab sulit aktif
+    const unlockedHardJustNow = state.currentLevelIdx === 10;
     if (state.currentLevelIdx >= 10) {
         state.currentLevelTab = 'hard';
-        if (state.currentLevelIdx === 10) {
-            setTimeout(() => {
-                showMsg(
-                    '🎉 TANTANGAN SULIT TERBUKA!',
-                    'Luar biasa! Kamu berhasil menamatkan seluruh 10 Level Tantangan Mudah!<br><br>Mode <strong>Tantangan Sulit (C4-C6)</strong> kini telah terbuka dengan studi kasus HOTS nyata!'
-                );
-            }, 300);
-        }
     }
 
-    switchScreen('screen-levels');
+    showVictoryScreen({
+        level: state.currentLevelIdx,
+        stars,
+        accuracy,
+        quizCorrect: state.currentQuizCorrect,
+        quizTotal,
+        duration,
+        profit: state.levelAccumulation.profit,
+        hasNextLevel: Boolean(LEVEL_DATA[state.currentLevelIdx + 1]),
+        unlockedHardJustNow
+    });
 }
 
 // ==========================================

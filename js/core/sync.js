@@ -554,3 +554,54 @@ export async function sendStudentProgress(user, levelIdx, errors = 0, quizCorrec
 
     return true;
 }
+
+/**
+ * Menyinkronkan profil akun pengguna ke Firebase Realtime Database (users/{studentId}).
+ * Memastikan profil akun setiap orang yang masuk secara daring tersimpan di Firebase,
+ * tidak hanya saat bergabung ke sesi kelas.
+ * @param {Object} user Objek profil murid/pengguna
+ * @returns {Promise<boolean>}
+ */
+export async function syncUserProfile(user) {
+    if (!user || (!user.id && !user.name)) return false;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        return false;
+    }
+
+    const studentId = String(user.id || user.name || 'anon').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const history = Array.isArray(user.history) ? user.history : [];
+    const totalLevels = history.length;
+    const zeroErrors = history.filter(h => (h.errors || 0) === 0).length;
+    const accuracy = totalLevels === 0 ? 100 : Math.round((zeroErrors / totalLevels) * 100);
+
+    const profilePayload = {
+        id: String(user.id || studentId),
+        studentId: studentId,
+        name: user.name || 'Siswa',
+        gender: user.gender || 'Laki-laki',
+        kelas: user.kelas || user.class || '-',
+        money: user.money !== undefined ? user.money : (user.laba || 0),
+        revenue: user.revenue || 0,
+        cost: user.cost || 0,
+        maxLevel: user.maxLevel || 0,
+        sumbangan: user.sumbangan || 0,
+        badges: user.badges || [],
+        accuracy: accuracy,
+        totalLevelsCompleted: totalLevels,
+        history: history,
+        createdAt: user.createdAt || new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        lastUpdated: Date.now()
+    };
+
+    try {
+        if (db) {
+            await set(ref(db, 'users/' + studentId), profilePayload);
+            console.log(`[Sync] Profil akun pengguna tersinkron ke Firebase: users/${studentId}`);
+            return true;
+        }
+    } catch (err) {
+        console.warn('[Sync] Gagal menyinkronkan profil akun ke Firebase:', err);
+    }
+    return false;
+}

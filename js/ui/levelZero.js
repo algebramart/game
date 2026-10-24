@@ -228,7 +228,7 @@ function updateSimulationProgress() {
             statusLabel.innerHTML = '<i class="fa-solid fa-circle-check"></i> Pas! 5 kue x Rp 5.000 = Rp 25.000';
         }
         if (hintText) {
-            hintText.innerHTML = '<span style="color:#059669; font-weight:800;"><i class="fa-solid fa-star"></i> Sempurna! Semua 5 kue tepat teralokasi masing-masing Rp 5.000.</span>';
+            hintText.innerHTML = '<span style="color:#059669; font-weight:500;"><i class="fa-solid fa-star"></i> Sempurna! Semua 5 kue tepat teralokasi masing-masing Rp 5.000.</span>';
         }
         if (nextBtn) {
             nextBtn.disabled = false;

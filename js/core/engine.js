@@ -501,17 +501,58 @@ export function tentukanPecahanUang(uangDetail = state.uangDibayarDetail) {
 }
 
 /**
+ * Menghitung jumlah bintang kemenangan level (1 - 3 bintang).
+ * - 3 Bintang: 0 kesalahan rumus/kembalian DAN kuis sempurna (atau level tanpa kuis).
+ * - 2 Bintang: kesalahan <= 2 DAN rasio kuis >= 50%.
+ * - 1 Bintang: level selesai.
+ * @param {{ errors?: number, quizCorrect?: number, quizTotal?: number }} params
+ * @returns {1|2|3}
+ */
+export function computeLevelStars({ errors = 0, quizCorrect = 0, quizTotal = 0 } = {}) {
+    const err = Math.max(0, Number(errors) || 0);
+    const qTotal = Math.max(0, Number(quizTotal) || 0);
+    const qCorrect = Math.max(0, Number(quizCorrect) || 0);
+    const quizRatio = qTotal === 0 ? 1 : (qCorrect / qTotal);
+
+    if (err === 0 && quizRatio >= 1) {
+        return 3;
+    }
+    if (err <= 2 && quizRatio >= 0.5) {
+        return 2;
+    }
+    return 1;
+}
+
+/**
+ * Menghitung persentase akurasi rumus/transaksi dalam satu level.
+ * @param {{ customers?: number, errors?: number }} params
+ * @returns {number} Persentase 0 - 100
+ */
+export function computeLevelAccuracy({ customers = 1, errors = 0 } = {}) {
+    const c = Math.max(1, Number(customers) || 1);
+    const e = Math.max(0, Number(errors) || 0);
+    return Math.round((c / (c + e)) * 100);
+}
+
+/**
  * Meminta browser masuk ke mode fullscreen.
  */
 export function requestFullScreen() {
-    const elem = document.documentElement;
-    if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(err => console.warn("Fullscreen diblokir: ", err));
-    } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-    } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
+    if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+        return;
     }
+    const elem = document.documentElement;
+    try {
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => {
+                // Kebijakan browser memerlukan interaksi pengguna (user gesture)
+            });
+        } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+            elem.msRequestFullscreen();
+        }
+    } catch (_) {}
 }
 
 /**
@@ -522,6 +563,42 @@ export function exitFullScreen() {
         if (document.exitFullscreen)            document.exitFullscreen();
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         else if (document.msExitFullscreen)     document.msExitFullscreen();
+    }
+}
+
+let wakeLockSentinel = null;
+
+/**
+ * Meminta Screen Wake Lock agar layar HP tetap menyala saat bermain game
+ * dan tidak mati otomatis.
+ */
+export async function requestWakeLock() {
+    if ('wakeLock' in navigator && typeof navigator.wakeLock.request === 'function') {
+        try {
+            if (wakeLockSentinel && !wakeLockSentinel.released) return;
+            wakeLockSentinel = await navigator.wakeLock.request('screen');
+            wakeLockSentinel.addEventListener('release', () => {
+                wakeLockSentinel = null;
+            });
+            console.log('[WakeLock] Screen wake lock aktif (layar dicegah mati otomatis)');
+        } catch (err) {
+            // Browser mungkin membatasi jika baterai sangat rendah atau tab belum aktif
+            console.warn('[WakeLock] Status wake lock:', err.message || err);
+        }
+    }
+}
+
+/**
+ * Melepaskan Screen Wake Lock jika tidak dibutuhkan.
+ */
+export async function releaseWakeLock() {
+    if (wakeLockSentinel) {
+        try {
+            await wakeLockSentinel.release();
+            wakeLockSentinel = null;
+        } catch (err) {
+            console.warn('[WakeLock] Gagal melepas wake lock:', err);
+        }
     }
 }
 

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="t5-ribbon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+    <linearGradient id="t5-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="40%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="t5-diamond" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0f2fe"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <filter id="t5-shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3.5" flood-color="#451a03" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <g filter="url(#t5-shadow)">
+    <!-- Sayap Agung Grand Master -->
+    <path d="M26,40 L2,20 L10,40 L2,50 L14,60 L4,70 L28,70 Z" fill="url(#t5-gold)" stroke="#ffffff" stroke-width="1.5"/>
+    <path d="M94,40 L118,20 L110,40 L118,50 L106,60 L116,70 L92,70 Z" fill="url(#t5-gold)" stroke="#ffffff" stroke-width="1.5"/>
+    <!-- Pita Merah Royal -->
+    <polygon points="36,78 22,115 39,106 47,117 54,80" fill="url(#t5-ribbon)"/>
+    <polygon points="84,78 98,115 81,106 73,117 66,80" fill="url(#t5-ribbon)"/>
+    <!-- Mahkota Atas -->
+    <polygon points="38,24 44,8 53,18 60,4 67,18 76,8 82,24" fill="url(#t5-gold)" stroke="#ffffff" stroke-width="1.8"/>
+    <circle cx="60" cy="4" r="2.5" fill="#ef4444"/>
+    <circle cx="44" cy="8" r="2" fill="#38bdf8"/>
+    <circle cx="76" cy="8" r="2" fill="#38bdf8"/>
+    <!-- Perisai Berlian & Emas -->
+    <polygon points="60,18 92,30 98,58 82,85 60,98 38,85 22,58 28,30" fill="url(#t5-gold)" stroke="#ffffff" stroke-width="2.5"/>
+    <circle cx="60" cy="57" r="28" fill="url(#t5-diamond)" stroke="#fef08a" stroke-width="2.5"/>
+    <!-- Bintang Mahkota Utama -->
+    <polygon points="60,33 67,48 83,50 71,61 74,77 60,69 46,77 49,61 37,50 53,48" fill="url(#t5-gold)" stroke="#ffffff" stroke-width="1.2"/>
+    <!-- Banner Pita Tengah -->
+    <path d="M30,82 Q60,92 90,82 L86,92 Q60,102 34,92 Z" fill="#fef08a" stroke="#b45309" stroke-width="1.5"/>
+  </g>
+</svg>
+

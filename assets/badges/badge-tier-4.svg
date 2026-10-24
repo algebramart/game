@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="t4-ribbon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#581c87"/>
+    </linearGradient>
+    <linearGradient id="t4-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="t4-amethyst" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#6b21a8"/>
+    </linearGradient>
+    <filter id="t4-shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#3b0764" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <g filter="url(#t4-shadow)">
+    <!-- Sayap Ganda Royal -->
+    <path d="M26,38 L3,22 L11,42 L3,52 L15,62 L6,70 L28,68 Z" fill="url(#t4-gold)" stroke="#fef9c3" stroke-width="1.5"/>
+    <path d="M94,38 L117,22 L109,42 L117,52 L105,62 L114,70 L92,68 Z" fill="url(#t4-gold)" stroke="#fef9c3" stroke-width="1.5"/>
+    <!-- Pita Bawah -->
+    <polygon points="36,75 22,113 39,104 47,115 54,79" fill="url(#t4-ribbon)"/>
+    <polygon points="84,75 98,113 81,104 73,115 66,79" fill="url(#t4-ribbon)"/>
+    <!-- Perisai Kristal Emas -->
+    <polygon points="60,6 92,20 100,52 84,82 60,95 36,82 20,52 28,20" fill="url(#t4-gold)" stroke="#ffffff" stroke-width="2.5"/>
+    <polygon points="60,15 84,26 90,51 77,75 60,86 43,75 30,51 36,26" fill="url(#t4-amethyst)" stroke="#fde047" stroke-width="2"/>
+    <!-- Permata Berlian Tengah -->
+    <polygon points="60,25 76,48 60,72 44,48" fill="#f0abfc" stroke="#ffffff" stroke-width="2"/>
+    <polygon points="60,25 76,48 60,48" fill="#ffffff" opacity="0.5"/>
+    <polygon points="60,33 65,44 77,45 68,53 70,65 60,59 50,65 52,53 43,45 55,44" fill="url(#t4-gold)"/>
+  </g>
+</svg>
+

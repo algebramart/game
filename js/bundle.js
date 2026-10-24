@@ -54,6 +54,9 @@ const state = {
     /** @type {Object} */ onlineStudents: {},
     /** @type {string|null} */ fasilSortField: null,
     /** @type {'asc'|'desc'} */ fasilSortOrder: 'asc',
+
+    // --- Papan Kehormatan / Leaderboard ---
+    /** @type {'accuracy'|'quiz'} */ leaderboardSortBy: 'accuracy',
 };
 
 
@@ -76,7 +79,10 @@ const SFX_MAP = {
     success_quiz_change:  'assets/sound/select_001.ogg',       // Kuis benar & kembalian pas
     error:                'assets/sound/confirmation_001.ogg', // Rumus salah, kembalian salah, & kuis salah
     badge_reward:         'assets/sound/confirmation_002.ogg', // Notifikasi lencana & reward bintang
-    nav:                  'assets/sound/select_006.ogg'        // Navigasi UI umum
+    nav:                  'assets/sound/select_006.ogg',       // Navigasi UI umum
+    star_pop:             'assets/sound/confirmation_002.ogg', // Pop bintang kemenangan
+    tally_tick:           'assets/sound/select_004.ogg',       // Tick counter angka skor
+    victory:              'assets/sound/select_001.ogg'        // Fanfar penyelesaian level
 };
 
 let bgmVolume = 0.35;
@@ -492,36 +498,36 @@ const ITEM_DB = {
 };
 
 /** 
- * @type {Array<{id: string, name: string, icon: string, colorClass: string, category: string, desc: string}>} 
+ * @type {Array<{id: string, name: string, icon: string, tier: number, badgeImg: string, colorClass: string, category: string, desc: string}>} 
  */
 const BADGES_DB = [
     // --- Kategori Akurasi & Matematika ---
-    { id: 'si_teliti',          name: 'Si Teliti',          icon: 'fa-crosshairs',           colorClass: 'icon-blue',    category: 'Akurasi & Matematika', desc: 'Menyelesaikan satu level tanpa pernah salah mengetik rumus aljabar.' },
-    { id: 'master_variabel',    name: 'Master Variabel',    icon: 'fa-cubes',                colorClass: 'icon-indigo',  category: 'Akurasi & Matematika', desc: 'Berhasil menuntaskan level yang memuat 3 variabel berbeda.' },
-    { id: 'ahli_komutatif',     name: 'Ahli Komutatif',     icon: 'fa-right-left',           colorClass: 'icon-cyan',    category: 'Akurasi & Matematika', desc: 'Membuktikan sifat komutatif pesanan tanpa kesalahan pada Level 2 atau Level 8.' },
-    { id: 'pembedah_suku',      name: 'Pembedah Suku',      icon: 'fa-scissors',             colorClass: 'icon-purple',  category: 'Akurasi & Matematika', desc: 'Berhasil menyederhanakan ekspresi gabungan suku sejenis pada Level 3/6.' },
-    { id: 'penakluk_nol',       name: 'Penakluk Nol',       icon: 'fa-circle-notch',         colorClass: 'icon-teal',    category: 'Akurasi & Matematika', desc: 'Memahami makna koefisien nol dan melewati pesanan kosong pada Level 9.' },
-    { id: 'jenius_aljabar',     name: 'Jenius Aljabar',     icon: 'fa-brain',                colorClass: 'icon-amber',   category: 'Akurasi & Matematika', desc: 'Meraih akurasi rata-rata rumus aljabar 100% minimal setelah 5 level.' },
-    { id: 'bintang_tiga',       name: 'Bintang Tiga',       icon: 'fa-star',                 colorClass: 'icon-yellow',  category: 'Akurasi & Matematika', desc: 'Mengumpulkan bintang 3 sempurna pada 5 level berbeda.' },
-    { id: 'kolektor_sempurna',  name: 'Kolektor Sempurna',  icon: 'fa-crown',                colorClass: 'icon-gold',    category: 'Akurasi & Matematika', desc: 'Menyelesaikan Level 10 dengan 0 kesalahan.' },
+    { id: 'si_teliti',          name: 'Si Teliti',          icon: 'fa-crosshairs',           tier: 1, badgeImg: 'assets/badges/badge-tier-1.svg', colorClass: 'icon-blue',    category: 'Akurasi & Matematika', desc: 'Menyelesaikan satu level tanpa pernah salah mengetik rumus aljabar.' },
+    { id: 'master_variabel',    name: 'Master Variabel',    icon: 'fa-cubes',                tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-indigo',  category: 'Akurasi & Matematika', desc: 'Berhasil menuntaskan level yang memuat 3 variabel berbeda.' },
+    { id: 'ahli_komutatif',     name: 'Ahli Komutatif',     icon: 'fa-right-left',           tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-cyan',    category: 'Akurasi & Matematika', desc: 'Membuktikan sifat komutatif pesanan tanpa kesalahan pada Level 2 atau Level 8.' },
+    { id: 'pembedah_suku',      name: 'Pembedah Suku',      icon: 'fa-scissors',             tier: 3, badgeImg: 'assets/badges/badge-tier-3.svg', colorClass: 'icon-purple',  category: 'Akurasi & Matematika', desc: 'Berhasil menyederhanakan ekspresi gabungan suku sejenis pada Level 3/6.' },
+    { id: 'penakluk_nol',       name: 'Penakluk Nol',       icon: 'fa-circle-notch',         tier: 3, badgeImg: 'assets/badges/badge-tier-3.svg', colorClass: 'icon-teal',    category: 'Akurasi & Matematika', desc: 'Memahami makna koefisien nol dan melewati pesanan kosong pada Level 9.' },
+    { id: 'jenius_aljabar',     name: 'Jenius Aljabar',     icon: 'fa-brain',                tier: 4, badgeImg: 'assets/badges/badge-tier-4.svg', colorClass: 'icon-amber',   category: 'Akurasi & Matematika', desc: 'Meraih akurasi rata-rata rumus aljabar 100% minimal setelah 5 level.' },
+    { id: 'bintang_tiga',       name: 'Bintang Tiga',       icon: 'fa-star',                 tier: 4, badgeImg: 'assets/badges/badge-tier-4.svg', colorClass: 'icon-yellow',  category: 'Akurasi & Matematika', desc: 'Mengumpulkan bintang 3 sempurna pada 5 level berbeda.' },
+    { id: 'kolektor_sempurna',  name: 'Kolektor Sempurna',  icon: 'fa-crown',                tier: 5, badgeImg: 'assets/badges/badge-tier-5.svg', colorClass: 'icon-gold',    category: 'Akurasi & Matematika', desc: 'Menyelesaikan Level 10 dengan 0 kesalahan.' },
 
     // --- Kategori Finansial & Kasir ---
-    { id: 'si_jujur',           name: 'Si Jujur',           icon: 'fa-hand-holding-heart',   colorClass: 'icon-emerald', category: 'Finansial & Kasir',   desc: 'Memberikan kembalian uang fisik dari laci kasir dengan tepat tanpa salah ambil.' },
-    { id: 'saudagar_cilik',     name: 'Saudagar Cilik',     icon: 'fa-coins',                colorClass: 'icon-green',   category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 50.000.' },
-    { id: 'juragan_pasar',      name: 'Juragan Pasar',      icon: 'fa-shop',                 colorClass: 'icon-blue',    category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 150.000.' },
-    { id: 'sultan_aljabar',     name: 'Sultan Aljabar',     icon: 'fa-gem',                  colorClass: 'icon-purple',  category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 300.000.' },
-    { id: 'uang_pas',           name: 'Uang Pas',           icon: 'fa-money-bill-1-wave',    colorClass: 'icon-lime',    category: 'Finansial & Kasir',   desc: 'Berhasil melayani transaksi pesanan uang pas (tanpa kembalian).' },
-    { id: 'laci_kilat',         name: 'Laci Kilat',         icon: 'fa-bolt-lightning',       colorClass: 'icon-orange',  category: 'Finansial & Kasir',   desc: 'Menyiapkan uang kembalian pecahan dalam waktu kurang dari 15 detik.' },
+    { id: 'si_jujur',           name: 'Si Jujur',           icon: 'fa-hand-holding-heart',   tier: 1, badgeImg: 'assets/badges/badge-tier-1.svg', colorClass: 'icon-emerald', category: 'Finansial & Kasir',   desc: 'Memberikan kembalian uang fisik dari laci kasir dengan tepat tanpa salah ambil.' },
+    { id: 'saudagar_cilik',     name: 'Saudagar Cilik',     icon: 'fa-coins',                tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-green',   category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 50.000.' },
+    { id: 'juragan_pasar',      name: 'Juragan Pasar',      icon: 'fa-shop',                 tier: 3, badgeImg: 'assets/badges/badge-tier-3.svg', colorClass: 'icon-blue',    category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 150.000.' },
+    { id: 'sultan_aljabar',     name: 'Sultan Aljabar',     icon: 'fa-gem',                  tier: 5, badgeImg: 'assets/badges/badge-tier-5.svg', colorClass: 'icon-purple',  category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 300.000.' },
+    { id: 'uang_pas',           name: 'Uang Pas',           icon: 'fa-money-bill-1-wave',    tier: 1, badgeImg: 'assets/badges/badge-tier-1.svg', colorClass: 'icon-lime',    category: 'Finansial & Kasir',   desc: 'Berhasil melayani transaksi pesanan uang pas (tanpa kembalian).' },
+    { id: 'laci_kilat',         name: 'Laci Kilat',         icon: 'fa-bolt-lightning',       tier: 3, badgeImg: 'assets/badges/badge-tier-3.svg', colorClass: 'icon-orange',  category: 'Finansial & Kasir',   desc: 'Menyiapkan uang kembalian pecahan dalam waktu kurang dari 15 detik.' },
 
     // --- Kategori Karakter & Dimensi Hati ---
-    { id: 'dermawan_muda',      name: 'Dermawan Muda',      icon: 'fa-seedling',             colorClass: 'icon-emerald', category: 'Karakter & Dimensi Hati', desc: 'Menyisihkan laba toko untuk total sumbangan sosial minimal Rp 5.000.' },
-    { id: 'pahlawan_desa',      name: 'Pahlawan Desa',      icon: 'fa-handshake-angle',      colorClass: 'icon-pink',    category: 'Karakter & Dimensi Hati', desc: 'Akumulasi sumbangan sosial mencapai lebih dari Rp 20.000.' },
-    { id: 'reputasi_emas',      name: 'Reputasi Emas',      icon: 'fa-award',                colorClass: 'icon-gold',    category: 'Karakter & Dimensi Hati', desc: 'Meraih status reputasi toko "Pedagang Dermawan".' },
+    { id: 'dermawan_muda',      name: 'Dermawan Muda',      icon: 'fa-seedling',             tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-emerald', category: 'Karakter & Dimensi Hati', desc: 'Menyisihkan laba toko untuk total sumbangan sosial minimal Rp 5.000.' },
+    { id: 'pahlawan_desa',      name: 'Pahlawan Desa',      icon: 'fa-handshake-angle',      tier: 4, badgeImg: 'assets/badges/badge-tier-4.svg', colorClass: 'icon-pink',    category: 'Karakter & Dimensi Hati', desc: 'Akumulasi sumbangan sosial mencapai lebih dari Rp 20.000.' },
+    { id: 'reputasi_emas',      name: 'Reputasi Emas',      icon: 'fa-award',                tier: 5, badgeImg: 'assets/badges/badge-tier-5.svg', colorClass: 'icon-gold',    category: 'Karakter & Dimensi Hati', desc: 'Meraih status reputasi toko "Pedagang Dermawan".' },
 
     // --- Kategori Evaluasi & Persistensi ---
-    { id: 'skor_kuis_sempurna', name: 'Kuis Sempurna',      icon: 'fa-circle-check',         colorClass: 'icon-teal',    category: 'Evaluasi & Persistensi', desc: 'Menjawab seluruh soal kuis evaluasi level dengan benar (100%).' },
-    { id: 'pantang_menyerah',   name: 'Pantang Menyerah',   icon: 'fa-shield-halved',        colorClass: 'icon-red',     category: 'Evaluasi & Persistensi', desc: 'Berhasil menyelesaikan level meski sempat melakukan kesalahan input >= 3 kali.' },
-    { id: 'penakluk_tantangan', name: 'Penakluk Tantangan', icon: 'fa-trophy',               colorClass: 'icon-amber',   category: 'Evaluasi & Persistensi', desc: 'Membuka dan menyelesaikan level pada mode Tantangan Sulit.' }
+    { id: 'skor_kuis_sempurna', name: 'Kuis Sempurna',      icon: 'fa-circle-check',         tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-teal',    category: 'Evaluasi & Persistensi', desc: 'Menjawab seluruh soal kuis evaluasi level dengan benar (100%).' },
+    { id: 'pantang_menyerah',   name: 'Pantang Menyerah',   icon: 'fa-shield-halved',        tier: 1, badgeImg: 'assets/badges/badge-tier-1.svg', colorClass: 'icon-red',     category: 'Evaluasi & Persistensi', desc: 'Berhasil menyelesaikan level meski sempat melakukan kesalahan input >= 3 kali.' },
+    { id: 'penakluk_tantangan', name: 'Penakluk Tantangan', icon: 'fa-trophy',               tier: 4, badgeImg: 'assets/badges/badge-tier-4.svg', colorClass: 'icon-amber',   category: 'Evaluasi & Persistensi', desc: 'Membuka dan menyelesaikan level pada mode Tantangan Sulit.' }
 ];
 
 
@@ -995,16 +1001,16 @@ const LEVEL_OBJECTIVES = {
     8:  "Sifat Operasi: Sifat Komutatif Penjumlahan Aljabar",
     9:  "Sifat Operasi: Makna Koefisien Nol (0)",
     10: "Sifat Operasi: Sintesis & Evaluasi Akhir",
-    11: "HOTS C4: Substitusi Riil Dua Variabel",
-    12: "HOTS C4: Revisi Keranjang Bertingkat",
-    13: "HOTS C5: Suku Campuran Tiga Variabel",
-    14: "HOTS C5: Jebakan Informasi Tidak Relevan",
-    15: "HOTS C5: Gabungan Pesanan Rombongan",
-    16: "HOTS C6: Sifat Distributif Paket",
-    17: "HOTS C6: Distributif Pecahan (Setengah Pesanan)",
-    18: "HOTS C6: Distributif Paket Bertingkat",
-    19: "HOTS C6: Distributif dengan Koefisien Nol",
-    20: "HOTS C6: Ujian Akhir Sindikat Kelontong"
+    11: "Substitusi Riil Dua Variabel",
+    12: "Revisi Keranjang Bertingkat",
+    13: "Suku Campuran Tiga Variabel",
+    14: "Jebakan Informasi Tidak Relevan",
+    15: "Gabungan Pesanan Rombongan",
+    16: "Sifat Distributif Paket",
+    17: "Distributif Pecahan (Setengah Pesanan)",
+    18: "Distributif Paket Bertingkat",
+    19: "Distributif dengan Koefisien Nol",
+    20: "Ujian Akhir Sindikat Kelontong"
 };
 
 
@@ -1997,17 +2003,58 @@ function tentukanPecahanUang(uangDetail = state.uangDibayarDetail) {
 }
 
 /**
+ * Menghitung jumlah bintang kemenangan level (1 - 3 bintang).
+ * - 3 Bintang: 0 kesalahan rumus/kembalian DAN kuis sempurna (atau level tanpa kuis).
+ * - 2 Bintang: kesalahan <= 2 DAN rasio kuis >= 50%.
+ * - 1 Bintang: level selesai.
+ * @param {{ errors?: number, quizCorrect?: number, quizTotal?: number }} params
+ * @returns {1|2|3}
+ */
+function computeLevelStars({ errors = 0, quizCorrect = 0, quizTotal = 0 } = {}) {
+    const err = Math.max(0, Number(errors) || 0);
+    const qTotal = Math.max(0, Number(quizTotal) || 0);
+    const qCorrect = Math.max(0, Number(quizCorrect) || 0);
+    const quizRatio = qTotal === 0 ? 1 : (qCorrect / qTotal);
+
+    if (err === 0 && quizRatio >= 1) {
+        return 3;
+    }
+    if (err <= 2 && quizRatio >= 0.5) {
+        return 2;
+    }
+    return 1;
+}
+
+/**
+ * Menghitung persentase akurasi rumus/transaksi dalam satu level.
+ * @param {{ customers?: number, errors?: number }} params
+ * @returns {number} Persentase 0 - 100
+ */
+function computeLevelAccuracy({ customers = 1, errors = 0 } = {}) {
+    const c = Math.max(1, Number(customers) || 1);
+    const e = Math.max(0, Number(errors) || 0);
+    return Math.round((c / (c + e)) * 100);
+}
+
+/**
  * Meminta browser masuk ke mode fullscreen.
  */
 function requestFullScreen() {
-    const elem = document.documentElement;
-    if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(err => console.warn("Fullscreen diblokir: ", err));
-    } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-    } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
+    if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+        return;
     }
+    const elem = document.documentElement;
+    try {
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => {
+                // Kebijakan browser memerlukan interaksi pengguna (user gesture)
+            });
+        } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+            elem.msRequestFullscreen();
+        }
+    } catch (_) {}
 }
 
 /**
@@ -2018,6 +2065,42 @@ function exitFullScreen() {
         if (document.exitFullscreen)            document.exitFullscreen();
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         else if (document.msExitFullscreen)     document.msExitFullscreen();
+    }
+}
+
+let wakeLockSentinel = null;
+
+/**
+ * Meminta Screen Wake Lock agar layar HP tetap menyala saat bermain game
+ * dan tidak mati otomatis.
+ */
+async function requestWakeLock() {
+    if ('wakeLock' in navigator && typeof navigator.wakeLock.request === 'function') {
+        try {
+            if (wakeLockSentinel && !wakeLockSentinel.released) return;
+            wakeLockSentinel = await navigator.wakeLock.request('screen');
+            wakeLockSentinel.addEventListener('release', () => {
+                wakeLockSentinel = null;
+            });
+            console.log('[WakeLock] Screen wake lock aktif (layar dicegah mati otomatis)');
+        } catch (err) {
+            // Browser mungkin membatasi jika baterai sangat rendah atau tab belum aktif
+            console.warn('[WakeLock] Status wake lock:', err.message || err);
+        }
+    }
+}
+
+/**
+ * Melepaskan Screen Wake Lock jika tidak dibutuhkan.
+ */
+async function releaseWakeLock() {
+    if (wakeLockSentinel) {
+        try {
+            await wakeLockSentinel.release();
+            wakeLockSentinel = null;
+        } catch (err) {
+            console.warn('[WakeLock] Gagal melepas wake lock:', err);
+        }
     }
 }
 
@@ -2637,6 +2720,57 @@ async function sendStudentProgress(user, levelIdx, errors = 0, quizCorrect = 0, 
     return true;
 }
 
+/**
+ * Menyinkronkan profil akun pengguna ke Firebase Realtime Database (users/{studentId}).
+ * Memastikan profil akun setiap orang yang masuk secara daring tersimpan di Firebase,
+ * tidak hanya saat bergabung ke sesi kelas.
+ * @param {Object} user Objek profil murid/pengguna
+ * @returns {Promise<boolean>}
+ */
+async function syncUserProfile(user) {
+    if (!user || (!user.id && !user.name)) return false;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        return false;
+    }
+
+    const studentId = String(user.id || user.name || 'anon').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const history = Array.isArray(user.history) ? user.history : [];
+    const totalLevels = history.length;
+    const zeroErrors = history.filter(h => (h.errors || 0) === 0).length;
+    const accuracy = totalLevels === 0 ? 100 : Math.round((zeroErrors / totalLevels) * 100);
+
+    const profilePayload = {
+        id: String(user.id || studentId),
+        studentId: studentId,
+        name: user.name || 'Siswa',
+        gender: user.gender || 'Laki-laki',
+        kelas: user.kelas || user.class || '-',
+        money: user.money !== undefined ? user.money : (user.laba || 0),
+        revenue: user.revenue || 0,
+        cost: user.cost || 0,
+        maxLevel: user.maxLevel || 0,
+        sumbangan: user.sumbangan || 0,
+        badges: user.badges || [],
+        accuracy: accuracy,
+        totalLevelsCompleted: totalLevels,
+        history: history,
+        createdAt: user.createdAt || new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        lastUpdated: Date.now()
+    };
+
+    try {
+        if (db) {
+            await set(ref(db, 'users/' + studentId), profilePayload);
+            console.log(`[Sync] Profil akun pengguna tersinkron ke Firebase: users/${studentId}`);
+            return true;
+        }
+    } catch (err) {
+        console.warn('[Sync] Gagal menyinkronkan profil akun ke Firebase:', err);
+    }
+    return false;
+}
+
 
 // ==========================================
 // FILE: js/core/tutorial.js
@@ -2900,10 +3034,9 @@ function renderStep(index) {
     clearUnlocked();
     unlockElement(targetEl);
 
-    // Pastikan target tampak (misal di dalam laci kasir atau struk yang bisa di-scroll)
-    if (typeof targetEl.scrollIntoView === 'function') {
-        targetEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    }
+    // Pastikan target tampak HANYA jika berada di dalam kontainer yang dapat di-scroll
+    // (misal di dalam modal struk), TANPA pernah menggulir window atau seluruh layar game
+    scrollTargetIntoParentIfNeeded(targetEl);
 
     // Sembunyikan sementara tooltip & tangan selama jeda transisi
     tooltip.classList.add('hidden');
@@ -2916,10 +3049,8 @@ function renderStep(index) {
         if (!state.isTutorialActive || currentStepIndex !== index) return;
         isTransitioning = false;
 
-        // Pastikan kembali posisi scroll sudah stabil setelah layout settle
-        if (typeof targetEl.scrollIntoView === 'function') {
-            targetEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        }
+        // Pastikan kembali posisi scroll aman stabil setelah layout settle
+        scrollTargetIntoParentIfNeeded(targetEl);
 
         // Hitung koordinat relatif terhadap #app-container (dinormalisasi terhadap skala transform scale())
         const appContainer  = document.getElementById('app-container');
@@ -3190,10 +3321,40 @@ function renderStep(index) {
 }
 
 /**
+ * Menggulir kontainer modal internal jika target berada di dalam kontainer yang dapat di-scroll
+ * (seperti modal struk belanja), sekaligus mengunci window/dokumen agar tidak bergeser sama sekali.
+ * @param {HTMLElement} targetEl
+ */
+function scrollTargetIntoParentIfNeeded(targetEl) {
+    if (!targetEl) return;
+
+    const scrollParent = targetEl.closest('.final-receipt-card');
+    if (scrollParent) {
+        const pRect = scrollParent.getBoundingClientRect();
+        const tRect = targetEl.getBoundingClientRect();
+        if (tRect.bottom > pRect.bottom || tRect.top < pRect.top) {
+            scrollParent.scrollTop += (tRect.top - pRect.top) - (pRect.height / 2 - tRect.height / 2);
+        }
+    }
+
+    // Kunci mutlak agar window dan dokumen tidak pernah bergeser dari (0, 0)
+    window.scrollTo(0, 0);
+    if (document.documentElement.scrollLeft !== 0) document.documentElement.scrollLeft = 0;
+    if (document.documentElement.scrollTop !== 0)  document.documentElement.scrollTop = 0;
+    if (document.body.scrollLeft !== 0)            document.body.scrollLeft = 0;
+    if (document.body.scrollTop !== 0)             document.body.scrollTop = 0;
+}
+
+/**
  * Membuka akses interaksi untuk elemen target.
  */
 function unlockElement(targetEl) {
     targetEl.classList.add('tutorial-unlocked');
+    const compPos = window.getComputedStyle(targetEl).position;
+    if (compPos === 'static') {
+        targetEl.dataset.tutAddedRel = 'true';
+        targetEl.style.setProperty('position', 'relative', 'important');
+    }
     targetEl.style.setProperty('pointer-events', 'auto', 'important');
 }
 
@@ -3203,7 +3364,10 @@ function unlockElement(targetEl) {
 function clearUnlocked() {
     document.querySelectorAll('.tutorial-unlocked').forEach(el => {
         el.classList.remove('tutorial-unlocked');
-        el.style.removeProperty('position');
+        if (el.dataset.tutAddedRel === 'true') {
+            el.style.removeProperty('position');
+            delete el.dataset.tutAddedRel;
+        }
         el.style.removeProperty('z-index');
         el.style.removeProperty('pointer-events');
     });
@@ -3522,7 +3686,7 @@ function updateSimulationProgress() {
             statusLabel.innerHTML = '<i class="fa-solid fa-circle-check"></i> Pas! 5 kue x Rp 5.000 = Rp 25.000';
         }
         if (hintText) {
-            hintText.innerHTML = '<span style="color:#059669; font-weight:800;"><i class="fa-solid fa-star"></i> Sempurna! Semua 5 kue tepat teralokasi masing-masing Rp 5.000.</span>';
+            hintText.innerHTML = '<span style="color:#059669; font-weight:500;"><i class="fa-solid fa-star"></i> Sempurna! Semua 5 kue tepat teralokasi masing-masing Rp 5.000.</span>';
         }
         if (nextBtn) {
             nextBtn.disabled = false;
@@ -3692,7 +3856,15 @@ function showMsg(title, desc, onCloseCallback = null) {
  * @param {string} id
  */
 function closeModal(id) {
-    document.getElementById(id).classList.add('hidden');
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+
+    if (id === 'modal-join-room') {
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen) {
+            updateUniversalSettingsContext(activeScreen.id);
+        }
+    }
 }
 
 /**
@@ -3701,9 +3873,12 @@ function closeModal(id) {
  */
 function updateUniversalSettingsContext(screenId) {
     const btnUniversalSettings = document.getElementById('btn-universal-settings');
+    const modalJoinRoom = document.getElementById('modal-join-room');
+    const isJoinRoomOpen = modalJoinRoom && !modalJoinRoom.classList.contains('hidden');
 
     if (btnUniversalSettings) {
         if (
+            isJoinRoomOpen ||
             screenId === 'screen-welcome' ||
             screenId === 'screen-fasilitator' ||
             screenId === 'screen-levels' ||
@@ -3808,13 +3983,16 @@ function showBadgeUnlockedPopup(badge) {
 
     const toast = document.createElement('div');
     toast.className = 'badge-toast animate-badge-pop';
+    const iconHtml = badge.badgeImg
+        ? `<img src="${badge.badgeImg}" class="badge-tier-img" alt="${badge.name}">`
+        : `<i class="fa-solid ${badge.icon || 'fa-award'}"></i>`;
     toast.innerHTML = `
         <div class="badge-toast-glow"></div>
-        <div class="badge-toast-icon-wrapper ${badge.colorClass || 'icon-gold'}">
-            <i class="fa-solid ${badge.icon || 'fa-award'}"></i>
+        <div class="badge-toast-icon-wrapper ${badge.badgeImg ? 'has-tier-img' : (badge.colorClass || 'icon-gold')}">
+            ${iconHtml}
         </div>
         <div class="badge-toast-content">
-            <div class="badge-toast-tag"><i class="fa-solid fa-star"></i> LENCANA DIBUKA!</div>
+            <div class="badge-toast-tag"><i class="fa-solid fa-star"></i> LENCANA TIER ${badge.tier || 1} DIBUKA!</div>
             <h4 class="badge-toast-name">${badge.name}</h4>
         </div>
         <button class="badge-toast-close" title="Tutup">&times;</button>
@@ -3917,11 +4095,11 @@ function renderLevels() {
     if (tabHard) {
         if (!isHardUnlocked) {
             tabHard.className = 'tab-disabled';
-            tabHard.innerHTML = 'Tantangan Sulit (C4-C6) <i class="fa-solid fa-lock"></i>';
+            tabHard.innerHTML = 'Tantangan Sulit <i class="fa-solid fa-lock"></i>';
             tabHard.title = 'Selesaikan 10 Level Tantangan Mudah untuk membuka!';
         } else {
             tabHard.className = state.currentLevelTab === 'hard' ? 'tab-active tab-hard-theme' : 'tab-inactive';
-            tabHard.innerHTML = 'Tantangan Sulit (C4-C6) <i class="fa-solid fa-fire text-amber-400"></i>';
+            tabHard.innerHTML = 'Tantangan Sulit <i class="fa-solid fa-fire text-amber-400"></i>';
             tabHard.removeAttribute('title');
         }
     }
@@ -3996,11 +4174,363 @@ function renderLevels() {
 
 
 // ==========================================
+// FILE: js/ui/victory.js
+// ==========================================
+// ==========================================
+// ui/victory.js — Layar Kemenangan (Victory Screen)
+// Animasi Bintang Bertahap & Tally Counter Skor
+// ==========================================
+
+
+
+let activeTimeouts = [];
+let activeRafIds = [];
+let currentVictoryState = null;
+let isAnimatingVictory = false;
+let lastTickSfxTime = 0;
+
+/**
+ * Membatalkan seluruh timer dan requestAnimationFrame aktif pada layar kemenangan
+ * untuk mencegah kebocoran memori (memory leak) saat pemain menutup modal lebih awal.
+ */
+function clearVictoryTimers() {
+    while (activeTimeouts.length > 0) {
+        clearTimeout(activeTimeouts.pop());
+    }
+    while (activeRafIds.length > 0) {
+        cancelAnimationFrame(activeRafIds.pop());
+    }
+    isAnimatingVictory = false;
+}
+
+/**
+ * Helper penjadwalan timeout yang otomatis tercatat agar mudah dibersihkan.
+ * @param {Function} fn
+ * @param {number} delayMs
+ */
+function scheduleVictoryTimeout(fn, delayMs) {
+    const id = setTimeout(() => {
+        const idx = activeTimeouts.indexOf(id);
+        if (idx !== -1) activeTimeouts.splice(idx, 1);
+        fn();
+    }, delayMs);
+    activeTimeouts.push(id);
+    return id;
+}
+
+/**
+ * Format durasi detik ke tampilan ringkas (contoh: "45s" atau "1m 20s").
+ * @param {number} sec
+ * @returns {string}
+ */
+function formatVictoryDuration(sec) {
+    const total = Math.max(0, Math.round(Number(sec) || 0));
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    if (m === 0) return `${s}s`;
+    return `${m}m ${s}s`;
+}
+
+/**
+ * Menganimasikan kenaikan angka dari nilai awal ke nilai akhir secara mulus (easeOutCubic).
+ * @param {HTMLElement|null} element Elemen target
+ * @param {number} start Nilai awal
+ * @param {number} end Nilai akhir
+ * @param {number} duration Durasi animasi dalam ms
+ * @param {(val: number) => string} formatter Fungsi pemformat teks
+ * @param {boolean} [withTickSound=false] Apakah memutar suara tick selama berhitung
+ */
+function animateNumber(element, start, end, duration, formatter, withTickSound = false) {
+    if (!element) return () => {};
+    const fmt = typeof formatter === 'function' ? formatter : (v) => String(v);
+
+    if (duration <= 0 || start === end) {
+        element.textContent = fmt(end);
+        return () => {};
+    }
+
+    const startTime = performance.now();
+    let rafId = null;
+
+    const step = (now) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(Math.max(elapsed / duration, 0), 1);
+        // easeOutCubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const currentVal = Math.round(start + (end - start) * eased);
+
+        element.textContent = fmt(currentVal);
+
+        if (withTickSound && progress < 1) {
+            const nowMs = Date.now();
+            if (nowMs - lastTickSfxTime >= 95) {
+                lastTickSfxTime = nowMs;
+                playSFX('tally_tick');
+            }
+        }
+
+        if (progress < 1) {
+            rafId = requestAnimationFrame(step);
+            activeRafIds.push(rafId);
+        }
+    };
+
+    rafId = requestAnimationFrame(step);
+    activeRafIds.push(rafId);
+
+    return () => {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+}
+
+/**
+ * Langsung menampilkan kondisi akhir seluruh bintang dan angka pada modal kemenangan
+ * (dipanggil saat pengguna menekan kartu untuk melewati animasi atau saat reduced-motion aktif).
+ */
+function finishVictoryAnimationImmediately() {
+    if (!currentVictoryState) return;
+    clearVictoryTimers();
+
+    const { stars, accuracy, quizCorrect, quizTotal, duration, profit } = currentVictoryState;
+
+    const starSlots = document.querySelectorAll('#vc-stars-container .victory-star-slot');
+    starSlots.forEach((slot) => {
+        const starIdx = Number(slot.dataset.star) || 0;
+        if (starIdx <= stars) {
+            slot.classList.add('earned');
+        } else {
+            slot.classList.remove('earned');
+        }
+    });
+
+    const statBoxes = document.querySelectorAll('#vc-stats-grid .victory-stat-box');
+    statBoxes.forEach((box) => box.classList.add('stat-visible'));
+
+    const accEl = document.getElementById('vc-accuracy');
+    const quizEl = document.getElementById('vc-quiz');
+    const timeEl = document.getElementById('vc-time');
+    const profitEl = document.getElementById('vc-profit');
+
+    if (accEl) accEl.textContent = `${accuracy}%`;
+    if (quizEl) quizEl.textContent = quizTotal > 0 ? `${quizCorrect} / ${quizTotal}` : 'Tanpa Kuis';
+    if (timeEl) timeEl.textContent = formatVictoryDuration(duration);
+    if (profitEl) profitEl.textContent = `Rp ${profit.toLocaleString('id-ID')}`;
+
+    const btnNext = document.getElementById('btn-vc-next');
+    if (btnNext && !btnNext.classList.contains('hidden')) {
+        btnNext.classList.add('btn-start-game-glow');
+    }
+}
+
+/**
+ * Menampilkan modal penyelesaian level (Victory Screen) beserta animasi bintang dan tally counter.
+ * @param {{
+ *   level: number,
+ *   stars: 1|2|3,
+ *   accuracy: number,
+ *   quizCorrect: number,
+ *   quizTotal: number,
+ *   duration: number,
+ *   profit: number,
+ *   hasNextLevel: boolean,
+ *   unlockedHardJustNow?: boolean
+ * }} result
+ */
+function showVictoryScreen(result) {
+    clearVictoryTimers();
+    currentVictoryState = { ...result };
+
+    const modal = document.getElementById('modal-level-complete');
+    if (!modal) return;
+
+    const levelPill = document.getElementById('vc-level-pill');
+    const titleEl = document.getElementById('vc-title');
+    const subtitleEl = document.getElementById('vc-subtitle');
+    const accEl = document.getElementById('vc-accuracy');
+    const quizEl = document.getElementById('vc-quiz');
+    const timeEl = document.getElementById('vc-time');
+    const profitEl = document.getElementById('vc-profit');
+    const btnNext = document.getElementById('btn-vc-next');
+
+    const { level, stars, accuracy, quizCorrect, quizTotal, duration, profit, hasNextLevel } = result;
+
+    if (levelPill) levelPill.textContent = `LEVEL ${level}`;
+
+    if (titleEl) {
+        if (stars === 3) titleEl.textContent = 'Level Selesai Sempurna!';
+        else if (stars === 2) titleEl.textContent = 'Level Selesai!';
+        else titleEl.textContent = 'Level Tuntas!';
+    }
+
+    if (subtitleEl) {
+        if (stars === 3) {
+            subtitleEl.textContent = 'Luar biasa! Perhitungan aljabar dan kuismu sangat teliti!';
+        } else if (stars === 2) {
+            subtitleEl.textContent = 'Kerja bagus! Sedikit lagi menuju bintang tiga sempurna!';
+        } else {
+            subtitleEl.textContent = 'Transaksi selesai! Ayo tingkatkan lagi ketelitian aljabarmu!';
+        }
+    }
+
+    // Reset tampilan awal slot bintang dan kotak statistik
+    const starSlots = document.querySelectorAll('#vc-stars-container .victory-star-slot');
+    starSlots.forEach((slot) => slot.classList.remove('earned'));
+
+    const statBoxes = document.querySelectorAll('#vc-stats-grid .victory-stat-box');
+    statBoxes.forEach((box) => box.classList.remove('stat-visible'));
+
+    if (accEl) accEl.textContent = '0%';
+    if (quizEl) quizEl.textContent = quizTotal > 0 ? `0 / ${quizTotal}` : 'Tanpa Kuis';
+    if (timeEl) timeEl.textContent = '0s';
+    if (profitEl) profitEl.textContent = 'Rp 0';
+
+    if (btnNext) {
+        btnNext.classList.remove('btn-start-game-glow');
+        if (hasNextLevel) {
+            btnNext.classList.remove('hidden');
+            const spanLabel = btnNext.querySelector('span');
+            if (spanLabel) spanLabel.textContent = `Lanjut Level ${level + 1}`;
+        } else {
+            btnNext.classList.add('hidden');
+        }
+    }
+
+    modal.classList.remove('hidden');
+
+    const prefersReducedMotion =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+        finishVictoryAnimationImmediately();
+        playSFX('victory');
+        return;
+    }
+
+    isAnimatingVictory = true;
+
+    // 1. Munculkan bintang 1..3 secara bertahap dengan efek suara pop
+    for (let i = 1; i <= stars; i++) {
+        scheduleVictoryTimeout(() => {
+            const slot = document.querySelector(`#vc-stars-container .victory-star-slot[data-star="${i}"]`);
+            if (slot) slot.classList.add('earned');
+            playSFX('star_pop');
+        }, 320 + (i - 1) * 340);
+    }
+
+    // 2. Munculkan kotak statistik satu per satu + jalankan tally counter angka
+    const statStartBase = 520;
+    statBoxes.forEach((box, idx) => {
+        scheduleVictoryTimeout(() => {
+            box.classList.add('stat-visible');
+        }, statStartBase + idx * 110);
+    });
+
+    scheduleVictoryTimeout(() => {
+        animateNumber(accEl, 0, accuracy, 850, (v) => `${v}%`, false);
+        if (quizTotal > 0) {
+            animateNumber(quizEl, 0, quizCorrect, 650, (v) => `${v} / ${quizTotal}`, false);
+        }
+        animateNumber(timeEl, 0, duration, 850, (v) => formatVictoryDuration(v), false);
+        animateNumber(
+            profitEl,
+            0,
+            profit,
+            1050,
+            (v) => `Rp ${v.toLocaleString('id-ID')}`,
+            true
+        );
+    }, statStartBase + 120);
+
+    // 3. Fanfar penyelesaian & highlight tombol Lanjut
+    const totalAnimTime = Math.max(320 + stars * 340, statStartBase + 1150);
+    scheduleVictoryTimeout(() => {
+        isAnimatingVictory = false;
+        playSFX('victory');
+        if (btnNext && !btnNext.classList.contains('hidden')) {
+            btnNext.classList.add('btn-start-game-glow');
+        }
+    }, totalAnimTime);
+}
+
+/**
+ * Menutup modal layar kemenangan dan membersihkan seluruh timer animasi.
+ */
+function closeVictoryScreen() {
+    clearVictoryTimers();
+    const modal = document.getElementById('modal-level-complete');
+    if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Mengikat event listener untuk tombol-tombol pada modal kemenangan.
+ * @param {{
+ *   onRetry?: (level: number) => void,
+ *   onMenu?: (stateObj: Object) => void,
+ *   onNext?: (nextLevel: number, stateObj: Object) => void
+ * }} handlers
+ */
+function initVictoryListeners(handlers = {}) {
+    const card = document.getElementById('victory-card');
+    const btnRetry = document.getElementById('btn-vc-retry');
+    const btnMenu = document.getElementById('btn-vc-menu');
+    const btnNext = document.getElementById('btn-vc-next');
+
+    // Klik pada kartu saat animasi masih berjalan akan langsung melompat ke hasil akhir
+    if (card) {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('button')) return;
+            if (isAnimatingVictory) {
+                finishVictoryAnimationImmediately();
+            }
+        });
+    }
+
+    if (btnRetry) {
+        btnRetry.addEventListener('click', () => {
+            playSFX('nav');
+            const lvl = currentVictoryState ? currentVictoryState.level : 1;
+            closeVictoryScreen();
+            if (typeof handlers.onRetry === 'function') {
+                handlers.onRetry(lvl);
+            }
+        });
+    }
+
+    if (btnMenu) {
+        btnMenu.addEventListener('click', () => {
+            playSFX('nav');
+            const snap = currentVictoryState;
+            closeVictoryScreen();
+            if (typeof handlers.onMenu === 'function') {
+                handlers.onMenu(snap);
+            }
+        });
+    }
+
+    if (btnNext) {
+        btnNext.addEventListener('click', () => {
+            playSFX('calc_checkout');
+            const snap = currentVictoryState;
+            const nextLvl = snap ? snap.level + 1 : 2;
+            closeVictoryScreen();
+            if (typeof handlers.onNext === 'function') {
+                handlers.onNext(nextLvl, snap);
+            }
+        });
+    }
+}
+
+
+
+// ==========================================
 // FILE: js/ui/cashier.js
 // ==========================================
 // ==========================================
 // ui/cashier.js — Mesin Kasir & Gameplay
 // ==========================================
+
 
 
 
@@ -4045,6 +4575,7 @@ function loadCustomer() {
     const formulaInput = document.getElementById("formula-box");
     const paidInput    = document.getElementById("paid-box");
     const hargaDisplay = document.getElementById("harga-display");
+    const labelHarga   = document.getElementById("label-harga");
     const trayItems    = document.getElementById("tray-items");
 
     if (formulaInput) {
@@ -4052,6 +4583,7 @@ function loadCustomer() {
         formulaInput.classList.remove("input-error");
     }
     if (paidInput)    paidInput.value    = "";
+    if (labelHarga)   labelHarga.textContent = "Harga:";
     if (hargaDisplay) { hargaDisplay.textContent = ""; hargaDisplay.style.color = "#a5d6a7"; }
     if (trayItems)    trayItems.innerHTML = "";
     renderProdukDiNampan();
@@ -4100,6 +4632,9 @@ function loadCustomer() {
 function startLevel(lvl) {
     if (!LEVEL_DATA[lvl]) return showMsg("Level Terkunci", "Level sedang dikembangkan.");
 
+    closeVictoryScreen();
+    requestWakeLock();
+    requestFullScreen();
     state.currentLevelIdx      = lvl;
     state.activePlayingLevel   = lvl;
     try {
@@ -4439,8 +4974,10 @@ function mulaiModeKembalian(jumlahKembalian) {
     state.arrayUangKembalian  = [];
     state.kembalianStartTime  = Date.now();
 
+    const labelHarga   = document.getElementById("label-harga");
     const priceDisplay = document.getElementById("harga-display");
-    priceDisplay.textContent = "Kembalikan: Rp " + state.targetKembalian.toLocaleString('id-ID');
+    if (labelHarga) labelHarga.textContent = "Kembalikan:";
+    priceDisplay.textContent = "Rp " + state.targetKembalian.toLocaleString('id-ID');
     priceDisplay.style.color = "#ffb74d";
 
     document.getElementById("formula-box").value = "Rp 0";
@@ -4509,6 +5046,7 @@ function validasiUangKembalian() {
     } else {
         playSFX('error');
         state.currentLevelParams.errorCount++;
+        state.levelAccumulation.errors++;
         showMsg("Oops! Kembalian Salah", `Seharusnya Anda memberikan Rp ${state.targetKembalian.toLocaleString('id-ID')}, tetapi Anda malah menyiapkan Rp ${totalDiberikan.toLocaleString('id-ID')}. Ayo hitung lagi!`);
     }
 }
@@ -4659,6 +5197,19 @@ function completeLevelAndSave() {
         state.currentUser.maxLevel = state.currentLevelIdx;
     }
 
+    const levelOrders = LEVEL_DATA[state.currentLevelIdx] || [];
+    const quizTotal = QUIZ_DB[state.currentLevelIdx]?.length || 0;
+    const customersCount = levelOrders.length || 1;
+    const stars = computeLevelStars({
+        errors: state.levelAccumulation.errors,
+        quizCorrect: state.currentQuizCorrect,
+        quizTotal
+    });
+    const accuracy = computeLevelAccuracy({
+        customers: customersCount,
+        errors: state.levelAccumulation.errors
+    });
+
     let existLog = state.currentUser.history.find(h => h.level === state.currentLevelIdx);
     if (!existLog) {
         state.currentUser.history.push({
@@ -4669,17 +5220,19 @@ function completeLevelAndSave() {
             duration,
             errors:      state.levelAccumulation.errors,
             quizCorrect: state.currentQuizCorrect,
-            quizTotal:   QUIZ_DB[state.currentLevelIdx]?.length || 0,
+            quizTotal,
+            stars,
             timestamp:   new Date().toISOString()
         });
 
         state.currentUser.revenue += state.levelAccumulation.revenue;
         state.currentUser.cost    += state.levelAccumulation.cost;
         state.currentUser.money   += state.levelAccumulation.profit;
+    } else {
+        existLog.stars = Math.max(existLog.stars || 0, stars);
     }
 
     // Hitung jumlah variabel unik yang digunakan pada pesanan level ini
-    const levelOrders = LEVEL_DATA[state.currentLevelIdx] || [];
     const allVars = new Set();
     levelOrders.forEach(cust => {
         if (cust.order) Object.keys(cust.order).forEach(v => allVars.add(v));
@@ -4692,13 +5245,20 @@ function completeLevelAndSave() {
         errors: state.levelAccumulation.errors,
         distinctVariables: allVars.size,
         quizCorrect: state.currentQuizCorrect,
-        quizTotal: QUIZ_DB[state.currentLevelIdx]?.length || 0
+        quizTotal
     });
 
     // Kosongkan penanda level aktif saat level selesai
     state.activePlayingLevel = null;
 
     saveData();
+
+    // Sinkronisasi profil akun pengguna ke Firebase (users/{studentId})
+    try {
+        syncUserProfile(state.currentUser);
+    } catch (profErr) {
+        console.warn('[Sync] Gagal sync profile setelah selesai level:', profErr);
+    }
 
     // Sinkronisasi data progres murid ke guru secara realtime (Hybrid Offline + Realtime)
     try {
@@ -4707,26 +5267,29 @@ function completeLevelAndSave() {
             state.currentLevelIdx,
             state.levelAccumulation.errors,
             state.currentQuizCorrect,
-            QUIZ_DB[state.currentLevelIdx]?.length || 0
+            quizTotal
         );
     } catch (syncErr) {
         console.warn('[Sync] Progres gagal dikirim:', syncErr);
     }
 
     // Jika baru menyelesaikan Level 10 atau sedang di level sulit, pertahankan tab sulit aktif
+    const unlockedHardJustNow = state.currentLevelIdx === 10;
     if (state.currentLevelIdx >= 10) {
         state.currentLevelTab = 'hard';
-        if (state.currentLevelIdx === 10) {
-            setTimeout(() => {
-                showMsg(
-                    '🎉 TANTANGAN SULIT TERBUKA!',
-                    'Luar biasa! Kamu berhasil menamatkan seluruh 10 Level Tantangan Mudah!<br><br>Mode <strong>Tantangan Sulit (C4-C6)</strong> kini telah terbuka dengan studi kasus HOTS nyata!'
-                );
-            }, 300);
-        }
     }
 
-    switchScreen('screen-levels');
+    showVictoryScreen({
+        level: state.currentLevelIdx,
+        stars,
+        accuracy,
+        quizCorrect: state.currentQuizCorrect,
+        quizTotal,
+        duration,
+        profit: state.levelAccumulation.profit,
+        hasNextLevel: Boolean(LEVEL_DATA[state.currentLevelIdx + 1]),
+        unlockedHardJustNow
+    });
 }
 
 // ==========================================
@@ -5017,20 +5580,22 @@ function openBukuKas() {
     histList.innerHTML = '';
 
     if (totalLevels === 0) {
-        histList.innerHTML = '<div style="text-align:center; color:#92400e; font-style:italic; padding:1.25rem;">Belum ada riwayat permainan. Selesaikan pesanan pembeli di toko untuk mencatat performa kasir.</div>';
+        histList.innerHTML = '<div style="text-align:center; color:#92400e; font-style:italic; padding:1.25rem; font-size:0.75rem;">Belum ada riwayat permainan. Selesaikan pesanan pembeli di toko untuk mencatat performa kasir.</div>';
     } else {
         state.currentUser.history.forEach(h => {
             let d = new Date(h.timestamp);
+            let dateStr = d.toLocaleDateString('id-ID');
+            let durStr = h.duration ? `${h.duration}s` : '0s';
             histList.innerHTML += `
                 <div class="history-item">
-                    <div class="history-header">
-                        <span>Level ${h.level}</span>
-                        <span>${d.toLocaleDateString('id-ID')}</span>
+                    <div class="history-row-top">
+                        <span class="history-level-name">Level ${h.level}</span>
+                        <span class="history-profit text-success">+Rp ${h.profit.toLocaleString('id-ID')}</span>
                     </div>
-                    <div class="history-stats">
-                        <span><i class="fa-regular fa-clock"></i> ${h.duration}s</span>
-                        <span><i class="fa-solid fa-triangle-exclamation ${h.errors > 0 ? 'text-error' : 'text-success'}"></i> ${h.errors} Salah</span>
-                        <span class="text-success">+Rp ${h.profit.toLocaleString('id-ID')}</span>
+                    <div class="history-row-bottom history-meta">
+                        <span class="history-meta-item"><i class="fa-regular fa-clock"></i> ${durStr}</span>
+                        <span class="history-meta-item"><i class="fa-solid fa-triangle-exclamation ${h.errors > 0 ? 'text-error' : 'text-success'}"></i> ${h.errors || 0} Salah</span>
+                        <span class="history-meta-item"><i class="fa-regular fa-calendar"></i> ${dateStr}</span>
                     </div>
                 </div>
             `;
@@ -5096,6 +5661,13 @@ function handleDonate(nominal) {
     state.currentUser.sumbangan = (state.currentUser.sumbangan || 0) + nominal;
     saveData();
 
+    // Sinkronisasi pembaruan profil ke Firebase
+    try {
+        syncUserProfile(state.currentUser);
+    } catch (profErr) {
+        console.warn('[Sync] Gagal sync profile setelah donasi:', profErr);
+    }
+
     // Evaluasi lencana dimensi hati
     checkBadgeUnlocks({
         type: 'donation',
@@ -5126,20 +5698,24 @@ function showBadgeDetail(badge, isUnlocked) {
     if (!modal) return;
 
     const iconWrap = document.getElementById('badge-detail-icon-wrapper');
-    const iconEl = document.getElementById('badge-detail-icon');
     const categoryEl = document.getElementById('badge-detail-category');
     const nameEl = document.getElementById('badge-detail-name');
     const statusEl = document.getElementById('badge-detail-status');
     const descEl = document.getElementById('badge-detail-desc');
 
-    if (iconWrap && iconEl) {
-        iconWrap.className = isUnlocked
-            ? `badge-detail-icon-wrapper ${badge.colorClass || 'icon-gold'}`
-            : 'badge-detail-icon-wrapper icon-disabled';
-        iconEl.className = `fa-solid ${isUnlocked ? (badge.icon || 'fa-award') : 'fa-lock'}`;
+    if (iconWrap) {
+        if (badge.badgeImg) {
+            iconWrap.className = `badge-detail-icon-wrapper has-tier-img ${isUnlocked ? '' : 'icon-disabled'}`;
+            iconWrap.innerHTML = `<img src="${badge.badgeImg}" class="badge-tier-img" alt="${badge.name}" style="${isUnlocked ? '' : 'filter: grayscale(100%) opacity(0.55);'}">`;
+        } else {
+            iconWrap.className = isUnlocked
+                ? `badge-detail-icon-wrapper ${badge.colorClass || 'icon-gold'}`
+                : 'badge-detail-icon-wrapper icon-disabled';
+            iconWrap.innerHTML = `<i id="badge-detail-icon" class="fa-solid ${isUnlocked ? (badge.icon || 'fa-award') : 'fa-lock'}"></i>`;
+        }
     }
 
-    if (categoryEl) categoryEl.textContent = badge.category || 'Prestasi';
+    if (categoryEl) categoryEl.textContent = `${badge.category || 'Prestasi'} • Tier ${badge.tier || 1}`;
     if (nameEl) nameEl.textContent = badge.name;
 
     if (statusEl) {
@@ -5181,13 +5757,26 @@ function openPrestasi() {
         card.className = `badge-card ${hasBadge ? 'badge-unlocked' : 'badge-locked'}`;
         card.setAttribute('role', 'button');
         card.setAttribute('tabindex', '0');
-        card.title = `Klik untuk melihat detail lencana: ${b.name}`;
+        card.title = `Klik untuk melihat detail lencana: ${b.name} (Tier ${b.tier || 1})`;
+        const badgeVisualHtml = b.badgeImg
+            ? `<div class="badge-insignia-platform">
+                <div class="badge-icon-wrapper has-tier-img">
+                    <img src="${b.badgeImg}" class="badge-tier-img" alt="${b.name}">
+                    ${!hasBadge ? '<span class="badge-lock-badge"><i class="fa-solid fa-lock"></i></span>' : ''}
+                </div>
+                <div class="badge-pedestal-shadow"></div>
+               </div>`
+            : `<div class="badge-insignia-platform">
+                <div class="badge-icon-wrapper ${hasBadge ? b.colorClass : 'icon-disabled'}">
+                    <i class="fa-solid badge-icon ${hasBadge ? b.icon : 'fa-lock'}"></i>
+                    ${!hasBadge ? '<span class="badge-lock-badge"><i class="fa-solid fa-lock"></i></span>' : ''}
+                </div>
+                <div class="badge-pedestal-shadow"></div>
+               </div>`;
         card.innerHTML = `
-            <div class="badge-icon-wrapper ${hasBadge ? b.colorClass : 'icon-disabled'}">
-                <i class="fa-solid badge-icon ${hasBadge ? b.icon : 'fa-lock'}"></i>
-            </div>
-            <span class="badge-category-tag">${b.category}</span>
-            <h4>${b.name}</h4>
+            ${badgeVisualHtml}
+            <span class="badge-category-tag">${b.category} • Tier ${b.tier || 1}</span>
+            <h4 class="badge-name">${b.name}</h4>
         `;
         card.addEventListener('click', () => {
             showBadgeDetail(b, hasBadge);
@@ -5204,11 +5793,127 @@ function openPrestasi() {
     const tokenDisplay = document.getElementById('token-display');
     if (tokenDisplay) tokenDisplay.innerText = state.currentUser?.token || '';
 
-    const tbody = document.getElementById('leaderboard-body');
-    tbody.innerHTML = '';
-    let sortedUsers = [...state.users].sort((a, b) => b.money - a.money);
+    // Inisialisasi event listener toggle kriteria leaderboard (idempotent)
+    const btnSortAcc = document.getElementById('btn-sort-accuracy');
+    if (btnSortAcc && !btnSortAcc._hasLeaderboardListener) {
+        btnSortAcc._hasLeaderboardListener = true;
+        btnSortAcc.addEventListener('click', () => {
+            state.leaderboardSortBy = 'accuracy';
+            renderLeaderboard();
+        });
+    }
+    const btnSortQuiz = document.getElementById('btn-sort-quiz');
+    if (btnSortQuiz && !btnSortQuiz._hasLeaderboardListener) {
+        btnSortQuiz._hasLeaderboardListener = true;
+        btnSortQuiz.addEventListener('click', () => {
+            state.leaderboardSortBy = 'quiz';
+            renderLeaderboard();
+        });
+    }
 
-    sortedUsers.forEach((u, idx) => {
+    renderLeaderboard();
+}
+
+/**
+ * Format durasi detik ke format mudah dibaca (contoh: 45s, 1m 20s).
+ * @param {number} sec Durasi dalam detik
+ * @returns {string}
+ */
+function formatDuration(sec) {
+    if (!sec || sec <= 0) return '–';
+    const m = Math.floor(sec / 60);
+    const s = Math.round(sec % 60);
+    if (m === 0) return `${s}s`;
+    return `${m}m ${s}s`;
+}
+
+/**
+ * Merender tabel Papan Kehormatan (Leaderboard) dengan pengurutan kriteria
+ * Akurasi atau Banyak Kuis Terjawab, disertai tie-breaker waktu pengerjaan tercepat.
+ */
+function renderLeaderboard() {
+    const tbody = document.getElementById('leaderboard-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const sortBy = state.leaderboardSortBy || 'accuracy';
+    const thMetric = document.getElementById('th-leaderboard-metric');
+    if (thMetric) {
+        thMetric.textContent = sortBy === 'quiz' ? 'Kuis' : 'Akurasi';
+    }
+
+    // Sinkronisasi status aktif tombol pill pengurutan
+    const btnAcc = document.getElementById('btn-sort-accuracy');
+    const btnQuiz = document.getElementById('btn-sort-quiz');
+    if (btnAcc && btnQuiz) {
+        if (sortBy === 'quiz') {
+            btnAcc.classList.remove('active');
+            btnQuiz.classList.add('active');
+        } else {
+            btnAcc.classList.add('active');
+            btnQuiz.classList.remove('active');
+        }
+    }
+
+    // Kalkulasi metrik akurasi, kuis, dan total durasi untuk setiap pengguna
+    const enrichedUsers = state.users.map(u => {
+        const history = Array.isArray(u.history) ? u.history : [];
+        const totalLevels = history.length;
+        const zeroErrors = history.filter(h => (h.errors || 0) === 0).length;
+        const accuracy = totalLevels === 0 ? 0 : Math.round((zeroErrors / totalLevels) * 100);
+        const totalQuizCorrect = history.reduce((sum, h) => sum + (h.quizCorrect || 0), 0);
+        const totalQuizCount   = history.reduce((sum, h) => sum + (h.quizTotal   || 0), 0);
+        const totalDuration    = history.reduce((sum, h) => sum + (h.duration    || 0), 0);
+
+        return {
+            ...u,
+            totalLevels,
+            accuracy,
+            totalQuizCorrect,
+            totalQuizCount,
+            totalDuration
+        };
+    });
+
+    // Pengurutan bertingkat dengan tie-breaker waktu tercepat
+    enrichedUsers.sort((a, b) => {
+        // Pemain yang telah aktif menyelesaikan level selalu diprioritaskan di atas slot kosong
+        const aActive = a.totalLevels > 0;
+        const bActive = b.totalLevels > 0;
+        if (aActive !== bActive) {
+            return aActive ? -1 : 1;
+        }
+
+        if (sortBy === 'quiz') {
+            // Prioritas 1: Jumlah kuis dijawab benar terbanyak
+            if (b.totalQuizCorrect !== a.totalQuizCorrect) {
+                return b.totalQuizCorrect - a.totalQuizCorrect;
+            }
+            // Tie-breaker 1: Persentase akurasi rumus (%)
+            if (b.accuracy !== a.accuracy) {
+                return b.accuracy - a.accuracy;
+            }
+        } else {
+            // Default: Prioritas 1: Persentase akurasi rumus (%)
+            if (b.accuracy !== a.accuracy) {
+                return b.accuracy - a.accuracy;
+            }
+            // Tie-breaker 1: Jumlah kuis dijawab benar terbanyak
+            if (b.totalQuizCorrect !== a.totalQuizCorrect) {
+                return b.totalQuizCorrect - a.totalQuizCorrect;
+            }
+        }
+
+        // Tie-breaker 2 (utama): Waktu pengerjaan akumulasi tercepat (ascending duration)
+        if (a.totalDuration !== b.totalDuration) {
+            return a.totalDuration - b.totalDuration;
+        }
+
+        // Tie-breaker 3: Laba / Uang tersimpan
+        return (b.money || 0) - (a.money || 0);
+    });
+
+    enrichedUsers.forEach((u, idx) => {
         let rankIcon = idx === 0
             ? '<i class="fa-solid fa-trophy rank-1"></i>'
             : (idx === 1
@@ -5217,23 +5922,49 @@ function openPrestasi() {
                     ? '<i class="fa-solid fa-medal rank-3"></i>'
                     : `${idx + 1}`));
 
-        let isMeClass = u.id === state.currentUser.id ? 'table-row-me' : '';
+        let isMeClass = (state.currentUser && u.id === state.currentUser.id) ? 'table-row-me' : '';
+
+        const mainMetricText = sortBy === 'quiz'
+            ? `${u.totalQuizCorrect} kuis`
+            : (u.totalLevels === 0 ? '–' : `${u.accuracy}%`);
+
+        const subMetricText = sortBy === 'quiz'
+            ? (u.totalLevels === 0 ? '(–)' : `(${u.accuracy}%)`)
+            : `(${u.totalQuizCorrect} kuis)`;
+
+        const timeStr = formatDuration(u.totalDuration);
+
         tbody.innerHTML += `
             <tr class="table-row ${isMeClass}">
-                <td>${rankIcon}</td>
-                <td><span class="rank-name">${u.name}</span><span class="rank-title">${getTitle(u.money, u.sumbangan || 0)}</span></td>
-                <td class="text-right font-mono">Rp ${u.money.toLocaleString('id-ID')}</td>
+                <td style="text-align: center;">${rankIcon}</td>
+                <td>
+                    <span class="rank-name" title="${u.name}">${u.name}</span>
+                    <span class="rank-title">${getTitle(u.money, u.sumbangan || 0)}</span>
+                </td>
+                <td class="text-center">
+                    <div class="lb-metric-cell">
+                        <span class="lb-metric-main">${mainMetricText}</span>
+                        <span class="lb-metric-sub">${subMetricText}</span>
+                    </div>
+                </td>
+                <td class="text-right">
+                    <span class="lb-time"><i class="fa-regular fa-clock" style="font-size:0.7rem; opacity:0.65;"></i> ${timeStr}</span>
+                </td>
             </tr>
         `;
     });
 
     const minSlots = 5;
-    for (let idx = sortedUsers.length; idx < minSlots; idx++) {
+    for (let idx = enrichedUsers.length; idx < minSlots; idx++) {
         tbody.innerHTML += `
             <tr class="table-row table-row-empty" style="opacity: 0.55;">
                 <td style="color:#94a3b8; text-align:center;">${idx + 1}</td>
-                <td><span class="rank-name" style="color:#94a3b8; font-style:italic;">Slot Kasir Kosong</span><span class="rank-title" style="color:#cbd5e1;">Belum ada data pemain</span></td>
-                <td class="text-right font-mono" style="color:#cbd5e1;">–</td>
+                <td>
+                    <span class="rank-name" style="color:#94a3b8; font-style:italic;">Slot Kasir Kosong</span>
+                    <span class="rank-title" style="color:#cbd5e1;">Belum ada data pemain</span>
+                </td>
+                <td class="text-center" style="color:#cbd5e1;">–</td>
+                <td class="text-right" style="color:#cbd5e1;">–</td>
             </tr>
         `;
     }
@@ -5586,10 +6317,21 @@ function formatTimeAgo(timestamp) {
     }
     const diffMin = Math.floor(diffSec / 60);
     if (diffMin < 60) {
-        return `${diffMin} menit yang lalu`;
+        return `${diffMin} mnt lalu`;
     }
     const diffHours = Math.floor(diffMin / 60);
-    return `${diffHours} jam yang lalu`;
+    if (diffHours < 24) {
+        return `${diffHours} jam lalu`;
+    }
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) {
+        return 'Kemarin';
+    }
+    if (diffDays < 7) {
+        return `${diffDays} hari lalu`;
+    }
+    const d = new Date(Number(timestamp));
+    return `${d.getDate()}/${d.getMonth() + 1}`;
 }
 
 /**
@@ -5952,29 +6694,23 @@ function renderFasilTableAndEWS() {
         ewsAlerts.forEach(s => {
             const hasFormulaError = Number(s.errorCount) >= 3;
             const hasQuizError = s.quizFailed === true || (s.quizWrong !== undefined && Number(s.quizWrong) > 0);
-
-            let reasonHtml = '';
-            if (hasFormulaError) {
-                const errorCountText = s.errorCount >= 3 ? `${s.errorCount}x` : '3x';
-                reasonHtml += `<div class="ews-reason-item">⚠️ Terkendala Rumus di Level ${s.level}: Sudah ${errorCountText} salah memasukkan rumus kasir.</div>`;
-            }
-            if (hasQuizError) {
-                reasonHtml += `<div class="ews-reason-item">❌ Terkendala Konsep di Level ${s.level}: Salah saat menjawab evaluasi kuis.</div>`;
-            }
-
+            const cleanClass = (s.kelas || '-').replace(/^kelas\s*/i, '').trim();
             const timeAgoStr = formatTimeAgo(s.lastUpdated);
+            const errorCountNum = Number(s.errorCount) || 3;
 
             ewsList.innerHTML += `
                 <div class="ews-card">
                     <div class="ews-card-header">
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <span class="ews-card-name">${s.name}</span>
-                            <span class="ews-card-class">Kelas ${s.kelas}</span>
+                        <div class="ews-student-info">
+                            <span class="ews-card-name" title="${s.name}">${s.name}</span>
+                            <span class="ews-class-badge">${cleanClass || '-'}</span>
                         </div>
-                        <span class="ews-card-time" style="font-size:0.75rem; color:#94a3b8; font-weight:600;"><i class="fa-regular fa-clock"></i> ${timeAgoStr}</span>
+                        <span class="ews-card-time"><i class="fa-regular fa-clock"></i> ${timeAgoStr}</span>
                     </div>
-                    <div class="ews-card-reasons" style="margin-top:6px;">
-                        ${reasonHtml}
+                    <div class="ews-issue-chips">
+                        <span class="ews-chip chip-level">Lvl ${s.level}</span>
+                        ${hasFormulaError ? `<span class="ews-chip chip-formula"><i class="fa-solid fa-triangle-exclamation"></i> ${errorCountNum}x Rumus</span>` : ''}
+                        ${hasQuizError ? `<span class="ews-chip chip-quiz"><i class="fa-solid fa-xmark"></i> Kuis Gagal</span>` : ''}
                     </div>
                 </div>
             `;
@@ -6175,24 +6911,24 @@ function openStudentDetailModal(student) {
                     : '-';
 
                 const errBadge = (h.errors || 0) === 0
-                    ? '<span style="color:#15803d; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> 0</span>'
-                    : `<span style="color:#dc2626; font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> ${h.errors}x</span>`;
+                    ? '<span style="color:#15803d; font-weight:500;"><i class="fa-solid fa-circle-check"></i> 0</span>'
+                    : `<span style="color:#dc2626; font-weight:500;"><i class="fa-solid fa-triangle-exclamation"></i> ${h.errors}x</span>`;
 
                 const quizTotal = h.quizTotal || 0;
                 let quizBadge = '-';
                 if (quizTotal > 0) {
                     const quizCorrect = h.quizCorrect || 0;
                     const isPerfect = quizCorrect === quizTotal;
-                    quizBadge = `<span style="color:${isPerfect ? '#15803d' : '#d97706'}; font-weight:bold;">${quizCorrect}/${quizTotal}</span>`;
+                    quizBadge = `<span style="color:${isPerfect ? '#15803d' : '#d97706'}; font-weight:500;">${quizCorrect}/${quizTotal}</span>`;
                 }
 
                 tbody.innerHTML += `
                     <tr>
-                        <td style="font-weight:800; color:#d97706;">Level ${h.level}</td>
+                        <td style="font-weight:500; color:#d97706;">Level ${h.level}</td>
                         <td><i class="fa-regular fa-clock" style="color:#b45309;"></i> ${h.duration || 0}s</td>
                         <td class="text-center">${errBadge}</td>
                         <td class="text-center">${quizBadge}</td>
-                        <td class="text-right font-mono" style="color:#78350f; font-size:0.75rem;">${timeStr}</td>
+                        <td class="text-right" style="color:#78350f; font-size:0.75rem;">${timeStr}</td>
                     </tr>
                 `;
             });
@@ -6480,9 +7216,9 @@ function handlePrintDetailedPDF() {
                 <td class="text-center">${escapeHtml(s.kelas)}</td>
                 <td class="text-center">${escapeHtml(genderShort)}</td>
                 <td class="text-center font-bold">Level ${escapeHtml(s.maxLevel || 1)}</td>
-                <td class="text-center font-mono">${escapeHtml(acc)}</td>
-                <td class="text-center font-mono">${escapeHtml(quizDisplay)}</td>
-                <td class="text-right font-mono">Rp ${(s.money || 0).toLocaleString('id-ID')}</td>
+                <td class="text-center">${escapeHtml(acc)}</td>
+                <td class="text-center">${escapeHtml(quizDisplay)}</td>
+                <td class="text-right">Rp ${(s.money || 0).toLocaleString('id-ID')}</td>
                 <td class="text-center"><strong>${isCompleted ? 'Tuntas' : 'Belum Tuntas'}</strong></td>
             </tr>
         `;
@@ -6602,10 +7338,10 @@ function handlePrintDetailedPDF() {
                         <td class="text-center font-bold">Level ${escapeHtml(h.level)}</td>
                         <td class="text-center">${escapeHtml(h.duration || 0)} detik</td>
                         <td class="text-center">${escapeHtml(h.errors || 0)} kali</td>
-                        <td class="text-center font-mono">${escapeHtml(quizScoreStr)}</td>
-                        <td class="text-right font-mono">Rp ${Number(revenueVal).toLocaleString('id-ID')}</td>
-                        <td class="text-right font-mono">Rp ${Number(costVal).toLocaleString('id-ID')}</td>
-                        <td class="text-right font-mono font-bold">Rp ${Number(profitVal).toLocaleString('id-ID')}</td>
+                        <td class="text-center">${escapeHtml(quizScoreStr)}</td>
+                        <td class="text-right">Rp ${Number(revenueVal).toLocaleString('id-ID')}</td>
+                        <td class="text-right">Rp ${Number(costVal).toLocaleString('id-ID')}</td>
+                        <td class="text-right font-bold">Rp ${Number(profitVal).toLocaleString('id-ID')}</td>
                         <td class="text-center" style="font-size: 7.5pt;">${escapeHtml(timeStr)}</td>
                     </tr>
                 `;
@@ -6653,7 +7389,7 @@ function handlePrintDetailedPDF() {
             box-sizing: border-box;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Roboto', Arial, sans-serif;
             font-size: 8.5pt;
             line-height: 1.35;
             color: #111827;
@@ -6667,7 +7403,7 @@ function handlePrintDetailedPDF() {
         }
         .doc-title {
             font-size: 13pt;
-            font-weight: 800;
+            font-weight: 500;
             color: #111827;
             margin: 0 0 3px 0;
             letter-spacing: 0.4px;
@@ -6696,7 +7432,7 @@ function handlePrintDetailedPDF() {
         }
         .section-title {
             font-size: 9.5pt;
-            font-weight: 800;
+            font-weight: 500;
             color: #111827;
             text-transform: uppercase;
             margin: 14px 0 4px 0;
@@ -6727,7 +7463,7 @@ function handlePrintDetailedPDF() {
         table.data-table th {
             background-color: #f1f5f9;
             color: #111827;
-            font-weight: 700;
+            font-weight: 500;
             border: 1px solid #94a3b8;
             padding: 5px 6px;
             text-align: left;
@@ -6746,8 +7482,8 @@ function handlePrintDetailedPDF() {
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        .font-bold { font-weight: 700; }
-        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .font-bold { font-weight: 500; }
+        .font-mono { font-family: 'Roboto', Arial, sans-serif; }
 
         .student-history-block {
             margin-bottom: 12px;
@@ -6792,14 +7528,14 @@ function handlePrintDetailedPDF() {
         }
         .sign-role {
             margin: 0;
-            font-weight: 600;
+            font-weight: 500;
         }
         .sign-space {
             height: 48px;
         }
         .sign-name {
             margin: 0;
-            font-weight: 700;
+            font-weight: 500;
             border-bottom: 1px solid #111827;
             display: inline-block;
             min-width: 170px;
@@ -7058,6 +7794,7 @@ function resetAllData() {
 
 
 
+
 // ==========================================
 // VIRTUAL DESKTOP AUTO-SCALING (1280x720)
 // ==========================================
@@ -7072,12 +7809,45 @@ function getAppScale() {
     return window.__appScale || 1;
 }
 
+/**
+ * Mendeteksi apakah pengguna mengakses aplikasi dari perangkat ponsel (HP).
+ * Memeriksa kombinasi User-Agent, dimensi layar kecil khas ponsel, dan layar sentuh.
+ * Menjamin bahwa desktop dan laptop standar (tinggi layar >= 600px) tidak terpengaruh.
+ * @returns {boolean}
+ */
+function isMobileDevice() {
+    if (typeof window === 'undefined') return false;
+    const winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
+    const winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+
+    // 1. Cek User-Agent (Ponsel Android / iPhone / Mobile)
+    const isMobileUA = /Android.*Mobile|iPhone|iPod|Windows Phone|webOS/i.test(navigator.userAgent);
+
+    // 2. Cek Karakteristik Layar Ponsel (Viewport khas ponsel landscape: height <= 520px)
+    const isMobileViewport = (winH <= 520 && winW <= 1050) || (winW <= 520 && winH <= 1050);
+
+    // 3. Cek Layar Sentuh & Dimensi Fisik Layar Ponsel
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const isSmallPhysicalScreen = typeof window.screen !== 'undefined' &&
+        Math.min(window.screen.width, window.screen.height) <= 540;
+
+    return isMobileUA || (isTouch && isSmallPhysicalScreen) || (isTouch && isMobileViewport) || isMobileViewport;
+}
+
 function fitScreen() {
     const container = document.getElementById('app-container');
     if (!container) return;
 
-    const winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
-    const winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+    let winW = window.innerWidth;
+    let winH = window.innerHeight;
+    if (window.visualViewport) {
+        winW = Math.round(window.visualViewport.width);
+        winH = Math.round(window.visualViewport.height);
+    } else {
+        winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
+        winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+    }
+
     const aspect = winW / winH;
     const targetAspect = BASE_WIDTH / BASE_HEIGHT; // 1280 / 720 = 1.7777...
 
@@ -7098,8 +7868,10 @@ function fitScreen() {
         virtualHeight = Math.max(BASE_HEIGHT, Math.ceil(winH / scale) + 4);
     }
 
+    const sidePad = Math.max(14, Math.round((virtualWidth - 1240) / 2));
     container.style.width = `${virtualWidth}px`;
     container.style.height = `${virtualHeight}px`;
+    container.style.setProperty('--side-pad', `${sidePad}px`);
     container.style.transform = `translate(-50%, -50%) scale(${scale})`;
     container.dataset.scale = String(scale);
     container.dataset.virtualWidth = String(virtualWidth);
@@ -7107,6 +7879,21 @@ function fitScreen() {
     window.__appScale = scale;
     window.__virtualWidth = virtualWidth;
     window.__virtualHeight = virtualHeight;
+
+    // Kunci viewport agar tidak pernah ada pergeseran scroll yang merusak posisi kanvas
+    window.scrollTo(0, 0);
+    if (document.documentElement.scrollLeft !== 0) document.documentElement.scrollLeft = 0;
+    if (document.documentElement.scrollTop !== 0)  document.documentElement.scrollTop = 0;
+    if (document.body.scrollLeft !== 0)            document.body.scrollLeft = 0;
+    if (document.body.scrollTop !== 0)             document.body.scrollTop = 0;
+
+    // Terapkan penanda kelas is-mobile-device agar skala font ponsel aktif (+31.25%)
+    // tanpa mengubah tampilan desktop sama sekali
+    const mobile = isMobileDevice();
+    if (typeof document !== 'undefined') {
+        document.documentElement.classList.toggle('is-mobile-device', mobile);
+        document.body.classList.toggle('is-mobile-device', mobile);
+    }
 
     // Deteksi Rotasi Gawai (Landscape Only)
     const rotateOverlay = document.getElementById('rotate-device-overlay');
@@ -7137,8 +7924,52 @@ window.addEventListener('orientationchange', () => {
 if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
     window.screen.orientation.addEventListener('change', () => {
         setTimeout(fitScreen, 50);
+        setTimeout(fitScreen, 200);
     });
 }
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitScreen);
+}
+document.addEventListener('fullscreenchange', () => {
+    setTimeout(fitScreen, 50);
+    setTimeout(fitScreen, 250);
+});
+document.addEventListener('webkitfullscreenchange', () => {
+    setTimeout(fitScreen, 50);
+    setTimeout(fitScreen, 250);
+});
+window.addEventListener('scroll', () => {
+    if (window.scrollX !== 0 || window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+    }
+});
+
+// Penanganan Optimasi Gawai Ponsel (Screen Wake Lock & Auto Fullscreen)
+function handleMobileOptimizations(e) {
+    if (!isMobileDevice()) return;
+
+    // 1. Minta Wake Lock agar layar HP tidak mati otomatis
+    requestWakeLock();
+
+    // 2. Minta Fullscreen jika belum aktif (hindari saat fokus mengetik form nama/kelas/token)
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (e && e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) {
+            return;
+        }
+        requestFullScreen();
+    }
+}
+
+window.addEventListener('touchend', handleMobileOptimizations, { passive: true });
+window.addEventListener('click', handleMobileOptimizations, { passive: true });
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        requestWakeLock();
+        setTimeout(fitScreen, 50);
+    }
+});
+
 fitScreen();
 
 let confirmExitReason = 'cashier'; // 'cashier' | 'fullscreen'
@@ -7149,6 +7980,7 @@ let confirmExitReason = 'cashier'; // 'cashier' | 'fullscreen'
 
 function startFromGateway() {
     requestFullScreen();
+    requestWakeLock();
     playBGM();
     switchScreen('screen-login');
 }
@@ -7178,7 +8010,14 @@ function login(id) {
     if (state.currentUser) {
         playBGM();
         requestFullScreen();
+        requestWakeLock();
         switchScreen('screen-lobby');
+        // Sinkronisasi profil akun pengguna ke Firebase Realtime Database
+        try {
+            syncUserProfile(state.currentUser);
+        } catch (err) {
+            console.warn('[Sync] Gagal sync profile saat login:', err);
+        }
     }
 }
 
@@ -7200,6 +8039,7 @@ function logout(targetScreen = 'screen-login') {
     closeModal('modal-settings');
     closeModal('modal-confirm-exit');
     closeModal('modal-badge-detail');
+    closeVictoryScreen();
 
     // Hanya keluar dari layar penuh jika kembali ke gerbang awal (welcome gateway)
     if (targetScreen === 'screen-welcome') {
@@ -7247,6 +8087,7 @@ function openJoinRoomModal() {
     }
 
     modal.classList.remove('hidden');
+    document.getElementById('btn-universal-settings')?.classList.add('hidden');
     input.focus();
 }
 
@@ -7420,6 +8261,7 @@ function handleConfirmExitExecute() {
     if (receiptModal) receiptModal.style.display = "none";
     const quizModal = document.getElementById('quiz-modal');
     if (quizModal) quizModal.classList.add('hidden');
+    closeVictoryScreen();
     const formulaInput = document.getElementById("formula-box");
     if (formulaInput) formulaInput.value = "";
     const paidInput = document.getElementById("paid-box");
@@ -7571,7 +8413,7 @@ function bindEvents() {
         if (maxLevel < 10) {
             showMsg(
                 'Tantangan Terkunci 🔒',
-                'Kamu harus menyelesaikan seluruh <strong>10 Level Tantangan Mudah (C1-C3)</strong> terlebih dahulu untuk membuka Tantangan Sulit (C4-C6)!'
+                'Kamu harus menyelesaikan seluruh <strong>10 Level Tantangan Mudah</strong> terlebih dahulu untuk membuka Tantangan Sulit!'
             );
             return;
         }
@@ -7661,6 +8503,30 @@ function bindEvents() {
     document.getElementById('btn-confirm-quiz')?.addEventListener('click', confirmQuizAnswer);
     document.getElementById('btn-next-quiz')?.addEventListener('click', nextQuizQuestion);
 
+    // --- Modal Layar Kemenangan (Victory Screen) ---
+    initVictoryListeners({
+        onRetry: (lvl) => {
+            startLevel(lvl);
+        },
+        onMenu: (snap) => {
+            switchScreen('screen-levels');
+            if (snap && snap.unlockedHardJustNow) {
+                setTimeout(() => {
+                    showMsg(
+                        '🎉 TANTANGAN SULIT TERBUKA!',
+                        'Luar biasa! Kamu berhasil menamatkan seluruh 10 Level Tantangan Mudah!<br><br>Mode <strong>Tantangan Sulit</strong> kini telah terbuka dengan studi kasus nyata!'
+                    );
+                }, 250);
+            }
+        },
+        onNext: (nextLvl, snap) => {
+            if (snap && snap.unlockedHardJustNow) {
+                state.currentLevelTab = 'hard';
+            }
+            startLevel(nextLvl);
+        }
+    });
+
     // --- Item Rak Barang (data-var) ---
     document.querySelectorAll('.clickable-item[data-var]').forEach(item => {
         item.addEventListener('click', () => addVariable(item.dataset.var));
@@ -7724,6 +8590,23 @@ function initApp() {
     if (activeScreen) {
         updateUniversalSettingsContext(activeScreen.id);
     }
+
+    // Jika pengguna sudah memiliki sesi login aktif saat memuat game, sinkronkan ke Firebase
+    if (state.currentUser) {
+        try {
+            syncUserProfile(state.currentUser);
+        } catch (err) {
+            console.warn('[Sync] Gagal sync profile saat inisialisasi:', err);
+        }
+    }
+
+    // Listener saat perangkat kembali daring (online), otomatis sinkronkan profil akun
+    window.addEventListener('online', () => {
+        if (state.currentUser) {
+            console.log('[Sync] Koneksi internet kembali aktif, menyinkronkan profil akun...');
+            syncUserProfile(state.currentUser);
+        }
+    });
 
     // Autoplay unlocker: memutar BGM secara mulus setelah interaksi pertama pengguna jika sudah di dalam game
     const unlockAutoplay = () => {

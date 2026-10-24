@@ -24,35 +24,35 @@ export const ITEM_DB = {
 };
 
 /** 
- * @type {Array<{id: string, name: string, icon: string, colorClass: string, category: string, desc: string}>} 
+ * @type {Array<{id: string, name: string, icon: string, tier: number, badgeImg: string, colorClass: string, category: string, desc: string}>} 
  */
 export const BADGES_DB = [
     // --- Kategori Akurasi & Matematika ---
-    { id: 'si_teliti',          name: 'Si Teliti',          icon: 'fa-crosshairs',           colorClass: 'icon-blue',    category: 'Akurasi & Matematika', desc: 'Menyelesaikan satu level tanpa pernah salah mengetik rumus aljabar.' },
-    { id: 'master_variabel',    name: 'Master Variabel',    icon: 'fa-cubes',                colorClass: 'icon-indigo',  category: 'Akurasi & Matematika', desc: 'Berhasil menuntaskan level yang memuat 3 variabel berbeda.' },
-    { id: 'ahli_komutatif',     name: 'Ahli Komutatif',     icon: 'fa-right-left',           colorClass: 'icon-cyan',    category: 'Akurasi & Matematika', desc: 'Membuktikan sifat komutatif pesanan tanpa kesalahan pada Level 2 atau Level 8.' },
-    { id: 'pembedah_suku',      name: 'Pembedah Suku',      icon: 'fa-scissors',             colorClass: 'icon-purple',  category: 'Akurasi & Matematika', desc: 'Berhasil menyederhanakan ekspresi gabungan suku sejenis pada Level 3/6.' },
-    { id: 'penakluk_nol',       name: 'Penakluk Nol',       icon: 'fa-circle-notch',         colorClass: 'icon-teal',    category: 'Akurasi & Matematika', desc: 'Memahami makna koefisien nol dan melewati pesanan kosong pada Level 9.' },
-    { id: 'jenius_aljabar',     name: 'Jenius Aljabar',     icon: 'fa-brain',                colorClass: 'icon-amber',   category: 'Akurasi & Matematika', desc: 'Meraih akurasi rata-rata rumus aljabar 100% minimal setelah 5 level.' },
-    { id: 'bintang_tiga',       name: 'Bintang Tiga',       icon: 'fa-star',                 colorClass: 'icon-yellow',  category: 'Akurasi & Matematika', desc: 'Mengumpulkan bintang 3 sempurna pada 5 level berbeda.' },
-    { id: 'kolektor_sempurna',  name: 'Kolektor Sempurna',  icon: 'fa-crown',                colorClass: 'icon-gold',    category: 'Akurasi & Matematika', desc: 'Menyelesaikan Level 10 dengan 0 kesalahan.' },
+    { id: 'si_teliti',          name: 'Si Teliti',          icon: 'fa-crosshairs',           tier: 1, badgeImg: 'assets/badges/badge-tier-1.svg', colorClass: 'icon-blue',    category: 'Akurasi & Matematika', desc: 'Menyelesaikan satu level tanpa pernah salah mengetik rumus aljabar.' },
+    { id: 'master_variabel',    name: 'Master Variabel',    icon: 'fa-cubes',                tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-indigo',  category: 'Akurasi & Matematika', desc: 'Berhasil menuntaskan level yang memuat 3 variabel berbeda.' },
+    { id: 'ahli_komutatif',     name: 'Ahli Komutatif',     icon: 'fa-right-left',           tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-cyan',    category: 'Akurasi & Matematika', desc: 'Membuktikan sifat komutatif pesanan tanpa kesalahan pada Level 2 atau Level 8.' },
+    { id: 'pembedah_suku',      name: 'Pembedah Suku',      icon: 'fa-scissors',             tier: 3, badgeImg: 'assets/badges/badge-tier-3.svg', colorClass: 'icon-purple',  category: 'Akurasi & Matematika', desc: 'Berhasil menyederhanakan ekspresi gabungan suku sejenis pada Level 3/6.' },
+    { id: 'penakluk_nol',       name: 'Penakluk Nol',       icon: 'fa-circle-notch',         tier: 3, badgeImg: 'assets/badges/badge-tier-3.svg', colorClass: 'icon-teal',    category: 'Akurasi & Matematika', desc: 'Memahami makna koefisien nol dan melewati pesanan kosong pada Level 9.' },
+    { id: 'jenius_aljabar',     name: 'Jenius Aljabar',     icon: 'fa-brain',                tier: 4, badgeImg: 'assets/badges/badge-tier-4.svg', colorClass: 'icon-amber',   category: 'Akurasi & Matematika', desc: 'Meraih akurasi rata-rata rumus aljabar 100% minimal setelah 5 level.' },
+    { id: 'bintang_tiga',       name: 'Bintang Tiga',       icon: 'fa-star',                 tier: 4, badgeImg: 'assets/badges/badge-tier-4.svg', colorClass: 'icon-yellow',  category: 'Akurasi & Matematika', desc: 'Mengumpulkan bintang 3 sempurna pada 5 level berbeda.' },
+    { id: 'kolektor_sempurna',  name: 'Kolektor Sempurna',  icon: 'fa-crown',                tier: 5, badgeImg: 'assets/badges/badge-tier-5.svg', colorClass: 'icon-gold',    category: 'Akurasi & Matematika', desc: 'Menyelesaikan Level 10 dengan 0 kesalahan.' },
 
     // --- Kategori Finansial & Kasir ---
-    { id: 'si_jujur',           name: 'Si Jujur',           icon: 'fa-hand-holding-heart',   colorClass: 'icon-emerald', category: 'Finansial & Kasir',   desc: 'Memberikan kembalian uang fisik dari laci kasir dengan tepat tanpa salah ambil.' },
-    { id: 'saudagar_cilik',     name: 'Saudagar Cilik',     icon: 'fa-coins',                colorClass: 'icon-green',   category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 50.000.' },
-    { id: 'juragan_pasar',      name: 'Juragan Pasar',      icon: 'fa-shop',                 colorClass: 'icon-blue',    category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 150.000.' },
-    { id: 'sultan_aljabar',     name: 'Sultan Aljabar',     icon: 'fa-gem',                  colorClass: 'icon-purple',  category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 300.000.' },
-    { id: 'uang_pas',           name: 'Uang Pas',           icon: 'fa-money-bill-1-wave',    colorClass: 'icon-lime',    category: 'Finansial & Kasir',   desc: 'Berhasil melayani transaksi pesanan uang pas (tanpa kembalian).' },
-    { id: 'laci_kilat',         name: 'Laci Kilat',         icon: 'fa-bolt-lightning',       colorClass: 'icon-orange',  category: 'Finansial & Kasir',   desc: 'Menyiapkan uang kembalian pecahan dalam waktu kurang dari 15 detik.' },
+    { id: 'si_jujur',           name: 'Si Jujur',           icon: 'fa-hand-holding-heart',   tier: 1, badgeImg: 'assets/badges/badge-tier-1.svg', colorClass: 'icon-emerald', category: 'Finansial & Kasir',   desc: 'Memberikan kembalian uang fisik dari laci kasir dengan tepat tanpa salah ambil.' },
+    { id: 'saudagar_cilik',     name: 'Saudagar Cilik',     icon: 'fa-coins',                tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-green',   category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 50.000.' },
+    { id: 'juragan_pasar',      name: 'Juragan Pasar',      icon: 'fa-shop',                 tier: 3, badgeImg: 'assets/badges/badge-tier-3.svg', colorClass: 'icon-blue',    category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 150.000.' },
+    { id: 'sultan_aljabar',     name: 'Sultan Aljabar',     icon: 'fa-gem',                  tier: 5, badgeImg: 'assets/badges/badge-tier-5.svg', colorClass: 'icon-purple',  category: 'Finansial & Kasir',   desc: 'Mengumpulkan total laba bersih di atas Rp 300.000.' },
+    { id: 'uang_pas',           name: 'Uang Pas',           icon: 'fa-money-bill-1-wave',    tier: 1, badgeImg: 'assets/badges/badge-tier-1.svg', colorClass: 'icon-lime',    category: 'Finansial & Kasir',   desc: 'Berhasil melayani transaksi pesanan uang pas (tanpa kembalian).' },
+    { id: 'laci_kilat',         name: 'Laci Kilat',         icon: 'fa-bolt-lightning',       tier: 3, badgeImg: 'assets/badges/badge-tier-3.svg', colorClass: 'icon-orange',  category: 'Finansial & Kasir',   desc: 'Menyiapkan uang kembalian pecahan dalam waktu kurang dari 15 detik.' },
 
     // --- Kategori Karakter & Dimensi Hati ---
-    { id: 'dermawan_muda',      name: 'Dermawan Muda',      icon: 'fa-seedling',             colorClass: 'icon-emerald', category: 'Karakter & Dimensi Hati', desc: 'Menyisihkan laba toko untuk total sumbangan sosial minimal Rp 5.000.' },
-    { id: 'pahlawan_desa',      name: 'Pahlawan Desa',      icon: 'fa-handshake-angle',      colorClass: 'icon-pink',    category: 'Karakter & Dimensi Hati', desc: 'Akumulasi sumbangan sosial mencapai lebih dari Rp 20.000.' },
-    { id: 'reputasi_emas',      name: 'Reputasi Emas',      icon: 'fa-award',                colorClass: 'icon-gold',    category: 'Karakter & Dimensi Hati', desc: 'Meraih status reputasi toko "Pedagang Dermawan".' },
+    { id: 'dermawan_muda',      name: 'Dermawan Muda',      icon: 'fa-seedling',             tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-emerald', category: 'Karakter & Dimensi Hati', desc: 'Menyisihkan laba toko untuk total sumbangan sosial minimal Rp 5.000.' },
+    { id: 'pahlawan_desa',      name: 'Pahlawan Desa',      icon: 'fa-handshake-angle',      tier: 4, badgeImg: 'assets/badges/badge-tier-4.svg', colorClass: 'icon-pink',    category: 'Karakter & Dimensi Hati', desc: 'Akumulasi sumbangan sosial mencapai lebih dari Rp 20.000.' },
+    { id: 'reputasi_emas',      name: 'Reputasi Emas',      icon: 'fa-award',                tier: 5, badgeImg: 'assets/badges/badge-tier-5.svg', colorClass: 'icon-gold',    category: 'Karakter & Dimensi Hati', desc: 'Meraih status reputasi toko "Pedagang Dermawan".' },
 
     // --- Kategori Evaluasi & Persistensi ---
-    { id: 'skor_kuis_sempurna', name: 'Kuis Sempurna',      icon: 'fa-circle-check',         colorClass: 'icon-teal',    category: 'Evaluasi & Persistensi', desc: 'Menjawab seluruh soal kuis evaluasi level dengan benar (100%).' },
-    { id: 'pantang_menyerah',   name: 'Pantang Menyerah',   icon: 'fa-shield-halved',        colorClass: 'icon-red',     category: 'Evaluasi & Persistensi', desc: 'Berhasil menyelesaikan level meski sempat melakukan kesalahan input >= 3 kali.' },
-    { id: 'penakluk_tantangan', name: 'Penakluk Tantangan', icon: 'fa-trophy',               colorClass: 'icon-amber',   category: 'Evaluasi & Persistensi', desc: 'Membuka dan menyelesaikan level pada mode Tantangan Sulit.' }
+    { id: 'skor_kuis_sempurna', name: 'Kuis Sempurna',      icon: 'fa-circle-check',         tier: 2, badgeImg: 'assets/badges/badge-tier-2.svg', colorClass: 'icon-teal',    category: 'Evaluasi & Persistensi', desc: 'Menjawab seluruh soal kuis evaluasi level dengan benar (100%).' },
+    { id: 'pantang_menyerah',   name: 'Pantang Menyerah',   icon: 'fa-shield-halved',        tier: 1, badgeImg: 'assets/badges/badge-tier-1.svg', colorClass: 'icon-red',     category: 'Evaluasi & Persistensi', desc: 'Berhasil menyelesaikan level meski sempat melakukan kesalahan input >= 3 kali.' },
+    { id: 'penakluk_tantangan', name: 'Penakluk Tantangan', icon: 'fa-trophy',               tier: 4, badgeImg: 'assets/badges/badge-tier-4.svg', colorClass: 'icon-amber',   category: 'Evaluasi & Persistensi', desc: 'Membuka dan menyelesaikan level pada mode Tantangan Sulit.' }
 ];
 

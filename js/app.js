@@ -3,13 +3,14 @@
 // ==========================================
 
 import { state }             from './core/state.js';
-import { saveData, requestFullScreen, exitFullScreen } from './core/engine.js';
+import { saveData, requestFullScreen, exitFullScreen, requestWakeLock, releaseWakeLock } from './core/engine.js';
 import { switchScreen, renderUserList, showMsg, closeModal, renderLevels, updateUniversalSettingsContext } from './ui/screens.js';
 import { initGameListeners, startLevel, addVariable, tambahUangKembalian, nextQuizQuestion, confirmQuizAnswer } from './ui/cashier.js';
 import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleLoadSpecificRoom, handleSortFasilTable, handleDonate, destroyFasilChart, handlePrintDetailedPDF, handlePrintReport, handleCopyWhatsAppReport, forceRefreshFasilData } from './ui/reports.js';
-import { joinRoom, leaveRoom, sendStudentProgress } from './core/sync.js';
+import { joinRoom, leaveRoom, sendStudentProgress, syncUserProfile } from './core/sync.js';
 import { startTutorial, skipTutorial, endTutorial, updateTutorialPosition, initTutorialEvents } from './core/tutorial.js';
 import { openLevelZeroModal, closeLevelZeroModal, initLevelZeroEvents } from './ui/levelZero.js';
+import { initVictoryListeners, closeVictoryScreen } from './ui/victory.js';
 import {
     initAudio,
     playBGM,
@@ -40,12 +41,45 @@ export function getAppScale() {
     return window.__appScale || 1;
 }
 
+/**
+ * Mendeteksi apakah pengguna mengakses aplikasi dari perangkat ponsel (HP).
+ * Memeriksa kombinasi User-Agent, dimensi layar kecil khas ponsel, dan layar sentuh.
+ * Menjamin bahwa desktop dan laptop standar (tinggi layar >= 600px) tidak terpengaruh.
+ * @returns {boolean}
+ */
+export function isMobileDevice() {
+    if (typeof window === 'undefined') return false;
+    const winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
+    const winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+
+    // 1. Cek User-Agent (Ponsel Android / iPhone / Mobile)
+    const isMobileUA = /Android.*Mobile|iPhone|iPod|Windows Phone|webOS/i.test(navigator.userAgent);
+
+    // 2. Cek Karakteristik Layar Ponsel (Viewport khas ponsel landscape: height <= 520px)
+    const isMobileViewport = (winH <= 520 && winW <= 1050) || (winW <= 520 && winH <= 1050);
+
+    // 3. Cek Layar Sentuh & Dimensi Fisik Layar Ponsel
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const isSmallPhysicalScreen = typeof window.screen !== 'undefined' &&
+        Math.min(window.screen.width, window.screen.height) <= 540;
+
+    return isMobileUA || (isTouch && isSmallPhysicalScreen) || (isTouch && isMobileViewport) || isMobileViewport;
+}
+
 export function fitScreen() {
     const container = document.getElementById('app-container');
     if (!container) return;
 
-    const winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
-    const winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+    let winW = window.innerWidth;
+    let winH = window.innerHeight;
+    if (window.visualViewport) {
+        winW = Math.round(window.visualViewport.width);
+        winH = Math.round(window.visualViewport.height);
+    } else {
+        winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
+        winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+    }
+
     const aspect = winW / winH;
     const targetAspect = BASE_WIDTH / BASE_HEIGHT; // 1280 / 720 = 1.7777...
 
@@ -66,8 +100,10 @@ export function fitScreen() {
         virtualHeight = Math.max(BASE_HEIGHT, Math.ceil(winH / scale) + 4);
     }
 
+    const sidePad = Math.max(14, Math.round((virtualWidth - 1240) / 2));
     container.style.width = `${virtualWidth}px`;
     container.style.height = `${virtualHeight}px`;
+    container.style.setProperty('--side-pad', `${sidePad}px`);
     container.style.transform = `translate(-50%, -50%) scale(${scale})`;
     container.dataset.scale = String(scale);
     container.dataset.virtualWidth = String(virtualWidth);
@@ -75,6 +111,21 @@ export function fitScreen() {
     window.__appScale = scale;
     window.__virtualWidth = virtualWidth;
     window.__virtualHeight = virtualHeight;
+
+    // Kunci viewport agar tidak pernah ada pergeseran scroll yang merusak posisi kanvas
+    window.scrollTo(0, 0);
+    if (document.documentElement.scrollLeft !== 0) document.documentElement.scrollLeft = 0;
+    if (document.documentElement.scrollTop !== 0)  document.documentElement.scrollTop = 0;
+    if (document.body.scrollLeft !== 0)            document.body.scrollLeft = 0;
+    if (document.body.scrollTop !== 0)             document.body.scrollTop = 0;
+
+    // Terapkan penanda kelas is-mobile-device agar skala font ponsel aktif (+31.25%)
+    // tanpa mengubah tampilan desktop sama sekali
+    const mobile = isMobileDevice();
+    if (typeof document !== 'undefined') {
+        document.documentElement.classList.toggle('is-mobile-device', mobile);
+        document.body.classList.toggle('is-mobile-device', mobile);
+    }
 
     // Deteksi Rotasi Gawai (Landscape Only)
     const rotateOverlay = document.getElementById('rotate-device-overlay');
@@ -105,8 +156,52 @@ window.addEventListener('orientationchange', () => {
 if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
     window.screen.orientation.addEventListener('change', () => {
         setTimeout(fitScreen, 50);
+        setTimeout(fitScreen, 200);
     });
 }
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitScreen);
+}
+document.addEventListener('fullscreenchange', () => {
+    setTimeout(fitScreen, 50);
+    setTimeout(fitScreen, 250);
+});
+document.addEventListener('webkitfullscreenchange', () => {
+    setTimeout(fitScreen, 50);
+    setTimeout(fitScreen, 250);
+});
+window.addEventListener('scroll', () => {
+    if (window.scrollX !== 0 || window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+    }
+});
+
+// Penanganan Optimasi Gawai Ponsel (Screen Wake Lock & Auto Fullscreen)
+function handleMobileOptimizations(e) {
+    if (!isMobileDevice()) return;
+
+    // 1. Minta Wake Lock agar layar HP tidak mati otomatis
+    requestWakeLock();
+
+    // 2. Minta Fullscreen jika belum aktif (hindari saat fokus mengetik form nama/kelas/token)
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (e && e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) {
+            return;
+        }
+        requestFullScreen();
+    }
+}
+
+window.addEventListener('touchend', handleMobileOptimizations, { passive: true });
+window.addEventListener('click', handleMobileOptimizations, { passive: true });
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        requestWakeLock();
+        setTimeout(fitScreen, 50);
+    }
+});
+
 fitScreen();
 
 let confirmExitReason = 'cashier'; // 'cashier' | 'fullscreen'
@@ -117,6 +212,7 @@ let confirmExitReason = 'cashier'; // 'cashier' | 'fullscreen'
 
 function startFromGateway() {
     requestFullScreen();
+    requestWakeLock();
     playBGM();
     switchScreen('screen-login');
 }
@@ -146,7 +242,14 @@ function login(id) {
     if (state.currentUser) {
         playBGM();
         requestFullScreen();
+        requestWakeLock();
         switchScreen('screen-lobby');
+        // Sinkronisasi profil akun pengguna ke Firebase Realtime Database
+        try {
+            syncUserProfile(state.currentUser);
+        } catch (err) {
+            console.warn('[Sync] Gagal sync profile saat login:', err);
+        }
     }
 }
 
@@ -168,6 +271,7 @@ function logout(targetScreen = 'screen-login') {
     closeModal('modal-settings');
     closeModal('modal-confirm-exit');
     closeModal('modal-badge-detail');
+    closeVictoryScreen();
 
     // Hanya keluar dari layar penuh jika kembali ke gerbang awal (welcome gateway)
     if (targetScreen === 'screen-welcome') {
@@ -215,6 +319,7 @@ function openJoinRoomModal() {
     }
 
     modal.classList.remove('hidden');
+    document.getElementById('btn-universal-settings')?.classList.add('hidden');
     input.focus();
 }
 
@@ -388,6 +493,7 @@ function handleConfirmExitExecute() {
     if (receiptModal) receiptModal.style.display = "none";
     const quizModal = document.getElementById('quiz-modal');
     if (quizModal) quizModal.classList.add('hidden');
+    closeVictoryScreen();
     const formulaInput = document.getElementById("formula-box");
     if (formulaInput) formulaInput.value = "";
     const paidInput = document.getElementById("paid-box");
@@ -539,7 +645,7 @@ function bindEvents() {
         if (maxLevel < 10) {
             showMsg(
                 'Tantangan Terkunci 🔒',
-                'Kamu harus menyelesaikan seluruh <strong>10 Level Tantangan Mudah (C1-C3)</strong> terlebih dahulu untuk membuka Tantangan Sulit (C4-C6)!'
+                'Kamu harus menyelesaikan seluruh <strong>10 Level Tantangan Mudah</strong> terlebih dahulu untuk membuka Tantangan Sulit!'
             );
             return;
         }
@@ -629,6 +735,30 @@ function bindEvents() {
     document.getElementById('btn-confirm-quiz')?.addEventListener('click', confirmQuizAnswer);
     document.getElementById('btn-next-quiz')?.addEventListener('click', nextQuizQuestion);
 
+    // --- Modal Layar Kemenangan (Victory Screen) ---
+    initVictoryListeners({
+        onRetry: (lvl) => {
+            startLevel(lvl);
+        },
+        onMenu: (snap) => {
+            switchScreen('screen-levels');
+            if (snap && snap.unlockedHardJustNow) {
+                setTimeout(() => {
+                    showMsg(
+                        '🎉 TANTANGAN SULIT TERBUKA!',
+                        'Luar biasa! Kamu berhasil menamatkan seluruh 10 Level Tantangan Mudah!<br><br>Mode <strong>Tantangan Sulit</strong> kini telah terbuka dengan studi kasus nyata!'
+                    );
+                }, 250);
+            }
+        },
+        onNext: (nextLvl, snap) => {
+            if (snap && snap.unlockedHardJustNow) {
+                state.currentLevelTab = 'hard';
+            }
+            startLevel(nextLvl);
+        }
+    });
+
     // --- Item Rak Barang (data-var) ---
     document.querySelectorAll('.clickable-item[data-var]').forEach(item => {
         item.addEventListener('click', () => addVariable(item.dataset.var));
@@ -692,6 +822,23 @@ function initApp() {
     if (activeScreen) {
         updateUniversalSettingsContext(activeScreen.id);
     }
+
+    // Jika pengguna sudah memiliki sesi login aktif saat memuat game, sinkronkan ke Firebase
+    if (state.currentUser) {
+        try {
+            syncUserProfile(state.currentUser);
+        } catch (err) {
+            console.warn('[Sync] Gagal sync profile saat inisialisasi:', err);
+        }
+    }
+
+    // Listener saat perangkat kembali daring (online), otomatis sinkronkan profil akun
+    window.addEventListener('online', () => {
+        if (state.currentUser) {
+            console.log('[Sync] Koneksi internet kembali aktif, menyinkronkan profil akun...');
+            syncUserProfile(state.currentUser);
+        }
+    });
 
     // Autoplay unlocker: memutar BGM secara mulus setelah interaksi pertama pengguna jika sudah di dalam game
     const unlockAutoplay = () => {
