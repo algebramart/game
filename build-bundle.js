@@ -83,7 +83,7 @@ function off(dbRef) {
     }
 }
 `;
-        content = content.replace('const app = initializeApp(firebaseConfig);\nconst db = getDatabase(app);', compatHelper);
+        content = content.replace(/const app = initializeApp\(firebaseConfig\);\r?\nconst db = getDatabase\(app\);/, compatHelper);
     }
 
     if (file === 'js/ui/levelZero.js') {

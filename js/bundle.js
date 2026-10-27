@@ -2105,6 +2105,86 @@ async function releaseWakeLock() {
 }
 
 
+/**
+ * Memvalidasi input kelas siswa.
+ * Memastikan kelas berada dalam rentang sekolah formal (tingkat 1-12 atau I-XII),
+ * menolak input yang tidak masuk akal (seperti kelas 100, 99, 0, dsb.),
+ * serta menolak karakter atau simbol khusus yang tidak perlu.
+ * 
+ * @param {string} rawInput 
+ * @returns {string} String kelas yang sudah divalidasi dan dinormalisasi
+ * @throws {Error} Jika format kelas tidak valid
+ */
+function validateKelas(rawInput) {
+    if (typeof rawInput !== 'string') {
+        throw new Error('Input kelas harus berupa teks.');
+    }
+    const trimmed = rawInput.trim();
+    if (!trimmed) {
+        throw new Error('Kelas tidak boleh kosong. Masukkan kelas Anda (contoh: 7A, 8B, atau 9-1).');
+    }
+    if (trimmed.length > 20) {
+        throw new Error('Format kelas terlalu panjang (maksimal 20 karakter).');
+    }
+
+    // Cek karakter atau simbol yang tidak perlu:
+    // Hanya izinkan huruf alfabet (a-z, A-Z), angka (0-9), spasi, tanda hubung (-), dan titik (.)
+    if (/[^a-zA-Z0-9\s.-]/.test(trimmed)) {
+        throw new Error('Kelas mengandung karakter atau simbol yang tidak diizinkan. Hanya huruf, angka, spasi, titik (.), dan tanda hubung (-) yang diperbolehkan.');
+    }
+
+    // Cek tanda baca berulang atau di posisi awal/akhir
+    if (/[-.]{2,}/.test(trimmed) || /^[-.]|[-.]$/.test(trimmed)) {
+        throw new Error('Format tanda baca pada kelas tidak valid (contoh yang benar: 7A, 7-A, atau VII-A).');
+    }
+
+    // Hapus prefix umum seperti 'Kelas' atau 'Kls' untuk memeriksa tingkat kelas
+    const withoutPrefix = trimmed.replace(/^(?:kelas|kls)\s*/i, '').trim();
+    if (!withoutPrefix) {
+        throw new Error('Harap cantumkan tingkat kelas Anda (contoh: 7A, 8B, atau 9-1).');
+    }
+
+    // 1. Cek jika diawali dengan angka Arab (misal: 7, 7A, 7-1, 10 MIPA 1, 100)
+    const arabicMatch = withoutPrefix.match(/^(\d+)/);
+    if (arabicMatch) {
+        const gradeNum = parseInt(arabicMatch[1], 10);
+        if (gradeNum < 1 || gradeNum > 12) {
+            throw new Error(`Tingkat kelas "${gradeNum}" tidak valid! Tingkat kelas sekolah harus antara 1 sampai 12 (contoh: 7A, 8B, atau 9-1).`);
+        }
+        return trimmed.replace(/\s+/g, ' ');
+    }
+
+    // 2. Cek jika diawali dengan angka Romawi (misal: VII A, VII-A, IX, XII-1, C, XX, XIII)
+    const romanPrefixMatch = withoutPrefix.match(/^([IVXLCDMivxlcdm]+)(?:$|[\s.-].*|([A-HJ-LN-UWY-Za-hj-ln-uwy-z]).*)$/);
+    if (romanPrefixMatch) {
+        const romanStr = romanPrefixMatch[1].toUpperCase();
+        const romanVals = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+        let num = 0;
+        let validRoman = true;
+        for (let i = 0; i < romanStr.length; i++) {
+            const curr = romanVals[romanStr[i]];
+            if (!curr) { validRoman = false; break; }
+            const next = romanVals[romanStr[i + 1]];
+            if (next && next > curr) {
+                num += next - curr;
+                i++;
+            } else {
+                num += curr;
+            }
+        }
+        if (validRoman && num > 0) {
+            if (num < 1 || num > 12) {
+                throw new Error(`Tingkat kelas Romawi "${romanStr}" (${num}) tidak valid! Tingkat kelas sekolah harus antara 1 sampai 12 (contoh: VII A, VIII B, atau IX-1).`);
+            }
+            return trimmed.replace(/\s+/g, ' ');
+        }
+    }
+
+    // Jika tidak mencantumkan tingkat kelas yang dapat dikenali
+    throw new Error('Format kelas tidak valid! Harap masukkan tingkat kelas yang benar antara 1-12 atau I-XII (contoh: 7A, 8B, atau VII-A).');
+}
+
+
 
 // ==========================================
 // FILE: js/core/sync.js
@@ -2112,6 +2192,7 @@ async function releaseWakeLock() {
 // ==========================================
 // core/sync.js — Sinkronisasi Hybrid (Firebase Realtime Database + BroadcastChannel)
 // ==========================================
+
 
 
 
@@ -2519,7 +2600,11 @@ async function updateStudentProfileInRoom(studentId, partialData) {
         safeUpdate.nama_fasil = candidateName.trim();
     }
     if (typeof candidateKelas === 'string' && candidateKelas.trim() !== '') {
-        safeUpdate.kelas_fasil = candidateKelas.trim();
+        try {
+            safeUpdate.kelas_fasil = validateKelas(candidateKelas);
+        } catch (e) {
+            console.warn('[Sync] Kelas fasil ditolak karena tidak valid:', e.message);
+        }
     }
 
     if (Object.keys(safeUpdate).length === 0) return false;
@@ -6216,6 +6301,20 @@ async function handleSaveStudentEdit(studentId) {
         return;
     }
 
+    let validatedKelas = '-';
+    if (newKelas) {
+        try {
+            validatedKelas = validateKelas(newKelas);
+        } catch (err) {
+            if (kelasInput) {
+                kelasInput.classList.add('error-flash');
+                setTimeout(() => kelasInput.classList.remove('error-flash'), 800);
+                kelasInput.focus();
+            }
+            return showMsg('Kelas Tidak Valid', err.message);
+        }
+    }
+
     try {
         playSFX('success');
     } catch (e) { /* ignore */ }
@@ -6225,7 +6324,7 @@ async function handleSaveStudentEdit(studentId) {
         const localUser = state.users.find(u => String(u.id) === String(studentId) || String(u.name) === String(studentId));
         if (localUser) {
             localUser.nama_fasil = newName;
-            if (newKelas) localUser.kelas_fasil = newKelas;
+            localUser.kelas_fasil = validatedKelas;
             saveData();
         }
     }
@@ -6233,7 +6332,7 @@ async function handleSaveStudentEdit(studentId) {
     // 2. Simpan secara parsial (HANYA nama_fasil & kelas_fasil) ke Firebase & cache lokal
     await updateStudentProfileInRoom(studentId, {
         nama_fasil: newName,
-        kelas_fasil: newKelas || '-'
+        kelas_fasil: validatedKelas
     });
 
     // 3. Matikan mode edit dan render ulang tabel
@@ -6260,8 +6359,17 @@ async function handleSaveStudentEdit(studentId) {
  */
 async function handleInlineStudentUpdate(studentId, field, newValue, inputEl) {
     if (field !== 'name' && field !== 'kelas' && field !== 'nama_fasil' && field !== 'kelas_fasil') return;
+    let safeVal = newValue;
+    if (field === 'kelas' || field === 'kelas_fasil') {
+        try {
+            safeVal = validateKelas(newValue);
+        } catch (err) {
+            if (inputEl) inputEl.focus();
+            return showMsg('Kelas Tidak Valid', err.message);
+        }
+    }
     const targetKey = (field === 'name' || field === 'nama_fasil') ? 'nama_fasil' : 'kelas_fasil';
-    await updateStudentProfileInRoom(studentId, { [targetKey]: newValue });
+    await updateStudentProfileInRoom(studentId, { [targetKey]: safeVal });
 }
 
 /**
@@ -6638,6 +6746,14 @@ function renderFasilTableAndEWS() {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 handleSaveStudentEdit(btn.dataset.id);
+            });
+        });
+
+        // Filter karakter tidak perlu pada input kelas fasilitator
+        tbody.querySelectorAll('.fasil-edit-kelas').forEach(kIn => {
+            kIn.addEventListener('input', e => {
+                const cleaned = e.target.value.replace(/[^a-zA-Z0-9\s.-]/g, '');
+                if (e.target.value !== cleaned) e.target.value = cleaned;
             });
         });
 
@@ -7914,6 +8030,7 @@ window._openLevelZero  = openLevelZeroModal;
 window._login          = login;
 window._fitScreen      = fitScreen;
 window._getAppScale    = getAppScale;
+window._validateKelas  = validateKelas;
 
 // Penskalaan otomatis segera saat skrip dimuat dan saat jendela diubah ukurannya
 window.addEventListener('resize', fitScreen);
@@ -7986,22 +8103,37 @@ function startFromGateway() {
 }
 
 function createUser() {
-    const name   = document.getElementById('new-username').value.trim();
-    const gender = document.getElementById('new-gender').value;
-    const kelas  = document.getElementById('new-class').value.trim();
+    const nameInput  = document.getElementById('new-username');
+    const classInput = document.getElementById('new-class');
+    const name       = nameInput ? nameInput.value.trim() : '';
+    const gender     = document.getElementById('new-gender').value;
+    const rawKelas   = classInput ? classInput.value : '';
 
-    if (!name || !kelas) return showMsg('Error', 'Nama dan Kelas harus diisi!');
+    if (!name) return showMsg('Error', 'Nama harus diisi!');
+    if (!rawKelas || !rawKelas.trim()) return showMsg('Error', 'Kelas harus diisi!');
+
+    let validatedKelas;
+    try {
+        validatedKelas = validateKelas(rawKelas);
+    } catch (err) {
+        if (classInput) {
+            classInput.classList.add('error-flash');
+            setTimeout(() => classInput.classList.remove('error-flash'), 800);
+            classInput.focus();
+        }
+        return showMsg('Kelas Tidak Valid', err.message);
+    }
 
     const newUser = {
-        id: Date.now().toString(), name, gender, kelas,
+        id: Date.now().toString(), name, gender, kelas: validatedKelas,
         money: 0, revenue: 0, cost: 0, maxLevel: 0,
         badges: [], history: [], createdAt: new Date().toISOString()
     };
 
     state.users.push(newUser);
     saveData();
-    document.getElementById('new-username').value = '';
-    document.getElementById('new-class').value    = '';
+    if (nameInput)  nameInput.value  = '';
+    if (classInput) classInput.value = '';
     login(newUser.id);
 }
 
@@ -8372,6 +8504,16 @@ function bindEvents() {
 
     // --- Login Screen ---
     document.getElementById('new-username')?.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
+    const newClassEl = document.getElementById('new-class');
+    if (newClassEl) {
+        newClassEl.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
+        newClassEl.addEventListener('input', e => {
+            const cleaned = e.target.value.replace(/[^a-zA-Z0-9\s.-]/g, '');
+            if (e.target.value !== cleaned) {
+                e.target.value = cleaned;
+            }
+        });
+    }
     document.querySelector('.btn-add-user')?.addEventListener('click', createUser);
 
     // --- Lobby Screen ---

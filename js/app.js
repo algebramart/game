@@ -3,7 +3,7 @@
 // ==========================================
 
 import { state }             from './core/state.js';
-import { saveData, requestFullScreen, exitFullScreen, requestWakeLock, releaseWakeLock } from './core/engine.js';
+import { saveData, requestFullScreen, exitFullScreen, requestWakeLock, releaseWakeLock, validateKelas } from './core/engine.js';
 import { switchScreen, renderUserList, showMsg, closeModal, renderLevels, updateUniversalSettingsContext } from './ui/screens.js';
 import { initGameListeners, startLevel, addVariable, tambahUangKembalian, nextQuizQuestion, confirmQuizAnswer } from './ui/cashier.js';
 import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleLoadSpecificRoom, handleSortFasilTable, handleDonate, destroyFasilChart, handlePrintDetailedPDF, handlePrintReport, handleCopyWhatsAppReport, forceRefreshFasilData } from './ui/reports.js';
@@ -146,6 +146,7 @@ window._openLevelZero  = openLevelZeroModal;
 window._login          = login;
 window._fitScreen      = fitScreen;
 window._getAppScale    = getAppScale;
+window._validateKelas  = validateKelas;
 
 // Penskalaan otomatis segera saat skrip dimuat dan saat jendela diubah ukurannya
 window.addEventListener('resize', fitScreen);
@@ -218,22 +219,37 @@ function startFromGateway() {
 }
 
 function createUser() {
-    const name   = document.getElementById('new-username').value.trim();
-    const gender = document.getElementById('new-gender').value;
-    const kelas  = document.getElementById('new-class').value.trim();
+    const nameInput  = document.getElementById('new-username');
+    const classInput = document.getElementById('new-class');
+    const name       = nameInput ? nameInput.value.trim() : '';
+    const gender     = document.getElementById('new-gender').value;
+    const rawKelas   = classInput ? classInput.value : '';
 
-    if (!name || !kelas) return showMsg('Error', 'Nama dan Kelas harus diisi!');
+    if (!name) return showMsg('Error', 'Nama harus diisi!');
+    if (!rawKelas || !rawKelas.trim()) return showMsg('Error', 'Kelas harus diisi!');
+
+    let validatedKelas;
+    try {
+        validatedKelas = validateKelas(rawKelas);
+    } catch (err) {
+        if (classInput) {
+            classInput.classList.add('error-flash');
+            setTimeout(() => classInput.classList.remove('error-flash'), 800);
+            classInput.focus();
+        }
+        return showMsg('Kelas Tidak Valid', err.message);
+    }
 
     const newUser = {
-        id: Date.now().toString(), name, gender, kelas,
+        id: Date.now().toString(), name, gender, kelas: validatedKelas,
         money: 0, revenue: 0, cost: 0, maxLevel: 0,
         badges: [], history: [], createdAt: new Date().toISOString()
     };
 
     state.users.push(newUser);
     saveData();
-    document.getElementById('new-username').value = '';
-    document.getElementById('new-class').value    = '';
+    if (nameInput)  nameInput.value  = '';
+    if (classInput) classInput.value = '';
     login(newUser.id);
 }
 
@@ -604,6 +620,16 @@ function bindEvents() {
 
     // --- Login Screen ---
     document.getElementById('new-username')?.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
+    const newClassEl = document.getElementById('new-class');
+    if (newClassEl) {
+        newClassEl.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
+        newClassEl.addEventListener('input', e => {
+            const cleaned = e.target.value.replace(/[^a-zA-Z0-9\s.-]/g, '');
+            if (e.target.value !== cleaned) {
+                e.target.value = cleaned;
+            }
+        });
+    }
     document.querySelector('.btn-add-user')?.addEventListener('click', createUser);
 
     // --- Lobby Screen ---

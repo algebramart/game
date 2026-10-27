@@ -1,6 +1,6 @@
 import { state } from '../core/state.js';
 import { BADGES_DB } from '../data/items.js';
-import { getTitle, saveData, checkBadgeUnlocks } from '../core/engine.js';
+import { getTitle, saveData, checkBadgeUnlocks, validateKelas } from '../core/engine.js';
 import { switchScreen, showMsg, closeModal } from './screens.js';
 import { startHostRoom, stopHostRoom, refreshHostStudents, loadSpecificHostRoom, updateStudentProfileInRoom, syncUserProfile } from '../core/sync.js';
 import { playSFX } from '../core/audio.js';
@@ -672,6 +672,20 @@ export async function handleSaveStudentEdit(studentId) {
         return;
     }
 
+    let validatedKelas = '-';
+    if (newKelas) {
+        try {
+            validatedKelas = validateKelas(newKelas);
+        } catch (err) {
+            if (kelasInput) {
+                kelasInput.classList.add('error-flash');
+                setTimeout(() => kelasInput.classList.remove('error-flash'), 800);
+                kelasInput.focus();
+            }
+            return showMsg('Kelas Tidak Valid', err.message);
+        }
+    }
+
     try {
         playSFX('success');
     } catch (e) { /* ignore */ }
@@ -681,7 +695,7 @@ export async function handleSaveStudentEdit(studentId) {
         const localUser = state.users.find(u => String(u.id) === String(studentId) || String(u.name) === String(studentId));
         if (localUser) {
             localUser.nama_fasil = newName;
-            if (newKelas) localUser.kelas_fasil = newKelas;
+            localUser.kelas_fasil = validatedKelas;
             saveData();
         }
     }
@@ -689,7 +703,7 @@ export async function handleSaveStudentEdit(studentId) {
     // 2. Simpan secara parsial (HANYA nama_fasil & kelas_fasil) ke Firebase & cache lokal
     await updateStudentProfileInRoom(studentId, {
         nama_fasil: newName,
-        kelas_fasil: newKelas || '-'
+        kelas_fasil: validatedKelas
     });
 
     // 3. Matikan mode edit dan render ulang tabel
@@ -716,8 +730,17 @@ export async function handleSaveStudentEdit(studentId) {
  */
 export async function handleInlineStudentUpdate(studentId, field, newValue, inputEl) {
     if (field !== 'name' && field !== 'kelas' && field !== 'nama_fasil' && field !== 'kelas_fasil') return;
+    let safeVal = newValue;
+    if (field === 'kelas' || field === 'kelas_fasil') {
+        try {
+            safeVal = validateKelas(newValue);
+        } catch (err) {
+            if (inputEl) inputEl.focus();
+            return showMsg('Kelas Tidak Valid', err.message);
+        }
+    }
     const targetKey = (field === 'name' || field === 'nama_fasil') ? 'nama_fasil' : 'kelas_fasil';
-    await updateStudentProfileInRoom(studentId, { [targetKey]: newValue });
+    await updateStudentProfileInRoom(studentId, { [targetKey]: safeVal });
 }
 
 /**
@@ -1094,6 +1117,14 @@ export function renderFasilTableAndEWS() {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 handleSaveStudentEdit(btn.dataset.id);
+            });
+        });
+
+        // Filter karakter tidak perlu pada input kelas fasilitator
+        tbody.querySelectorAll('.fasil-edit-kelas').forEach(kIn => {
+            kIn.addEventListener('input', e => {
+                const cleaned = e.target.value.replace(/[^a-zA-Z0-9\s.-]/g, '');
+                if (e.target.value !== cleaned) e.target.value = cleaned;
             });
         });
 

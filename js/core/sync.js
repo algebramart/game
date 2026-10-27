@@ -4,6 +4,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import { getDatabase, ref, set, update, get, onValue, off } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
 import { state } from './state.js';
+import { validateKelas } from './engine.js';
 
 // ==========================================
 // KONFIGURASI FIREBASE REALTIME DATABASE
@@ -354,7 +355,11 @@ export async function updateStudentProfileInRoom(studentId, partialData) {
         safeUpdate.nama_fasil = candidateName.trim();
     }
     if (typeof candidateKelas === 'string' && candidateKelas.trim() !== '') {
-        safeUpdate.kelas_fasil = candidateKelas.trim();
+        try {
+            safeUpdate.kelas_fasil = validateKelas(candidateKelas);
+        } catch (e) {
+            console.warn('[Sync] Kelas fasil ditolak karena tidak valid:', e.message);
+        }
     }
 
     if (Object.keys(safeUpdate).length === 0) return false;
