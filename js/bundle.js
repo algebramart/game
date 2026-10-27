@@ -8673,6 +8673,27 @@ function bindEvents() {
     document.querySelectorAll('.clickable-item[data-var]').forEach(item => {
         item.addEventListener('click', () => addVariable(item.dataset.var));
     });
+    // --- Efek Membal Elastis (Juicy Spring / Squash & Stretch) & Haptic ---
+    document.addEventListener('pointerdown', (e) => {
+        const el = e.target.closest(
+            'button, .btn, .btn-primary, .btn-secondary, .btn-ghost, .btn-destructive, .btn-danger, .btn-back, .btn-gateway, .btn-start-game, .user-btn, .clickable-item, .numpad-grid button, .btn-uang, .tray-product, .confirm-button, .btn-add-user, .btn-level-unlocked, .btn-level-hard-unlocked, .tab-btn'
+        );
+        if (!el || el.disabled || el.classList.contains('disabled')) return;
+
+        // Getaran mikro haptic untuk perangkat HP/Android
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+            try { navigator.vibrate(12); } catch (_) {}
+        }
+
+        // Picu animasi membal elastis
+        el.classList.remove('juicy-spring');
+        void el.offsetWidth;
+        el.classList.add('juicy-spring');
+        setTimeout(() => {
+            el.classList.remove('juicy-spring');
+        }, 320);
+    }, { passive: true });
+
 }
 
 // ==========================================

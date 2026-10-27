@@ -232,5 +232,89 @@
     }
 }
 
+/* =========================================
+   EFEK MEMBAL ELASTIS (JUICY SPRING / SQUASH & STRETCH)
+   ========================================= */
 
+@keyframes juicySquashBounce {
+    0% {
+        transform: scale(0.92) translateY(2px);
+    }
+    40% {
+        transform: scale(1.08) translateY(-2px);
+    }
+    70% {
+        transform: scale(0.97) translateY(1px);
+    }
+    90% {
+        transform: scale(1.02);
+    }
+    100% {
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Transisi pegas elastis alami untuk tombol dan elemen interaktif */
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-destructive,
+.btn-danger,
+.btn-back,
+.btn-gateway,
+.btn-start-game,
+.user-btn,
+.btn-level-unlocked,
+.btn-level-hard-unlocked,
+.clickable-item,
+.numpad-grid button,
+.btn-uang,
+.tray-product,
+.confirm-button,
+.btn-add-user,
+.btn-save-student,
+.btn-edit-student,
+.btn-refresh-report,
+.btn-wa-report,
+.btn-sort-pill,
+.btn-vc-action,
+.tab-btn,
+.clickable-card {
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, filter 0.2s ease, background 0.15s ease !important;
+    will-change: transform;
+}
+
+/* State ditekan (active): Squash instan 0.05s */
+.btn-primary:active,
+.btn-secondary:active,
+.btn-ghost:active,
+.btn-destructive:active,
+.btn-danger:active,
+.btn-back:active,
+.btn-gateway:active,
+.btn-start-game:active,
+.user-btn:active,
+.btn-level-unlocked:active,
+.btn-level-hard-unlocked:active,
+.clickable-item:active,
+.numpad-grid button:active,
+.btn-uang:active,
+.tray-product:active,
+.confirm-button:active,
+.btn-add-user:active,
+.btn-save-student:active,
+.btn-edit-student:active,
+.btn-refresh-report:active,
+.btn-wa-report:active,
+.btn-sort-pill:active,
+.btn-vc-action:active,
+.tab-btn:active {
+    transform: scale(0.92) translateY(3px) !important;
+    transition: transform 0.05s ease-out !important;
+}
+
+/* Kelas animasi dinamis saat klik/tap cepat (memberikan efek membal instan) */
+.juicy-spring {
+    animation: juicySquashBounce 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
 
