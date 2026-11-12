@@ -3,10 +3,10 @@
 // ==========================================
 
 import { state }             from './core/state.js';
-import { saveData, requestFullScreen, exitFullScreen, requestWakeLock, releaseWakeLock, validateKelas } from './core/engine.js';
+import { saveData, requestFullScreen, exitFullScreen, requestWakeLock, releaseWakeLock, isDevProfile, isDevProfileName } from './core/engine.js';
 import { switchScreen, renderUserList, showMsg, closeModal, renderLevels, updateUniversalSettingsContext } from './ui/screens.js';
 import { initGameListeners, startLevel, addVariable, tambahUangKembalian, nextQuizQuestion, confirmQuizAnswer } from './ui/cashier.js';
-import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleLoadSpecificRoom, handleSortFasilTable, handleDonate, destroyFasilChart, handlePrintDetailedPDF, handlePrintReport, handleCopyWhatsAppReport, forceRefreshFasilData } from './ui/reports.js';
+import { openBukuKas, openPrestasi, copyToken, showFasilitatorLogin, checkPIN, openFasilitator, exportCSV, resetAllData, handleCreateHostRoom, handleCopyHostRoomCode, handleLoadSpecificRoom, handleSortFasilTable, handleDonate, destroyFasilChart, handlePrintDetailedPDF, handlePrintReport, handleCopyWhatsAppReport, forceRefreshFasilData, setFasilChartViewMode, toggleFasilTableEditMode } from './ui/reports.js';
 import { joinRoom, leaveRoom, sendStudentProgress, syncUserProfile } from './core/sync.js';
 import { startTutorial, skipTutorial, endTutorial, updateTutorialPosition, initTutorialEvents } from './core/tutorial.js';
 import { openLevelZeroModal, closeLevelZeroModal, initLevelZeroEvents } from './ui/levelZero.js';
@@ -66,18 +66,56 @@ export function isMobileDevice() {
     return isMobileUA || (isTouch && isSmallPhysicalScreen) || (isTouch && isMobileViewport) || isMobileViewport;
 }
 
+let lastStableLandscapeW = 0;
+let lastStableLandscapeH = 0;
+
+function isInputActive() {
+    if (typeof document === 'undefined') return false;
+    if (document.documentElement.classList.contains('keyboard-open') || document.body.classList.contains('keyboard-open')) {
+        return true;
+    }
+    const el = document.activeElement;
+    if (!el) return false;
+    const tag = el.tagName ? el.tagName.toUpperCase() : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+        if (el.readOnly || el.disabled || el.type === 'button' || el.type === 'submit' || el.type === 'range') {
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
+
 export function fitScreen() {
     const container = document.getElementById('app-container');
     if (!container) return;
 
+    // Proteksi utama: Jangan hitung ulang skala saat pengguna sedang mengetik di keyboard HP!
+    if (isInputActive()) return;
+
     let winW = window.innerWidth;
     let winH = window.innerHeight;
+
     if (window.visualViewport) {
-        winW = Math.round(window.visualViewport.width);
-        winH = Math.round(window.visualViewport.height);
+        const vpW = Math.round(window.visualViewport.width);
+        const vpH = Math.round(window.visualViewport.height);
+        // Deteksi tinggi yang terpotong keyboard virtual HP
+        const isTruncated = (vpH < 250 && lastStableLandscapeH >= 270) || (vpW / vpH > 2.6 && lastStableLandscapeH >= 270);
+        if (!isTruncated) {
+            winW = vpW;
+            winH = vpH;
+        } else if (lastStableLandscapeW > 0 && lastStableLandscapeH > 0) {
+            winW = lastStableLandscapeW;
+            winH = lastStableLandscapeH;
+        }
     } else {
         winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
         winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+    }
+
+    if (winW >= winH && winH >= 250) {
+        lastStableLandscapeW = winW;
+        lastStableLandscapeH = winH;
     }
 
     const aspect = winW / winH;
@@ -146,7 +184,6 @@ window._openLevelZero  = openLevelZeroModal;
 window._login          = login;
 window._fitScreen      = fitScreen;
 window._getAppScale    = getAppScale;
-window._validateKelas  = validateKelas;
 
 // Penskalaan otomatis segera saat skrip dimuat dan saat jendela diubah ukurannya
 window.addEventListener('resize', fitScreen);
@@ -175,6 +212,25 @@ window.addEventListener('scroll', () => {
     if (window.scrollX !== 0 || window.scrollY !== 0) {
         window.scrollTo(0, 0);
     }
+});
+
+// Global Focus Listener untuk menandai saat keyboard virtual HP aktif
+document.addEventListener('focusin', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        if (!e.target.readOnly && !e.target.disabled && e.target.type !== 'range') {
+            document.documentElement.classList.add('keyboard-open');
+            document.body.classList.add('keyboard-open');
+        }
+    }
+});
+
+document.addEventListener('focusout', (e) => {
+    document.documentElement.classList.remove('keyboard-open');
+    document.body.classList.remove('keyboard-open');
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        fitScreen();
+    }, 120);
 });
 
 // Penanganan Optimasi Gawai Ponsel (Screen Wake Lock & Auto Fullscreen)
@@ -221,34 +277,57 @@ function startFromGateway() {
 function createUser() {
     const nameInput  = document.getElementById('new-username');
     const classInput = document.getElementById('new-class');
-    const name       = nameInput ? nameInput.value.trim() : '';
-    const gender     = document.getElementById('new-gender').value;
-    const rawKelas   = classInput ? classInput.value : '';
+    const name   = nameInput ? nameInput.value.trim() : '';
+    const gender = document.getElementById('new-gender') ? document.getElementById('new-gender').value : 'Laki-laki';
+    let kelas    = classInput ? classInput.value.trim() : '';
 
-    if (!name) return showMsg('Error', 'Nama harus diisi!');
-    if (!rawKelas || !rawKelas.trim()) return showMsg('Error', 'Kelas harus diisi!');
+    const isDev = isDevProfileName(name);
 
-    let validatedKelas;
-    try {
-        validatedKelas = validateKelas(rawKelas);
-    } catch (err) {
-        if (classInput) {
-            classInput.classList.add('error-flash');
-            setTimeout(() => classInput.classList.remove('error-flash'), 800);
-            classInput.focus();
+    if (isDev && !kelas) {
+        kelas = 'DEV';
+    }
+
+    if (!name || !kelas) return showMsg('Error', 'Nama dan Kelas harus diisi!');
+
+    // Jika profil dev *#minerva#* sudah pernah dibuat sebelumnya, perbarui & langsung login
+    const existingDevIdx = state.users.findIndex(u => isDevProfile(u));
+    if (isDev && existingDevIdx !== -1) {
+        state.users[existingDevIdx].name = '*#minerva#*';
+        state.users[existingDevIdx].maxLevel = 20;
+        state.users[existingDevIdx].kelas = kelas || state.users[existingDevIdx].kelas || 'DEV';
+        if (!state.users[existingDevIdx].money || state.users[existingDevIdx].money < 500000) {
+            state.users[existingDevIdx].money = 500000;
         }
-        return showMsg('Kelas Tidak Valid', err.message);
+        saveData();
+        if (nameInput) nameInput.value = '';
+        if (classInput) classInput.value = '';
+        login(state.users[existingDevIdx].id);
+        return;
     }
 
     const newUser = {
-        id: Date.now().toString(), name, gender, kelas: validatedKelas,
-        money: 0, revenue: 0, cost: 0, maxLevel: 0,
-        badges: [], history: [], createdAt: new Date().toISOString()
+        id: Date.now().toString(),
+        name: isDev ? '*#minerva#*' : name,
+        gender,
+        kelas,
+        money: isDev ? 500000 : 0,
+        revenue: 0,
+        cost: 0,
+        maxLevel: isDev ? 20 : 0,
+        badges: isDev ? [
+            'si_teliti', 'master_variabel', 'ahli_komutatif', 'pembedah_suku',
+            'penakluk_nol', 'jenius_aljabar', 'bintang_tiga', 'kolektor_sempurna',
+            'si_jujur', 'saudagar_cilik', 'juragan_pasar', 'sultan_aljabar',
+            'uang_pas', 'laci_kilat', 'dermawan_muda', 'pahlawan_desa',
+            'reputasi_emas', 'skor_kuis_sempurna', 'pantang_menyerah', 'penakluk_tantangan'
+        ] : [],
+        history: [],
+        createdAt: new Date().toISOString()
     };
 
     state.users.push(newUser);
     saveData();
-    if (nameInput)  nameInput.value  = '';
+    if (nameInput) nameInput.value = '';
     if (classInput) classInput.value = '';
     login(newUser.id);
 }
@@ -256,6 +335,11 @@ function createUser() {
 function login(id) {
     state.currentUser = state.users.find(u => u.id === id);
     if (state.currentUser) {
+        if (isDevProfile(state.currentUser)) {
+            state.currentUser.name = '*#minerva#*';
+            state.currentUser.maxLevel = 20;
+            saveData();
+        }
         playBGM();
         requestFullScreen();
         requestWakeLock();
@@ -620,16 +704,7 @@ function bindEvents() {
 
     // --- Login Screen ---
     document.getElementById('new-username')?.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
-    const newClassEl = document.getElementById('new-class');
-    if (newClassEl) {
-        newClassEl.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
-        newClassEl.addEventListener('input', e => {
-            const cleaned = e.target.value.replace(/[^a-zA-Z0-9\s.-]/g, '');
-            if (e.target.value !== cleaned) {
-                e.target.value = cleaned;
-            }
-        });
-    }
+    document.getElementById('new-class')?.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
     document.querySelector('.btn-add-user')?.addEventListener('click', createUser);
 
     // --- Lobby Screen ---
@@ -667,8 +742,9 @@ function bindEvents() {
 
     document.getElementById('tab-level-hard')?.addEventListener('click', () => {
         playSFX('nav');
+        const isDev = isDevProfile(state.currentUser);
         const maxLevel = state.currentUser ? (state.currentUser.maxLevel || 0) : 0;
-        if (maxLevel < 10) {
+        if (!isDev && maxLevel < 10) {
             showMsg(
                 'Tantangan Terkunci 🔒',
                 'Kamu harus menyelesaikan seluruh <strong>10 Level Tantangan Mudah</strong> terlebih dahulu untuk membuka Tantangan Sulit!'
@@ -708,6 +784,22 @@ function bindEvents() {
     document.getElementById('btn-refresh-fasil')?.addEventListener('click', () => {
         playSFX('nav');
         forceRefreshFasilData();
+    });
+    document.getElementById('btn-toggle-fasil-edit')?.addEventListener('click', () => {
+        playSFX('click');
+        toggleFasilTableEditMode();
+    });
+    document.getElementById('btn-close-edit-mode-banner')?.addEventListener('click', () => {
+        playSFX('nav');
+        toggleFasilTableEditMode(false);
+    });
+    document.getElementById('btn-chart-view-each')?.addEventListener('click', () => {
+        playSFX('click');
+        setFasilChartViewMode('each');
+    });
+    document.getElementById('btn-chart-view-group')?.addEventListener('click', () => {
+        playSFX('click');
+        setFasilChartViewMode('group');
     });
     document.getElementById('btn-print-report')?.addEventListener('click', handlePrintDetailedPDF);
     document.getElementById('btn-copy-wa')?.addEventListener('click', handleCopyWhatsAppReport);
@@ -789,27 +881,6 @@ function bindEvents() {
     document.querySelectorAll('.clickable-item[data-var]').forEach(item => {
         item.addEventListener('click', () => addVariable(item.dataset.var));
     });
-    // --- Efek Membal Elastis (Juicy Spring / Squash & Stretch) & Haptic ---
-    document.addEventListener('pointerdown', (e) => {
-        const el = e.target.closest(
-            'button, .btn, .btn-primary, .btn-secondary, .btn-ghost, .btn-destructive, .btn-danger, .btn-back, .btn-gateway, .btn-start-game, .user-btn, .clickable-item, .numpad-grid button, .btn-uang, .tray-product, .confirm-button, .btn-add-user, .btn-level-unlocked, .btn-level-hard-unlocked, .tab-btn'
-        );
-        if (!el || el.disabled || el.classList.contains('disabled')) return;
-
-        // Getaran mikro haptic untuk perangkat HP/Android
-        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-            try { navigator.vibrate(12); } catch (_) {}
-        }
-
-        // Picu animasi membal elastis
-        el.classList.remove('juicy-spring');
-        void el.offsetWidth;
-        el.classList.add('juicy-spring');
-        setTimeout(() => {
-            el.classList.remove('juicy-spring');
-        }, 320);
-    }, { passive: true });
-
 }
 
 // ==========================================
@@ -859,6 +930,30 @@ document.addEventListener('MSFullscreenChange',      handleFullscreenChange);
 function initApp() {
     fitScreen();
     initAudio();
+
+    // Migrasi profil dev lama ('dev') menjadi '*#minerva#*' & pastikan maxLevel: 20
+    let usersChanged = false;
+    state.users.forEach(u => {
+        if (u && u.name) {
+            const lower = u.name.trim().toLowerCase();
+            if (lower === 'dev') {
+                u.name = '*#minerva#*';
+                u.maxLevel = 20;
+                if (!u.kelas) u.kelas = 'DEV';
+                usersChanged = true;
+            } else if (lower === '*#minerva#*') {
+                u.name = '*#minerva#*';
+                if ((u.maxLevel || 0) < 20) {
+                    u.maxLevel = 20;
+                    usersChanged = true;
+                }
+            }
+        }
+    });
+    if (usersChanged) {
+        saveData();
+    }
+
     renderUserList();
     initGameListeners();
     initTutorialEvents();

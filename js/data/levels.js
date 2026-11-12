@@ -3,7 +3,7 @@
 // ==========================================
 
 /**
- * Konfigurasi 10 Level Tantangan Mudah (C1–C3)
+ * Konfigurasi 10 Level Tantangan Mudah
  * @type {Object.<number, Array<{order: Object, text: string, image: string, uangDibayarDetail: Object}>>}
  */
 export const LEVEL_DATA = {

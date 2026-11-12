@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=overlays-content">
     <title>Algebra-Mart</title>
 
     <!-- Pustaka Lokal (100% Offline) -->
@@ -41,15 +41,11 @@
              ============================== -->
         <div id="screen-welcome" class="screen active welcome-screen">
             <div class="welcome-card">
-                <div class="welcome-badge">
-                    <i class="fa-solid fa-store"></i> ALGEBRA-MART 2.0
-                </div>
                 <h1 class="main-title welcome-title">ALGEBRA-MART</h1>
                 <p class="welcome-subtitle">Gim Edukasi Literasi Matematika & Keuangan</p>
                 <div class="welcome-features">
                     <span><i class="fa-solid fa-calculator"></i> Aljabar Kontekstual</span>
                     <span><i class="fa-solid fa-coins"></i> Simulasi Kasir</span>
-                    <span><i class="fa-solid fa-award"></i> 20 Lencana Prestasi</span>
                 </div>
                 <button id="btn-start-game-gateway" class="btn-primary btn-gateway">
                     <i class="fa-solid fa-play"></i> Mulai Game
@@ -78,7 +74,7 @@
                             <option value="Laki-laki">Laki-laki</option>
                             <option value="Perempuan">Perempuan</option>
                         </select>
-                        <input type="text" id="new-class" placeholder="Kelas (mis. 7A)" class="form-input" maxlength="15" autocomplete="off" spellcheck="false">
+                        <input type="text" id="new-class" placeholder="Kelas (mis. 7A)" class="form-input">
                     </div>
                     <button class="btn-secondary btn-md btn-add-user">
                         <i class="fa-solid fa-plus"></i> Tambah Kasir
@@ -550,7 +546,13 @@
                                     <i class="fa-solid fa-chart-column"></i>
                                     <h3>Distribusi Capaian Level Kelas</h3>
                                 </div>
-                                <span class="fasil-chart-tag" id="fasil-chart-tag">0 Murid Terdata</span>
+                                <div class="fasil-chart-controls">
+                                    <div class="fasil-chart-view-toggle" role="group" aria-label="Pilihan Tampilan Grafik Capaian Level">
+                                        <button type="button" class="btn-chart-view active" id="btn-chart-view-each" title="Tampilkan grafik terpisah untuk tiap level (Level 1, 2, 3...)">Per Level</button>
+                                        <button type="button" class="btn-chart-view" id="btn-chart-view-group" title="Tampilkan grafik kelompok rentang level (Level 1-3, 4-7, dst)">Rentang</button>
+                                    </div>
+                                    <span class="fasil-chart-tag" id="fasil-chart-tag">0 Murid Terdata</span>
+                                </div>
                             </div>
                             <div class="fasil-chart-container">
                                 <canvas id="fasilClassChart"></canvas>
@@ -562,6 +564,9 @@
                         <h2>Daftar Peserta Didik Aktif</h2>
                         <div class="fasil-report-actions">
                             <button id="btn-refresh-fasil" class="btn-secondary btn-refresh-report" title="Muat ulang data kelas"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+                            <button id="btn-toggle-fasil-edit" class="btn-secondary btn-toggle-fasil-edit" title="Aktifkan mode edit untuk mengubah nama dan kelas siswa">
+                                <i class="fa-solid fa-user-pen"></i> Mode Edit
+                            </button>
                             <button id="btn-copy-wa" class="btn-secondary btn-wa-report" title="Salin ringkasan laporan kelas untuk dibagikan ke WhatsApp">
                                 <i class="fa-brands fa-whatsapp"></i> Salin ke WA
                             </button>
@@ -569,6 +574,16 @@
                                 <i class="fa-solid fa-print"></i> Cetak / Simpan PDF
                             </button>
                         </div>
+                    </div>
+                    <!-- Banner Notifikasi Mode Edit Aktif -->
+                    <div id="fasil-edit-mode-banner" class="fasil-edit-mode-banner hidden">
+                        <div class="fasil-banner-content">
+                            <i class="fa-solid fa-user-pen"></i>
+                            <span><strong>Mode Edit Aktif:</strong> Anda dapat mengklik tombol <strong>Edit</strong> pada siswa untuk mengubah nama atau kelasnya. Klik <strong>Selesai Edit</strong> jika sudah selesai.</span>
+                        </div>
+                        <button type="button" id="btn-close-edit-mode-banner" class="btn-banner-done" title="Selesai dan tutup mode edit">
+                            <i class="fa-solid fa-check"></i> Selesai Edit
+                        </button>
                     </div>
                     <div class="table-wrapper">
                         <table class="fasil-table">
@@ -1262,61 +1277,124 @@
     <!-- Immediate Auto-Scaling Script (No FOUC & Full-Bleed Ultra-Wide Fit) -->
     <script>
         (function() {
+            var lastStableLandscapeW = 0;
+            var lastStableLandscapeH = 0;
+
+            function isInputActive() {
+                if (document.documentElement.classList.contains('keyboard-open') || document.body.classList.contains('keyboard-open')) {
+                    return true;
+                }
+                var el = document.activeElement;
+                if (!el) return false;
+                var tag = el.tagName ? el.tagName.toUpperCase() : '';
+                if (tag === 'INPUT' || tag === 'TEXTAREA') {
+                    if (el.readOnly || el.disabled || el.type === 'button' || el.type === 'submit' || el.type === 'range') {
+                        return false;
+                    }
+                    return true;
+                }
+                return false;
+            }
+
             function autoFit() {
                 var el = document.getElementById('app-container');
-                if (el) {
-                    var winW = window.innerWidth;
-                    var winH = window.innerHeight;
-                    if (window.visualViewport) {
-                        winW = Math.round(window.visualViewport.width);
-                        winH = Math.round(window.visualViewport.height);
-                    } else {
-                        winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
-                        winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+                if (!el) return;
+
+                // Proteksi: Jangan hitung ulang skala jika pengguna sedang mengetik di keyboard virtual HP
+                if (isInputActive()) return;
+
+                var winW = window.innerWidth;
+                var winH = window.innerHeight;
+
+                if (window.visualViewport) {
+                    var vpW = Math.round(window.visualViewport.width);
+                    var vpH = Math.round(window.visualViewport.height);
+                    // Deteksi tinggi yang terpotong keyboard virtual HP
+                    var isTruncated = (vpH < 250 && lastStableLandscapeH >= 270) || (vpW / vpH > 2.6 && lastStableLandscapeH >= 270);
+                    if (!isTruncated) {
+                        winW = vpW;
+                        winH = vpH;
+                    } else if (lastStableLandscapeW > 0 && lastStableLandscapeH > 0) {
+                        winW = lastStableLandscapeW;
+                        winH = lastStableLandscapeH;
                     }
-                    var aspect = winW / winH;
-                    var targetAspect = 1280 / 720;
-                    var scale, virtualWidth, virtualHeight;
+                } else {
+                    winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
+                    winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+                }
 
-                    if (aspect >= targetAspect) {
-                        // Layar Ultra-Wide Landscape (e.g. 18:9, 19.5:9, 20:9)
-                        // Kunci tinggi 720px, lebarkan canvas agar mengisi penuh 100vw tanpa pilar hitam di samping (+4px subpixel buffer)
-                        scale = winH / 720;
-                        virtualWidth = Math.max(1280, Math.ceil(winW / scale) + 4);
-                        virtualHeight = 720;
+                if (winW >= winH && winH >= 250) {
+                    lastStableLandscapeW = winW;
+                    lastStableLandscapeH = winH;
+                }
+
+                var aspect = winW / winH;
+                var targetAspect = 1280 / 720;
+                var scale, virtualWidth, virtualHeight;
+
+                if (aspect >= targetAspect) {
+                    // Layar Ultra-Wide Landscape (e.g. 18:9, 19.5:9, 20:9)
+                    scale = winH / 720;
+                    virtualWidth = Math.max(1280, Math.ceil(winW / scale) + 4);
+                    virtualHeight = 720;
+                } else {
+                    // Layar lebih sempit dari 16:9 (tablet 4:3, dll)
+                    scale = winW / 1280;
+                    virtualWidth = 1280;
+                    virtualHeight = Math.max(720, Math.ceil(winH / scale) + 4);
+                }
+
+                var sidePad = Math.max(14, Math.round((virtualWidth - 1240) / 2));
+                el.style.width = virtualWidth + 'px';
+                el.style.height = virtualHeight + 'px';
+                el.style.setProperty('--side-pad', sidePad + 'px');
+                el.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
+                el.dataset.scale = String(scale);
+                el.dataset.virtualWidth = String(virtualWidth);
+                el.dataset.virtualHeight = String(virtualHeight);
+                window.__appScale = scale;
+                window.__virtualWidth = virtualWidth;
+                window.__virtualHeight = virtualHeight;
+
+                window.scrollTo(0, 0);
+                if (document.documentElement.scrollLeft !== 0) document.documentElement.scrollLeft = 0;
+                if (document.documentElement.scrollTop !== 0)  document.documentElement.scrollTop = 0;
+
+                var rotateOverlay = document.getElementById('rotate-device-overlay');
+                if (rotateOverlay) {
+                    if (winH > winW) {
+                        rotateOverlay.classList.remove('hidden');
                     } else {
-                        // Layar lebih sempit dari 16:9 (tablet 4:3, dll)
-                        scale = winW / 1280;
-                        virtualWidth = 1280;
-                        virtualHeight = Math.max(720, Math.ceil(winH / scale) + 4);
-                    }
-
-                    var sidePad = Math.max(14, Math.round((virtualWidth - 1240) / 2));
-                    el.style.width = virtualWidth + 'px';
-                    el.style.height = virtualHeight + 'px';
-                    el.style.setProperty('--side-pad', sidePad + 'px');
-                    el.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
-                    el.dataset.scale = String(scale);
-                    el.dataset.virtualWidth = String(virtualWidth);
-                    el.dataset.virtualHeight = String(virtualHeight);
-                    window.__appScale = scale;
-                    window.__virtualWidth = virtualWidth;
-                    window.__virtualHeight = virtualHeight;
-
-                    window.scrollTo(0, 0);
-                    if (document.documentElement.scrollLeft !== 0) document.documentElement.scrollLeft = 0;
-                    if (document.documentElement.scrollTop !== 0)  document.documentElement.scrollTop = 0;
-
-                    var rotateOverlay = document.getElementById('rotate-device-overlay');
-                    if (rotateOverlay) {
-                        if (winH > winW) {
-                            rotateOverlay.classList.remove('hidden');
-                        } else {
-                            rotateOverlay.classList.add('hidden');
-                        }
+                        rotateOverlay.classList.add('hidden');
                     }
                 }
             }
+
+            // Global focus listener untuk menandai saat keyboard virtual aktif
+            document.addEventListener('focusin', function(e) {
+                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                    if (!e.target.readOnly && !e.target.disabled && e.target.type !== 'range') {
+                        document.documentElement.classList.add('keyboard-open');
+                        document.body.classList.add('keyboard-open');
+                    }
+                }
+            });
+
+            document.addEventListener('focusout', function(e) {
+                document.documentElement.classList.remove('keyboard-open');
+                document.body.classList.remove('keyboard-open');
+                setTimeout(function() {
+                    window.scrollTo(0, 0);
+                    autoFit();
+                }, 120);
+            });
+
+            window.addEventListener('scroll', function() {
+                if (window.scrollX !== 0 || window.scrollY !== 0) {
+                    window.scrollTo(0, 0);
+                }
+            });
+
             autoFit();
             window.addEventListener('resize', autoFit);
             window.addEventListener('orientationchange', function() {

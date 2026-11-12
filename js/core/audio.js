@@ -132,6 +132,53 @@ export function stopBGM() {
     bgmStarted = false;
 }
 
+let wasBgmPlayingBeforeHidden = false;
+
+/**
+ * Menangani jeda audio otomatis saat pengguna keluar game, meminimalkan browser,
+ * beralih aplikasi di HP, atau mematikan layar (tanpa menghapus history di RAM).
+ */
+export function handleAppVisibilityChange() {
+    if (typeof document === 'undefined') return;
+
+    if (document.hidden || document.visibilityState === 'hidden') {
+        // Pengguna beralih aplikasi di HP / meminimalkan jendela game
+        if (bgmAudio && !bgmAudio.paused) {
+            wasBgmPlayingBeforeHidden = true;
+            bgmAudio.pause();
+        } else {
+            wasBgmPlayingBeforeHidden = false;
+        }
+
+        // Hentikan seketika pembacaan suara narator Web Speech API
+        stopNarrator();
+    } else if (document.visibilityState === 'visible') {
+        // Pengguna kembali membuka game dari RAM
+        if (wasBgmPlayingBeforeHidden && !isBgmMuted && bgmAudio && bgmStarted) {
+            bgmAudio.play().catch(err => {
+                console.warn('[Audio] Resume BGM otomatis tertunda:', err);
+            });
+        }
+    }
+}
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleAppVisibilityChange);
+}
+if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', handleAppVisibilityChange);
+    window.addEventListener('freeze', handleAppVisibilityChange);
+    window.addEventListener('beforeunload', () => {
+        pauseBGM();
+        stopNarrator();
+    });
+    window.addEventListener('blur', () => {
+        if (document.hidden) {
+            handleAppVisibilityChange();
+        }
+    });
+}
+
 /**
  * Memutar efek suara (SFX) berdasarkan identifier.
  * Mendukung polyphonic/concurrent playback melalui kloning instan.
@@ -332,33 +379,96 @@ export function updateSoundButtonUI() {
 
 let activeUtterance = null;
 let cachedIndonesianVoice = null;
+let isNarratorActive = false;
+const narratorListeners = new Set();
 
-function resolveIndonesianVoice() {
+export function addNarratorListener(callback) {
+    if (typeof callback === 'function') {
+        narratorListeners.add(callback);
+    }
+}
+
+export function removeNarratorListener(callback) {
+    narratorListeners.delete(callback);
+}
+
+function notifyNarratorListeners(isSpeaking) {
+    narratorListeners.forEach(cb => {
+        try { cb(isSpeaking); } catch (e) { console.warn(e); }
+    });
+}
+
+export function isNarratorSpeaking() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false;
+    return isNarratorActive && window.speechSynthesis.speaking;
+}
+
+/**
+ * Memeriksa apakah sebuah objek SpeechSynthesisVoice adalah suara Bahasa Indonesia.
+ * Mendeteksi tag bahasa BCP 47 (id-ID, id, in-ID, in) serta nama suara khas Indonesia
+ * (seperti Google Bahasa Indonesia, Microsoft Gadis/Ardi Natural, Apple Damayanti, dll).
+ * @param {SpeechSynthesisVoice} v
+ * @returns {boolean}
+ */
+export function isIndonesianVoice(v) {
+    if (!v) return false;
+    const lang = (v.lang || '').toLowerCase().replace(/_/g, '-');
+    const name = (v.name || '').toLowerCase();
+
+    // 1. Tag bahasa resmi Indonesia (id, id-ID, id-*)
+    if (lang === 'id' || lang === 'id-id' || lang.startsWith('id-')) return true;
+
+    // 2. Tag bahasa Android legacy (Java Locale "in", "in-ID")
+    if (lang === 'in' || lang === 'in-id' || lang.startsWith('in-')) return true;
+
+    // 3. Nama suara yang secara eksplisit memuat kata indonesia/bahasa
+    if (name.includes('indonesia') || name.includes('indonesian') || name.includes('bahasa')) return true;
+
+    // 4. Nama karakter suara TTS Indonesia bawaan Windows/macOS/Edge
+    if (name.includes('gadis') || name.includes('ardi') || name.includes('andika') || name.includes('damayanti')) return true;
+
+    return false;
+}
+
+export function resolveIndonesianVoice() {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
     if (cachedIndonesianVoice) return cachedIndonesianVoice;
     try {
         const voices = window.speechSynthesis.getVoices();
         if (!voices || !voices.length) return null;
-        // Prioritaskan suara asli id-ID, lalu fallback ke yang memuat 'id' atau 'indonesia'
-        const match = voices.find(v => v.lang === 'id-ID' || v.lang === 'id_ID') ||
-                      voices.find(v => v.lang.toLowerCase().startsWith('id') || v.lang.toLowerCase().includes('indonesia'));
-        if (match) cachedIndonesianVoice = match;
-        return match;
+
+        const indonesianVoices = voices.filter(isIndonesianVoice);
+        if (!indonesianVoices.length) return null;
+
+        // Prioritaskan suara natural / Google / Microsoft Gadis/Ardi yang bersuara jernih dan ramah
+        const preferredVoice = indonesianVoices.find(v => {
+            const name = (v.name || '').toLowerCase();
+            return name.includes('natural') || name.includes('google') || name.includes('gadis') || name.includes('ardi');
+        });
+
+        const best = preferredVoice || indonesianVoices[0];
+        if (best) cachedIndonesianVoice = best;
+        return best;
     } catch (e) {
         return null;
     }
 }
 
 if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.onvoiceschanged = () => {
+    const handleVoicesChanged = () => {
         cachedIndonesianVoice = null;
         resolveIndonesianVoice();
     };
+    if (window.speechSynthesis.addEventListener) {
+        window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+    }
+    window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
 }
 
 /**
  * Membacakan teks narator otomatis menggunakan Web Speech API (bahasa Indonesia).
  * Digunakan untuk walkthrough tutorial dan modul pengantar Level 0.
+ * DIJAMIN 100% TIDAK AKAN MENGGUNAKAN SUARA BAHASA INGGRIS.
  * @param {string} text
  */
 export function speakNarrator(text) {
@@ -367,26 +477,99 @@ export function speakNarrator(text) {
 
     try {
         window.speechSynthesis.cancel();
+        isNarratorActive = false;
 
         // Hapus tag HTML dan rapikan teks
         const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-        if (!cleanText) return;
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = 'id-ID';
-        utterance.rate = 0.95; // Kecepatan artikulasi ramah siswa
-        utterance.pitch = 1.05;
-        utterance.volume = Math.max(0.1, sfxVolume);
-
-        const voice = resolveIndonesianVoice();
-        if (voice) {
-            utterance.voice = voice;
+        if (!cleanText) {
+            notifyNarratorListeners(false);
+            return;
         }
 
-        activeUtterance = utterance;
-        window.speechSynthesis.speak(utterance);
+        const executeSpeak = (voice) => {
+            // STRICT SAFETY GUARD: Jika tidak ada suara Bahasa Indonesia, jangan pernah membaca dengan suara Inggris!
+            if (!voice || !isIndonesianVoice(voice)) {
+                console.warn('[Audio] Tidak ditemukan suara resmi Bahasa Indonesia di peramban ini. Pembacaan suara dibatalkan agar tidak menggunakan aksen bahasa Inggris.');
+                isNarratorActive = false;
+                notifyNarratorListeners(false);
+                return;
+            }
+
+            try {
+                window.speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.voice = voice;
+                utterance.lang = voice.lang || 'id-ID';
+                utterance.rate = 0.95; // Kecepatan artikulasi ramah siswa
+                utterance.pitch = 1.05;
+                utterance.volume = Math.max(0.1, sfxVolume);
+
+                utterance.onstart = () => {
+                    isNarratorActive = true;
+                    notifyNarratorListeners(true);
+                };
+
+                utterance.onend = () => {
+                    isNarratorActive = false;
+                    activeUtterance = null;
+                    notifyNarratorListeners(false);
+                };
+
+                utterance.onerror = (e) => {
+                    isNarratorActive = false;
+                    activeUtterance = null;
+                    notifyNarratorListeners(false);
+                };
+
+                activeUtterance = utterance;
+                isNarratorActive = true;
+                notifyNarratorListeners(true);
+                window.speechSynthesis.speak(utterance);
+            } catch (err) {
+                console.warn('[Audio] Gagal membacakan teks narator:', err);
+                isNarratorActive = false;
+                notifyNarratorListeners(false);
+            }
+        };
+
+        const immediateVoice = resolveIndonesianVoice();
+        if (immediateVoice) {
+            executeSpeak(immediateVoice);
+        } else {
+            // Jika daftar suara browser belum terisi (sering terjadi saat halaman baru dimuat di Chromium),
+            // tunggu pemuatan getVoices() hingga maksimal 300ms.
+            let hasHandled = false;
+            const onVoicesLoaded = () => {
+                if (hasHandled) return;
+                const v = resolveIndonesianVoice();
+                if (v) {
+                    hasHandled = true;
+                    if (window.speechSynthesis.removeEventListener) {
+                        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesLoaded);
+                    }
+                    executeSpeak(v);
+                }
+            };
+
+            if (window.speechSynthesis.addEventListener) {
+                window.speechSynthesis.addEventListener('voiceschanged', onVoicesLoaded);
+            }
+
+            setTimeout(() => {
+                if (!hasHandled) {
+                    hasHandled = true;
+                    if (window.speechSynthesis.removeEventListener) {
+                        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesLoaded);
+                    }
+                    executeSpeak(resolveIndonesianVoice());
+                }
+            }, 300);
+        }
     } catch (err) {
-        console.warn('[Audio] Gagal membacakan teks narator:', err);
+        console.warn('[Audio] Gagal inisialisasi narator:', err);
+        isNarratorActive = false;
+        notifyNarratorListeners(false);
     }
 }
 
@@ -399,5 +582,7 @@ export function stopNarrator() {
             window.speechSynthesis.cancel();
         } catch (e) {}
     }
+    isNarratorActive = false;
     activeUtterance = null;
+    notifyNarratorListeners(false);
 }

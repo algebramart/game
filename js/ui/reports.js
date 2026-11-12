@@ -1,11 +1,14 @@
 import { state } from '../core/state.js';
 import { BADGES_DB } from '../data/items.js';
-import { getTitle, saveData, checkBadgeUnlocks, validateKelas } from '../core/engine.js';
+import { getTitle, saveData, checkBadgeUnlocks } from '../core/engine.js';
 import { switchScreen, showMsg, closeModal } from './screens.js';
 import { startHostRoom, stopHostRoom, refreshHostStudents, loadSpecificHostRoom, updateStudentProfileInRoom, syncUserProfile } from '../core/sync.js';
 import { playSFX } from '../core/audio.js';
 
 let fasilChartInstance = null;
+let fasilChartViewMode = 'each'; // 'each' (default: grafik level 1, 2, 3... terpisah) | 'group' (rentang fase)
+let lastFasilStudents = [];
+export let isFasilTableEditMode = false; // Status apakah sedang dalam mode edit profil murid di tabel fasilitator
 
 // ==========================================
 // BUKU KAS
@@ -450,6 +453,8 @@ export function checkPIN() {
 }
 
 export function openFasilitator() {
+    isFasilTableEditMode = false;
+    activeEditingStudentId = null;
     switchScreen('screen-fasilitator');
 
     // Tugas 2: Jika sudah ada sesi room dari localStorage/state,
@@ -651,6 +656,51 @@ export function setActiveEditingStudentId(id) {
 }
 
 /**
+ * Memperbarui tampilan tombol dan banner Mode Edit di Ruang Fasilitator.
+ */
+export function updateFasilEditModeUI() {
+    const btnToggle = document.getElementById('btn-toggle-fasil-edit');
+    const banner = document.getElementById('fasil-edit-mode-banner');
+
+    if (btnToggle) {
+        if (isFasilTableEditMode) {
+            btnToggle.classList.add('btn-edit-mode-active');
+            btnToggle.classList.remove('btn-secondary');
+            btnToggle.innerHTML = `<i class="fa-solid fa-check"></i> Selesai Edit`;
+            btnToggle.title = 'Kunci dan selesaikan mode edit data murid';
+        } else {
+            btnToggle.classList.remove('btn-edit-mode-active');
+            btnToggle.classList.add('btn-secondary');
+            btnToggle.innerHTML = `<i class="fa-solid fa-user-pen"></i> Mode Edit`;
+            btnToggle.title = 'Aktifkan mode edit untuk mengubah nama dan kelas siswa';
+        }
+    }
+
+    if (banner) {
+        banner.classList.toggle('hidden', !isFasilTableEditMode);
+    }
+}
+
+/**
+ * Mengubah status Mode Edit tabel fasilitator (ON/OFF).
+ * @param {boolean} [forceState]
+ */
+export function toggleFasilTableEditMode(forceState) {
+    if (typeof forceState === 'boolean') {
+        isFasilTableEditMode = forceState;
+    } else {
+        isFasilTableEditMode = !isFasilTableEditMode;
+    }
+
+    if (!isFasilTableEditMode) {
+        activeEditingStudentId = null;
+    }
+
+    updateFasilEditModeUI();
+    renderFasilTableAndEWS();
+}
+
+/**
  * Menyimpan editan fasilitator (HANYA nama_fasil dan kelas_fasil) ke Firebase
  * serta cache lokal tanpa menimpa data asli perangkat murid.
  * @param {string} studentId
@@ -672,20 +722,6 @@ export async function handleSaveStudentEdit(studentId) {
         return;
     }
 
-    let validatedKelas = '-';
-    if (newKelas) {
-        try {
-            validatedKelas = validateKelas(newKelas);
-        } catch (err) {
-            if (kelasInput) {
-                kelasInput.classList.add('error-flash');
-                setTimeout(() => kelasInput.classList.remove('error-flash'), 800);
-                kelasInput.focus();
-            }
-            return showMsg('Kelas Tidak Valid', err.message);
-        }
-    }
-
     try {
         playSFX('success');
     } catch (e) { /* ignore */ }
@@ -695,7 +731,7 @@ export async function handleSaveStudentEdit(studentId) {
         const localUser = state.users.find(u => String(u.id) === String(studentId) || String(u.name) === String(studentId));
         if (localUser) {
             localUser.nama_fasil = newName;
-            localUser.kelas_fasil = validatedKelas;
+            if (newKelas) localUser.kelas_fasil = newKelas;
             saveData();
         }
     }
@@ -703,7 +739,7 @@ export async function handleSaveStudentEdit(studentId) {
     // 2. Simpan secara parsial (HANYA nama_fasil & kelas_fasil) ke Firebase & cache lokal
     await updateStudentProfileInRoom(studentId, {
         nama_fasil: newName,
-        kelas_fasil: validatedKelas
+        kelas_fasil: newKelas || '-'
     });
 
     // 3. Matikan mode edit dan render ulang tabel
@@ -730,17 +766,8 @@ export async function handleSaveStudentEdit(studentId) {
  */
 export async function handleInlineStudentUpdate(studentId, field, newValue, inputEl) {
     if (field !== 'name' && field !== 'kelas' && field !== 'nama_fasil' && field !== 'kelas_fasil') return;
-    let safeVal = newValue;
-    if (field === 'kelas' || field === 'kelas_fasil') {
-        try {
-            safeVal = validateKelas(newValue);
-        } catch (err) {
-            if (inputEl) inputEl.focus();
-            return showMsg('Kelas Tidak Valid', err.message);
-        }
-    }
     const targetKey = (field === 'name' || field === 'nama_fasil') ? 'nama_fasil' : 'kelas_fasil';
-    await updateStudentProfileInRoom(studentId, { [targetKey]: safeVal });
+    await updateStudentProfileInRoom(studentId, { [targetKey]: newValue });
 }
 
 /**
@@ -979,6 +1006,7 @@ export function renderFasilTableAndEWS() {
     if (!tbody || !ewsList) return;
 
     updateFasilSortHeadersUI();
+    updateFasilEditModeUI();
 
     const rawStudents = getAggregatedStudents();
     const students = sortFasilStudents(rawStudents);
@@ -986,7 +1014,7 @@ export function renderFasilTableAndEWS() {
     // Ambil nilai yang sedang diketik jika mode edit sedang aktif pada salah satu baris
     let typingName = null;
     let typingKelas = null;
-    if (activeEditingStudentId) {
+    if (isFasilTableEditMode && activeEditingStudentId) {
         const activeRow = tbody.querySelector(`tr[data-student-id="${activeEditingStudentId}"]`);
         if (activeRow) {
             const nIn = activeRow.querySelector('.fasil-edit-name');
@@ -994,6 +1022,8 @@ export function renderFasilTableAndEWS() {
             if (nIn) typingName = nIn.value;
             if (kIn) typingKelas = kIn.value;
         }
+    } else if (!isFasilTableEditMode) {
+        activeEditingStudentId = null;
     }
 
     tbody.innerHTML = '';
@@ -1016,7 +1046,7 @@ export function renderFasilTableAndEWS() {
             const safeId = escapeHtmlAttr(u.id);
             const safeName = escapeHtmlAttr(u.name);
             const safeKelas = escapeHtmlAttr(u.kelas);
-            const isEditing = (activeEditingStudentId !== null && String(u.id) === String(activeEditingStudentId));
+            const isEditing = (isFasilTableEditMode && activeEditingStudentId !== null && String(u.id) === String(activeEditingStudentId));
 
             if (isEditing) {
                 const valName = escapeHtmlAttr(typingName !== null ? typingName : u.name);
@@ -1054,6 +1084,29 @@ export function renderFasilTableAndEWS() {
                     </tr>
                 `;
             } else {
+                let actionButtonsHtml = '';
+                if (isFasilTableEditMode) {
+                    actionButtonsHtml = `
+                        <div class="fasil-action-buttons">
+                            <button class="btn-detail-user" data-id="${safeId}" title="Lihat Rapor Belajar Siswa">
+                                <i class="fa-solid fa-chart-line"></i> Detail
+                            </button>
+                            <button class="btn-edit-student" data-id="${safeId}" title="Edit Nama & Kelas Siswa">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                            </button>
+                            ${u.isLocal ? `<button class="btn-delete-user" data-id="${safeId}" title="Hapus"><i class="fa-solid fa-trash"></i></button>` : '<span class="fasil-live-tag">Sesi Live</span>'}
+                        </div>
+                    `;
+                } else {
+                    actionButtonsHtml = `
+                        <div class="fasil-action-buttons">
+                            <button class="btn-detail-user" data-id="${safeId}" title="Lihat Rapor Belajar Siswa">
+                                <i class="fa-solid fa-chart-line"></i> Detail
+                            </button>
+                        </div>
+                    `;
+                }
+
                 tbody.innerHTML += `
                     <tr class="fasil-tr" data-student-id="${safeId}">
                         <td class="fasil-td text-center font-bold fasil-col-no">${idx + 1}</td>
@@ -1071,15 +1124,7 @@ export function renderFasilTableAndEWS() {
                         <td class="fasil-td text-center">${u.accuracyStr}</td>
                         <td class="fasil-td text-center font-bold" style="color:#1976d2;">${u.quizStr}</td>
                         <td class="fasil-td text-center">
-                            <div class="fasil-action-buttons">
-                                <button class="btn-detail-user" data-id="${safeId}" title="Lihat Rapor Belajar Siswa">
-                                    <i class="fa-solid fa-chart-line"></i> Detail
-                                </button>
-                                <button class="btn-edit-student" data-id="${safeId}" title="Edit Nama & Kelas Siswa">
-                                    <i class="fa-solid fa-pen-to-square"></i> Edit
-                                </button>
-                                ${u.isLocal ? `<button class="btn-delete-user" data-id="${safeId}" title="Hapus"><i class="fa-solid fa-trash"></i></button>` : '<span style="color:#94a3b8; font-size:0.75rem;">Sesi Live</span>'}
-                            </div>
+                            ${actionButtonsHtml}
                         </td>
                     </tr>
                 `;
@@ -1117,14 +1162,6 @@ export function renderFasilTableAndEWS() {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 handleSaveStudentEdit(btn.dataset.id);
-            });
-        });
-
-        // Filter karakter tidak perlu pada input kelas fasilitator
-        tbody.querySelectorAll('.fasil-edit-kelas').forEach(kIn => {
-            kIn.addEventListener('input', e => {
-                const cleaned = e.target.value.replace(/[^a-zA-Z0-9\s.-]/g, '');
-                if (e.target.value !== cleaned) e.target.value = cleaned;
             });
         });
 
@@ -1245,6 +1282,8 @@ export function renderFasilTableAndEWS() {
  * Menghancurkan instance grafik kelas fasilitator jika ada.
  */
 export function destroyFasilChart() {
+    isFasilTableEditMode = false;
+    activeEditingStudentId = null;
     if (fasilChartInstance) {
         fasilChartInstance.destroy();
         fasilChartInstance = null;
@@ -1252,98 +1291,230 @@ export function destroyFasilChart() {
 }
 
 /**
- * Render atau perbarui Bar Chart distribusi kemampuan murid berdasarkan rentang level.
+ * Mengubah mode tampilan grafik capaian level kelas ('each' untuk tiap level terpisah, 'group' untuk rentang fase).
+ * @param {'each' | 'group'} mode
+ */
+export function setFasilChartViewMode(mode) {
+    if (mode !== 'each' && mode !== 'group') return;
+    fasilChartViewMode = mode;
+    const btnEach = document.getElementById('btn-chart-view-each');
+    const btnGroup = document.getElementById('btn-chart-view-group');
+    if (btnEach) btnEach.classList.toggle('active', mode === 'each');
+    if (btnGroup) btnGroup.classList.toggle('active', mode === 'group');
+    renderFasilClassChart(lastFasilStudents || getAggregatedStudents());
+}
+
+/**
+ * Render atau perbarui Bar Chart capaian murid (per level terpisah 1, 2, 3... atau rentang fase).
  * @param {Array} students Daftar seluruh siswa teragregasi
  */
 export function renderFasilClassChart(students) {
     const canvas = document.getElementById('fasilClassChart');
     if (!canvas) return;
 
+    if (Array.isArray(students)) {
+        lastFasilStudents = students;
+    }
+    const studentList = Array.isArray(students) ? students : (lastFasilStudents || []);
+
     // Hancurkan chartInstance lama jika ada untuk mencegah error canvas tumpang tindih
     destroyFasilChart();
 
     if (typeof Chart === 'undefined') return;
 
-    // Distribusi level murid: "Level 1-3", "Level 4-7", "Level 8-10", "Level 11+"
-    let c1_3 = 0, c4_7 = 0, c8_10 = 0, c11plus = 0;
-    if (Array.isArray(students)) {
-        students.forEach(s => {
+    // Pastikan status tombol toggle aktif tersinkronisasi
+    const btnEach = document.getElementById('btn-chart-view-each');
+    const btnGroup = document.getElementById('btn-chart-view-group');
+    if (btnEach) btnEach.classList.toggle('active', fasilChartViewMode === 'each');
+    if (btnGroup) btnGroup.classList.toggle('active', fasilChartViewMode === 'group');
+
+    const ctx = canvas.getContext('2d');
+
+    if (fasilChartViewMode === 'group') {
+        // Mode Rentang Kelompok Fase: "Level 1-3", "Level 4-7", "Level 8-10", "Level 11+"
+        let c1_3 = 0, c4_7 = 0, c8_10 = 0, c11plus = 0;
+        studentList.forEach(s => {
             const lvl = Number(s.maxLevel) || 1;
             if (lvl <= 3) c1_3++;
             else if (lvl <= 7) c4_7++;
             else if (lvl <= 10) c8_10++;
             else c11plus++;
         });
-    }
 
-    const counts = [c1_3, c4_7, c8_10, c11plus];
+        const counts = [c1_3, c4_7, c8_10, c11plus];
 
-    const ctx = canvas.getContext('2d');
-    fasilChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Level 1-3', 'Level 4-7', 'Level 8-10', 'Level 11+'],
-            datasets: [{
-                label: 'Jumlah Murid',
-                data: counts,
-                backgroundColor: [
-                    'rgba(245, 158, 11, 0.78)',  // Emas / Amber hangat
-                    'rgba(217, 119, 6, 0.82)',   // Amber pekat
-                    'rgba(180, 83, 9, 0.88)',    // Cokelat keemasan
-                    'rgba(16, 185, 129, 0.85)'   // Emerald hijau tuntas
-                ],
-                borderColor: [
-                    '#f59e0b',
-                    '#d97706',
-                    '#b45309',
-                    '#10b981'
-                ],
-                borderWidth: 1.5,
-                borderRadius: 8,
-                borderSkipped: false,
-                maxBarThickness: 56
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#78350f',
-                    titleColor: '#fef3c7',
-                    bodyColor: '#ffffff',
-                    padding: 8,
-                    cornerRadius: 8,
-                    displayColors: false,
-                    callbacks: {
-                        label: (ctx) => `${ctx.raw} murid`
-                    }
-                }
+        fasilChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Level 1-3', 'Level 4-7', 'Level 8-10', 'Level 11+'],
+                datasets: [{
+                    label: 'Jumlah Murid',
+                    data: counts,
+                    backgroundColor: [
+                        'rgba(245, 158, 11, 0.78)',  // Emas / Amber hangat
+                        'rgba(217, 119, 6, 0.82)',   // Amber pekat
+                        'rgba(180, 83, 9, 0.88)',    // Cokelat keemasan
+                        'rgba(16, 185, 129, 0.85)'   // Emerald hijau tuntas
+                    ],
+                    borderColor: [
+                        '#f59e0b',
+                        '#d97706',
+                        '#b45309',
+                        '#10b981'
+                    ],
+                    borderWidth: 1.5,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    maxBarThickness: 56
+                }]
             },
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: {
-                        color: '#78350f',
-                        font: { weight: 'bold', size: 11 }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#78350f',
+                        titleColor: '#fef3c7',
+                        bodyColor: '#ffffff',
+                        padding: 8,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: (ctx) => `${ctx.raw} murid`
+                        }
                     }
                 },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        precision: 0,
-                        color: '#92400e',
-                        font: { size: 11 }
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#78350f',
+                            font: { weight: 'bold', size: 11 }
+                        }
                     },
-                    grid: {
-                        color: 'rgba(254, 230, 138, 0.45)'
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0,
+                            color: '#92400e',
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: 'rgba(254, 230, 138, 0.45)'
+                        }
                     }
                 }
             }
+        });
+    } else {
+        // Mode Per Level Terpisah (Default): Level 1, Level 2, Level 3, ..., Level 20+
+        const totalLevels = Math.max(20, ...studentList.map(s => Number(s.maxLevel) || 1));
+        const labels = [];
+        const counts = new Array(totalLevels).fill(0);
+        const bgColors = [];
+        const borderColors = [];
+
+        for (let lvl = 1; lvl <= totalLevels; lvl++) {
+            labels.push(`Level ${lvl}`);
+
+            // Skema warna harmonis tematik berdasarkan fase kurikulum Algebra-Mart:
+            if (lvl <= 3) {
+                // Fase 1: Konsep Variabel Tunggal & Koefisien (Amber Keemasan)
+                bgColors.push('rgba(245, 158, 11, 0.85)');
+                borderColors.push('#d97706');
+            } else if (lvl <= 7) {
+                // Fase 2: Dua Variabel Berbeda & Suku Sejenis (Oranye Hangat)
+                bgColors.push('rgba(249, 115, 22, 0.85)');
+                borderColors.push('#ea580c');
+            } else if (lvl <= 10) {
+                // Fase 3: Komutatif & Evaluasi Aljabar (Cokelat Keemasan)
+                bgColors.push('rgba(217, 119, 6, 0.85)');
+                borderColors.push('#b45309');
+            } else if (lvl <= 15) {
+                // Fase 4: Substitusi Riil & Campuran HOTS (Biru Samudra)
+                bgColors.push('rgba(14, 165, 233, 0.85)');
+                borderColors.push('#0284c7');
+            } else if (lvl <= 20) {
+                // Fase 5: Sifat Distributif & Penguasaan Sempurna (Hijau Emerald)
+                bgColors.push('rgba(16, 185, 129, 0.85)');
+                borderColors.push('#059669');
+            } else {
+                // Level Ekstra
+                bgColors.push('rgba(168, 85, 247, 0.85)');
+                borderColors.push('#7e22ce');
+            }
         }
-    });
+
+        studentList.forEach(s => {
+            const lvl = Math.max(1, Math.min(totalLevels, Number(s.maxLevel) || 1));
+            counts[lvl - 1]++;
+        });
+
+        fasilChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Jumlah Murid',
+                    data: counts,
+                    backgroundColor: bgColors,
+                    borderColor: borderColors,
+                    borderWidth: 1.5,
+                    borderRadius: 5,
+                    borderSkipped: false,
+                    maxBarThickness: 32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#78350f',
+                        titleColor: '#fef3c7',
+                        bodyColor: '#ffffff',
+                        padding: 8,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            title: (items) => `Level ${items[0].dataIndex + 1}`,
+                            label: (ctx) => `${ctx.raw} murid`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 0,
+                            color: '#78350f',
+                            font: { weight: 'bold', size: 10 },
+                            callback: function(val, index) {
+                                return `Lvl ${index + 1}`;
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0,
+                            color: '#92400e',
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: 'rgba(254, 230, 138, 0.45)'
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
 
 /**

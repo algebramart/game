@@ -4,7 +4,7 @@
 // & Simulasi Interaktif Pencocokan Nilai (5x = 25.000)
 // ==========================================
 
-import { playSFX, speakNarrator, stopNarrator } from '../core/audio.js';
+import { playSFX, speakNarrator, stopNarrator, isNarratorSpeaking, addNarratorListener } from '../core/audio.js';
 
 let currentStage = 1;
 let cakeSlots = [false, false, false, false, false];
@@ -17,6 +17,40 @@ const NARRATIONS = {
     success2: 'Luar biasa! Seluruh 5 kotak kue tepat dipasangkan dengan uang 5 ribu rupiah. Total belanja pas 25 ribu rupiah. Klik Periksa Pembuktian untuk melihat kesimpulan aljabar!',
     3: 'Tahap 3: Pembuktian Matematis. Persamaan 5x = 25.000, kedua ruas dibagi 5 sehingga diperoleh nilai x = 5.000. Variabel x terbukti adalah harga satuan 1 kue yaitu 5 ribu rupiah. Sekarang kamu siap melayani transaksi di Level 1!'
 };
+
+/**
+ * Memperbarui status tampilan tombol speaker narator di Level 0 (ON / OFF).
+ * @param {boolean} isSpeaking
+ */
+export function updateNarrateButtonUI(isSpeaking) {
+    const btn = document.getElementById('btn-level-zero-narrate');
+    if (!btn) return;
+
+    if (isSpeaking) {
+        btn.classList.add('speaking');
+        btn.classList.remove('muted');
+        btn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        btn.title = 'Hentikan Suara (Klik untuk Matikan)';
+        btn.setAttribute('aria-label', 'Hentikan Suara');
+    } else {
+        btn.classList.remove('speaking');
+        btn.classList.add('muted');
+        btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+        btn.title = 'Putar Penjelasan Suara (Klik untuk Hidupkan)';
+        btn.setAttribute('aria-label', 'Putar Penjelasan Suara');
+    }
+}
+
+/**
+ * Mengambil narasi teks aktif yang sesuai dengan tahap Level 0 saat ini.
+ * @returns {string}
+ */
+export function getCurrentStageNarration() {
+    if (currentStage === 2 && allocatedCount === 5) {
+        return NARRATIONS.success2;
+    }
+    return NARRATIONS[currentStage] || '';
+}
 
 /**
  * Membuka modal materi pengantar Level 0.
@@ -37,6 +71,7 @@ export function closeLevelZeroModal() {
     const modal = document.getElementById('modal-level-zero');
     if (modal) modal.classList.add('hidden');
     stopNarrator();
+    updateNarrateButtonUI(false);
 }
 
 /**
@@ -342,14 +377,25 @@ export function initLevelZeroEvents() {
         }
     });
 
-    // Tombol Narator di Header Modal
+    // Daftarkan listener sinkronisasi otomatis status Web Speech API ke tombol speaker
+    addNarratorListener((speaking) => {
+        updateNarrateButtonUI(speaking);
+    });
+
+    // Tombol Narator di Header Modal (ON / OFF Toggle)
     const narrateBtn = document.getElementById('btn-level-zero-narrate');
     if (narrateBtn) {
         narrateBtn.addEventListener('click', () => {
             playSFX('nav');
-            const txt = NARRATIONS[currentStage];
-            if (txt) {
-                speakNarrator(txt);
+            if (isNarratorSpeaking()) {
+                // Saat suara sedang berbunyi -> Matikan/Hentikan suara (OFF)
+                stopNarrator();
+            } else {
+                // Saat suara sedang mati -> Hidupkan kembali suara narasi (ON)
+                const txt = getCurrentStageNarration();
+                if (txt) {
+                    speakNarrator(txt);
+                }
             }
         });
     }

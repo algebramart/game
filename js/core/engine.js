@@ -12,6 +12,27 @@ export function saveData() {
 }
 
 /**
+ * Memeriksa apakah string nama adalah nama profil pengembang (dev mode).
+ * Format khusus: '*#minerva#*' (termasuk bintang '*' dan pagar '#').
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isDevProfileName(name) {
+    if (!name || typeof name !== 'string') return false;
+    return name.trim().toLowerCase() === '*#minerva#*';
+}
+
+/**
+ * Memeriksa apakah objek user adalah profil pengembang (dev mode).
+ * @param {Object} user
+ * @returns {boolean}
+ */
+export function isDevProfile(user) {
+    if (!user || !user.name) return false;
+    return isDevProfileName(user.name);
+}
+
+/**
  * Mendapatkan gelar pemain berdasarkan laba dan sumbangan sosial.
  * @param {number} laba
  * @param {number} sumbangan
@@ -600,85 +621,5 @@ export async function releaseWakeLock() {
             console.warn('[WakeLock] Gagal melepas wake lock:', err);
         }
     }
-}
-
-
-/**
- * Memvalidasi input kelas siswa.
- * Memastikan kelas berada dalam rentang sekolah formal (tingkat 1-12 atau I-XII),
- * menolak input yang tidak masuk akal (seperti kelas 100, 99, 0, dsb.),
- * serta menolak karakter atau simbol khusus yang tidak perlu.
- * 
- * @param {string} rawInput 
- * @returns {string} String kelas yang sudah divalidasi dan dinormalisasi
- * @throws {Error} Jika format kelas tidak valid
- */
-export function validateKelas(rawInput) {
-    if (typeof rawInput !== 'string') {
-        throw new Error('Input kelas harus berupa teks.');
-    }
-    const trimmed = rawInput.trim();
-    if (!trimmed) {
-        throw new Error('Kelas tidak boleh kosong. Masukkan kelas Anda (contoh: 7A, 8B, atau 9-1).');
-    }
-    if (trimmed.length > 20) {
-        throw new Error('Format kelas terlalu panjang (maksimal 20 karakter).');
-    }
-
-    // Cek karakter atau simbol yang tidak perlu:
-    // Hanya izinkan huruf alfabet (a-z, A-Z), angka (0-9), spasi, tanda hubung (-), dan titik (.)
-    if (/[^a-zA-Z0-9\s.-]/.test(trimmed)) {
-        throw new Error('Kelas mengandung karakter atau simbol yang tidak diizinkan. Hanya huruf, angka, spasi, titik (.), dan tanda hubung (-) yang diperbolehkan.');
-    }
-
-    // Cek tanda baca berulang atau di posisi awal/akhir
-    if (/[-.]{2,}/.test(trimmed) || /^[-.]|[-.]$/.test(trimmed)) {
-        throw new Error('Format tanda baca pada kelas tidak valid (contoh yang benar: 7A, 7-A, atau VII-A).');
-    }
-
-    // Hapus prefix umum seperti 'Kelas' atau 'Kls' untuk memeriksa tingkat kelas
-    const withoutPrefix = trimmed.replace(/^(?:kelas|kls)\s*/i, '').trim();
-    if (!withoutPrefix) {
-        throw new Error('Harap cantumkan tingkat kelas Anda (contoh: 7A, 8B, atau 9-1).');
-    }
-
-    // 1. Cek jika diawali dengan angka Arab (misal: 7, 7A, 7-1, 10 MIPA 1, 100)
-    const arabicMatch = withoutPrefix.match(/^(\d+)/);
-    if (arabicMatch) {
-        const gradeNum = parseInt(arabicMatch[1], 10);
-        if (gradeNum < 1 || gradeNum > 12) {
-            throw new Error(`Tingkat kelas "${gradeNum}" tidak valid! Tingkat kelas sekolah harus antara 1 sampai 12 (contoh: 7A, 8B, atau 9-1).`);
-        }
-        return trimmed.replace(/\s+/g, ' ');
-    }
-
-    // 2. Cek jika diawali dengan angka Romawi (misal: VII A, VII-A, IX, XII-1, C, XX, XIII)
-    const romanPrefixMatch = withoutPrefix.match(/^([IVXLCDMivxlcdm]+)(?:$|[\s.-].*|([A-HJ-LN-UWY-Za-hj-ln-uwy-z]).*)$/);
-    if (romanPrefixMatch) {
-        const romanStr = romanPrefixMatch[1].toUpperCase();
-        const romanVals = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
-        let num = 0;
-        let validRoman = true;
-        for (let i = 0; i < romanStr.length; i++) {
-            const curr = romanVals[romanStr[i]];
-            if (!curr) { validRoman = false; break; }
-            const next = romanVals[romanStr[i + 1]];
-            if (next && next > curr) {
-                num += next - curr;
-                i++;
-            } else {
-                num += curr;
-            }
-        }
-        if (validRoman && num > 0) {
-            if (num < 1 || num > 12) {
-                throw new Error(`Tingkat kelas Romawi "${romanStr}" (${num}) tidak valid! Tingkat kelas sekolah harus antara 1 sampai 12 (contoh: VII A, VIII B, atau IX-1).`);
-            }
-            return trimmed.replace(/\s+/g, ' ');
-        }
-    }
-
-    // Jika tidak mencantumkan tingkat kelas yang dapat dikenali
-    throw new Error('Format kelas tidak valid! Harap masukkan tingkat kelas yang benar antara 1-12 atau I-XII (contoh: 7A, 8B, atau VII-A).');
 }
 

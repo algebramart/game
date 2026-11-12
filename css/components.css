@@ -630,6 +630,153 @@
 }
 
 /* =========================================
+   PENYESUAIAN FORM & PROTEKSI KEYBOARD HP
+   Mencegah distorsi atau penyusutan kotak input saat mengetik di HP
+   ========================================= */
+html.is-mobile-device .form-input,
+html.is-mobile-device .form-select {
+    height: 48px;
+    min-height: 48px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+html.is-mobile-device .btn-add-user {
+    height: 46px;
+    min-height: 46px;
+    font-size: 1rem;
+}
+
+html.is-mobile-device .modal-join-room-card .room-code-input {
+    height: 56px !important;
+    min-height: 56px !important;
+    font-size: 1.7rem !important;
+    letter-spacing: 4px;
+}
+
+/* =========================================
+   KONDISI SAAT KEYBOARD VIRTUAL HP AKTIF (PENGGUNA SEDANG MENGETIK)
+   Menyembunyikan elemen non-esensial dan menaikkan form ke area atas layar
+   sehingga apa yang diketik 100% terlihat jelas dan tidak tertutup keyboard HP
+   ========================================= */
+html.is-mobile-device.keyboard-open .login-screen,
+body.keyboard-open .login-screen {
+    justify-content: flex-start !important;
+    padding-top: 0.35rem !important;
+}
+
+html.is-mobile-device.keyboard-open .login-header,
+body.keyboard-open .login-header {
+    display: none !important;
+}
+
+html.is-mobile-device.keyboard-open .login-card,
+body.keyboard-open .login-card {
+    padding: 0.75rem 1.5rem !important;
+    max-height: none !important;
+    margin-top: 0 !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25) !important;
+    transform: translateY(-10px) !important;
+    transition: all 0.25s ease-out !important;
+}
+
+html.is-mobile-device.keyboard-open .login-card .card-title,
+html.is-mobile-device.keyboard-open .login-card .user-list-container,
+body.keyboard-open .login-card .card-title,
+body.keyboard-open .login-card .user-list-container {
+    display: none !important;
+}
+
+html.is-mobile-device.keyboard-open .new-profile-form,
+body.keyboard-open .new-profile-form {
+    border-top: none !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    gap: 8px !important;
+}
+
+html.is-mobile-device.keyboard-open .new-profile-form h3,
+body.keyboard-open .new-profile-form h3 {
+    font-size: 0.95rem !important;
+    margin-bottom: 2px !important;
+}
+
+html.is-mobile-device.keyboard-open .new-profile-form .btn-add-user,
+body.keyboard-open .new-profile-form .btn-add-user {
+    height: 42px !important;
+    min-height: 42px !important;
+    margin-top: 4px !important;
+    padding: 0 24px !important;
+}
+
+/* Modal Gabung Kelas & PIN saat keyboard aktif di HP */
+html.is-mobile-device.keyboard-open .modal-overlay,
+body.keyboard-open .modal-overlay {
+    align-items: flex-start !important;
+    padding-top: 0.5rem !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-card,
+body.keyboard-open .modal-card {
+    padding: 1.15rem 1.75rem !important;
+    transform: translateY(-10px) !important;
+    transition: all 0.25s ease-out !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-join-room-card .join-room-desc,
+html.is-mobile-device.keyboard-open .modal-join-room-card p,
+body.keyboard-open .modal-join-room-card .join-room-desc,
+body.keyboard-open .modal-join-room-card p {
+    display: none !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-join-room-card h3,
+body.keyboard-open .modal-join-room-card h3 {
+    font-size: 1.35rem !important;
+    margin-bottom: 0.35rem !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-join-room-card .room-input-container,
+body.keyboard-open .modal-join-room-card .room-input-container {
+    margin: 8px 0 !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-join-room-card .room-code-input,
+body.keyboard-open .modal-join-room-card .room-code-input {
+    height: 52px !important;
+    min-height: 52px !important;
+    font-size: 1.6rem !important;
+    letter-spacing: 5px !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-join-room-card .modal-actions-join,
+body.keyboard-open .modal-join-room-card .modal-actions-join {
+    margin-top: 8px !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-pin-card p,
+body.keyboard-open .modal-pin-card p {
+    display: none !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-pin-card h3,
+body.keyboard-open .modal-pin-card h3 {
+    font-size: 1.35rem !important;
+    margin-bottom: 0.35rem !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-pin-card .form-input,
+body.keyboard-open .modal-pin-card .form-input {
+    height: 48px !important;
+    margin: 8px 0 !important;
+}
+
+html.is-mobile-device.keyboard-open .modal-pin-card .modal-pin-actions,
+body.keyboard-open .modal-pin-card .modal-pin-actions {
+    margin-top: 8px !important;
+}
+
+/* =========================================
    LOBI — PROFIL & KARAKTER
    Harmonisasi Tema Terang Hangat & Golden Amber
    ========================================= */
@@ -1896,6 +2043,8 @@
     margin-bottom: 0.75rem;
     padding-bottom: 0.45rem;
     border-bottom: 1px solid #fef3c7;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .fasil-chart-title {
@@ -1916,6 +2065,45 @@
     color: #78350f;
 }
 
+.fasil-chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fasil-chart-view-toggle {
+    display: inline-flex;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 9999px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.btn-chart-view {
+    border: none;
+    background: transparent;
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1.2;
+}
+
+.btn-chart-view:hover {
+    color: #78350f;
+    background: rgba(254, 243, 199, 0.6);
+}
+
+.btn-chart-view.active {
+    background: #f59e0b;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(217, 119, 6, 0.3);
+}
+
 .fasil-chart-tag {
     font-size: 0.72rem;
     font-weight: 500;
@@ -1928,7 +2116,7 @@
 
 .fasil-chart-container {
     position: relative;
-    height: 180px;
+    height: 195px;
     width: 100%;
 }
 
@@ -1978,6 +2166,115 @@
 }
 .btn-refresh-report:active {
     transform: translateY(0);
+}
+
+.btn-toggle-fasil-edit {
+    height: var(--btn-h-sm, 36px);
+    padding: 0 14px;
+    border-radius: var(--btn-radius-sm, 10px);
+    background: #fffdfa;
+    color: #78350f;
+    border: 1.5px solid #fed7aa;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.btn-toggle-fasil-edit:hover {
+    background: #fef3c7;
+    color: #451a03;
+    border-color: #f59e0b;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    transform: translateY(-1px);
+}
+.btn-toggle-fasil-edit:active {
+    transform: translateY(0);
+}
+
+.btn-toggle-fasil-edit.btn-edit-mode-active {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #ffffff !important;
+    border: 1.5px solid #b45309 !important;
+    box-shadow: 0 3px 10px rgba(217, 119, 6, 0.35) !important;
+    font-weight: 600;
+}
+.btn-toggle-fasil-edit.btn-edit-mode-active:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.45) !important;
+}
+
+/* Banner Notifikasi Mode Edit Aktif */
+.fasil-edit-mode-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fef3c7;
+    border: 1.5px dashed #f59e0b;
+    border-radius: 12px;
+    margin: 0.75rem 1.25rem 0.25rem 1.25rem;
+    padding: 0.65rem 1rem;
+    color: #78350f;
+    font-size: 0.84rem;
+    animation: fadeInBanner 0.2s ease-out;
+}
+
+.fasil-edit-mode-banner.hidden {
+    display: none !important;
+}
+
+.fasil-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.fasil-banner-content i {
+    color: #d97706;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.btn-banner-done {
+    background: #ffffff;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.btn-banner-done:hover {
+    background: #f59e0b;
+    color: #ffffff;
+    border-color: #d97706;
+}
+
+.fasil-live-tag {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+@keyframes fadeInBanner {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .btn-wa-report {
@@ -2051,25 +2348,42 @@
     color: #451a03;
 }
 
+.fasil-main-panel .table-wrapper {
+    overflow: visible;
+    padding-top: 0;
+}
+
 .fasil-table {
     width: 100%;
     text-align: left;
     font-size: 0.88rem;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 .fasil-table thead {
     background-color: #fff7e6;
     color: #78350f;
     font-weight: 500;
-    border-bottom: 1.5px solid #fed7aa;
 }
-.fasil-table th {
+.fasil-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #fff7e6;
+    color: #78350f;
     padding: 0.85rem 1rem;
-    font-weight: 500;
+    font-weight: 600;
+    border-bottom: 1.5px solid #fed7aa;
+    box-shadow: 0 2px 4px rgba(180, 83, 9, 0.08);
+}
+.fasil-table thead th:first-child {
+    border-top-left-radius: 8px;
+}
+.fasil-table thead th:last-child {
+    border-top-right-radius: 8px;
 }
 .fasil-tr {
     height: 52px;
-    border-bottom: 1px solid #fef3c7;
     transition: background-color 0.15s ease;
 }
 .fasil-tr:hover {
@@ -2078,6 +2392,7 @@
 .fasil-td {
     padding: 0.75rem 1rem;
     color: #1e293b;
+    border-bottom: 1px solid #fef3c7;
 }
 
 .btn-detail-user {
@@ -2224,13 +2539,13 @@
 }
 
 .wide-shelf {
-    width: calc(100% - 240px);
-    max-width: 74%;
+    width: calc(100% - 280px);
+    max-width: 68%;
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: space-evenly;
-    padding: 6px 12px;
+    padding: 4px 10px;
     box-sizing: border-box;
     overflow: visible;
     flex-shrink: 0;
@@ -2240,12 +2555,12 @@
     width: 100%;
     height: auto;
     background: rgba(0, 0, 0, 0.02);
-    border-bottom: 10px solid #5d4037;
+    border-bottom: 8px solid #5d4037;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     display: flex;
     justify-content: space-evenly;
     align-items: flex-end;
-    padding-bottom: 6px;
+    padding-bottom: 4px;
     box-sizing: border-box;
 }
 
@@ -2254,10 +2569,10 @@
     display: flex;
     justify-content: space-evenly;
     align-items: flex-end;
-    border-bottom: 10px solid #5d4037;
+    border-bottom: 8px solid #5d4037;
     border-radius: 4px;
-    padding: 0 6px 6px 6px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.22);
+    padding: 0 4px 4px 4px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.22);
     box-sizing: border-box;
 }
 
@@ -2298,15 +2613,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
-    min-width: 22px;
-    min-height: 22px;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
     background-color: #e65100;
     color: #ffffff;
     font-family: var(--font-math, 'KaTeX_Math', 'Cambria Math', 'Times New Roman', serif);
     font-style: italic;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: normal;
     border-radius: 50%;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
@@ -2316,26 +2631,26 @@
 }
 
 .product-name {
-    font-size: 0.95rem;
+    font-size: 0.84rem;
     font-weight: 500;
     color: #1e293b;
     background-color: rgba(255, 255, 255, 0.95);
-    padding: 2px 8px;
-    border-radius: 6px;
+    padding: 1.5px 6px;
+    border-radius: 5px;
     white-space: nowrap;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     line-height: 1.25;
 }
 
 .product-size {
-    width: 74px;
-    height: 74px;
+    width: 62px;
+    height: 62px;
     object-fit: contain;
 }
 
 .wide-shelf .product-size {
-    width: 74px;
-    height: 74px;
+    width: 62px;
+    height: 62px;
     max-height: none;
     max-width: none;
     object-fit: contain;
@@ -2363,9 +2678,9 @@
 /* Kolom Kanan: Pelanggan & Balon Chat */
 .npc-container {
     position: relative;
-    width: 250px;
+    width: 260px;
     min-width: 240px;
-    max-width: 28%;
+    max-width: 30%;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -2379,29 +2694,31 @@
 
 .npc-image {
     width: auto;
-    max-width: 150px;
+    max-width: 140px;
     max-height: calc(100% - 105px);
     object-fit: contain;
+    object-position: bottom center;
+    transform-origin: bottom center;
     pointer-events: none;
     align-self: center;
-    margin-bottom: -6px;
+    margin-bottom: 0;
 }
 
 .speech-bubble {
     position: absolute;
-    top: 6px;
-    right: -45px;
-    width: 440px;
-    max-width: 470px;
+    top: 8px;
+    right: 12px;
+    width: 330px;
+    max-width: 345px;
     box-sizing: border-box;
     background-color: #ffffff;
     color: #0f172a;
-    padding: 10px 18px;
-    font-size: 1.38rem;
+    padding: 8px 14px;
+    font-size: 1.05rem;
     font-weight: 500;
-    line-height: 1.42;
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    line-height: 1.36;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
     border: 1.5px solid #e2e8f0;
     text-align: center;
     pointer-events: auto;
@@ -2432,10 +2749,10 @@
 .speech-bubble::before {
     content: '';
     position: absolute;
-    bottom: -9px;
-    right: 165px;
+    bottom: -8px;
+    right: 105px;
     left: auto;
-    border-width: 9px 8px 0;
+    border-width: 8px 7px 0;
     border-style: solid;
     border-color: #e2e8f0 transparent;
 }
@@ -2443,61 +2760,73 @@
 .speech-bubble::after {
     content: '';
     position: absolute;
-    bottom: -8px;
-    right: 166px;
+    bottom: -7px;
+    right: 106px;
     left: auto;
-    border-width: 8px 7px 0;
+    border-width: 7px 6px 0;
     border-style: solid;
     border-color: #ffffff transparent;
 }
 
 /* Penyesuaian balon chat khusus di perangkat HP:
-   Digeser ke area kanan layar dengan sedikit gap (22px dari tepi kanan)
-   agar tidak menutupi rak barang di sebelah kiri maupun wajah pelanggan di bawahnya */
+   Digeser ke area kanan layar dengan safe margin agar tidak menutupi rak barang di sebelah kiri
+   maupun wajah pelanggan di bawahnya */
 html.is-mobile-device .speech-bubble {
     top: 4px;
-    right: calc(-1 * var(--side-pad, 20px) + 22px);
-    width: calc(284px + var(--side-pad, 20px));
-    min-width: 320px;
-    max-width: 500px;
-    padding: 7px 14px;
-    font-size: 0.92rem;
-    line-height: 1.32;
-    border-radius: 14px;
+    right: 10px;
+    width: min(375px, calc(100vw - 24px));
+    min-width: 310px;
+    max-width: 400px;
+    padding: 9px 16px;
+    font-size: 0.98rem;
+    line-height: 1.35;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
 }
 
 html.is-mobile-device .speech-bubble::before {
-    right: calc(103px + var(--side-pad, 20px));
+    right: 100px;
     bottom: -9px;
 }
 
 html.is-mobile-device .speech-bubble::after {
-    right: calc(104px + var(--side-pad, 20px));
+    right: 101px;
     bottom: -8px;
+}
+
+html.is-mobile-device .npc-image {
+    max-width: 120px;
+    max-height: calc(100% - 100px);
 }
 
 @media screen and (max-height: 520px) and (orientation: landscape),
        screen and (max-width: 950px) and (max-height: 600px) and (pointer: coarse) {
     .speech-bubble {
         top: 4px;
-        right: calc(-1 * var(--side-pad, 20px) + 22px);
-        width: calc(284px + var(--side-pad, 20px));
-        min-width: 320px;
-        max-width: 500px;
-        padding: 7px 14px;
-        font-size: 0.92rem;
-        line-height: 1.32;
-        border-radius: 14px;
+        right: 10px;
+        width: min(375px, calc(100vw - 24px));
+        min-width: 310px;
+        max-width: 400px;
+        padding: 9px 16px;
+        font-size: 0.98rem;
+        line-height: 1.35;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
     }
 
     .speech-bubble::before {
-        right: calc(103px + var(--side-pad, 20px));
+        right: 100px;
         bottom: -9px;
     }
 
     .speech-bubble::after {
-        right: calc(104px + var(--side-pad, 20px));
+        right: 101px;
         bottom: -8px;
+    }
+
+    .npc-image {
+        max-width: 120px;
+        max-height: calc(100% - 100px);
     }
 }
 
@@ -5309,12 +5638,14 @@ html.is-mobile-device .numpad-grid .btn-calc {
         padding: 6px 8px !important;
         border: 1px solid #cbd5e1 !important;
         color: #0f172a !important;
+        position: static !important;
+        box-shadow: none !important;
+    }
     }
 
     .fasil-table tr {
         page-break-inside: avoid !important;
     }
-}
 
 /* =========================================
    LEVEL 0: MATERI PENGANTAR & SIMULASI
@@ -5518,19 +5849,26 @@ html.is-mobile-device .numpad-grid .btn-calc {
     justify-content: center;
     cursor: pointer;
     font-size: 1.15rem;
-    transition: all 0.2s;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .btn-voice-narrate:hover {
-    background: #dbeafe;
-    color: #1d4ed8;
-    transform: scale(1.08);
+    background: #e2e8f0;
 }
 
 .btn-voice-narrate.speaking {
-    background: #2563eb;
-    color: #ffffff;
-    animation: pulseRing 1.5s infinite;
+    background: #f1f5f9;
+    color: #2563eb;
+}
+
+.btn-voice-narrate.muted {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.btn-voice-narrate.muted:hover {
+    background: #e2e8f0;
+    color: #334155;
 }
 
 /* Navigasi Tahap: Sebelumnya & Setelahnya (Menggantikan 3 Tombol Stepper) */

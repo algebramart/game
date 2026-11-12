@@ -198,6 +198,53 @@ function stopBGM() {
     bgmStarted = false;
 }
 
+let wasBgmPlayingBeforeHidden = false;
+
+/**
+ * Menangani jeda audio otomatis saat pengguna keluar game, meminimalkan browser,
+ * beralih aplikasi di HP, atau mematikan layar (tanpa menghapus history di RAM).
+ */
+function handleAppVisibilityChange() {
+    if (typeof document === 'undefined') return;
+
+    if (document.hidden || document.visibilityState === 'hidden') {
+        // Pengguna beralih aplikasi di HP / meminimalkan jendela game
+        if (bgmAudio && !bgmAudio.paused) {
+            wasBgmPlayingBeforeHidden = true;
+            bgmAudio.pause();
+        } else {
+            wasBgmPlayingBeforeHidden = false;
+        }
+
+        // Hentikan seketika pembacaan suara narator Web Speech API
+        stopNarrator();
+    } else if (document.visibilityState === 'visible') {
+        // Pengguna kembali membuka game dari RAM
+        if (wasBgmPlayingBeforeHidden && !isBgmMuted && bgmAudio && bgmStarted) {
+            bgmAudio.play().catch(err => {
+                console.warn('[Audio] Resume BGM otomatis tertunda:', err);
+            });
+        }
+    }
+}
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleAppVisibilityChange);
+}
+if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', handleAppVisibilityChange);
+    window.addEventListener('freeze', handleAppVisibilityChange);
+    window.addEventListener('beforeunload', () => {
+        pauseBGM();
+        stopNarrator();
+    });
+    window.addEventListener('blur', () => {
+        if (document.hidden) {
+            handleAppVisibilityChange();
+        }
+    });
+}
+
 /**
  * Memutar efek suara (SFX) berdasarkan identifier.
  * Mendukung polyphonic/concurrent playback melalui kloning instan.
@@ -398,6 +445,56 @@ function updateSoundButtonUI() {
 
 let activeUtterance = null;
 let cachedIndonesianVoice = null;
+let isNarratorActive = false;
+const narratorListeners = new Set();
+
+function addNarratorListener(callback) {
+    if (typeof callback === 'function') {
+        narratorListeners.add(callback);
+    }
+}
+
+function removeNarratorListener(callback) {
+    narratorListeners.delete(callback);
+}
+
+function notifyNarratorListeners(isSpeaking) {
+    narratorListeners.forEach(cb => {
+        try { cb(isSpeaking); } catch (e) { console.warn(e); }
+    });
+}
+
+function isNarratorSpeaking() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false;
+    return isNarratorActive && window.speechSynthesis.speaking;
+}
+
+/**
+ * Memeriksa apakah sebuah objek SpeechSynthesisVoice adalah suara Bahasa Indonesia.
+ * Mendeteksi tag bahasa BCP 47 (id-ID, id, in-ID, in) serta nama suara khas Indonesia
+ * (seperti Google Bahasa Indonesia, Microsoft Gadis/Ardi Natural, Apple Damayanti, dll).
+ * @param {SpeechSynthesisVoice} v
+ * @returns {boolean}
+ */
+function isIndonesianVoice(v) {
+    if (!v) return false;
+    const lang = (v.lang || '').toLowerCase().replace(/_/g, '-');
+    const name = (v.name || '').toLowerCase();
+
+    // 1. Tag bahasa resmi Indonesia (id, id-ID, id-*)
+    if (lang === 'id' || lang === 'id-id' || lang.startsWith('id-')) return true;
+
+    // 2. Tag bahasa Android legacy (Java Locale "in", "in-ID")
+    if (lang === 'in' || lang === 'in-id' || lang.startsWith('in-')) return true;
+
+    // 3. Nama suara yang secara eksplisit memuat kata indonesia/bahasa
+    if (name.includes('indonesia') || name.includes('indonesian') || name.includes('bahasa')) return true;
+
+    // 4. Nama karakter suara TTS Indonesia bawaan Windows/macOS/Edge
+    if (name.includes('gadis') || name.includes('ardi') || name.includes('andika') || name.includes('damayanti')) return true;
+
+    return false;
+}
 
 function resolveIndonesianVoice() {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
@@ -405,26 +502,39 @@ function resolveIndonesianVoice() {
     try {
         const voices = window.speechSynthesis.getVoices();
         if (!voices || !voices.length) return null;
-        // Prioritaskan suara asli id-ID, lalu fallback ke yang memuat 'id' atau 'indonesia'
-        const match = voices.find(v => v.lang === 'id-ID' || v.lang === 'id_ID') ||
-                      voices.find(v => v.lang.toLowerCase().startsWith('id') || v.lang.toLowerCase().includes('indonesia'));
-        if (match) cachedIndonesianVoice = match;
-        return match;
+
+        const indonesianVoices = voices.filter(isIndonesianVoice);
+        if (!indonesianVoices.length) return null;
+
+        // Prioritaskan suara natural / Google / Microsoft Gadis/Ardi yang bersuara jernih dan ramah
+        const preferredVoice = indonesianVoices.find(v => {
+            const name = (v.name || '').toLowerCase();
+            return name.includes('natural') || name.includes('google') || name.includes('gadis') || name.includes('ardi');
+        });
+
+        const best = preferredVoice || indonesianVoices[0];
+        if (best) cachedIndonesianVoice = best;
+        return best;
     } catch (e) {
         return null;
     }
 }
 
 if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.onvoiceschanged = () => {
+    const handleVoicesChanged = () => {
         cachedIndonesianVoice = null;
         resolveIndonesianVoice();
     };
+    if (window.speechSynthesis.addEventListener) {
+        window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+    }
+    window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
 }
 
 /**
  * Membacakan teks narator otomatis menggunakan Web Speech API (bahasa Indonesia).
  * Digunakan untuk walkthrough tutorial dan modul pengantar Level 0.
+ * DIJAMIN 100% TIDAK AKAN MENGGUNAKAN SUARA BAHASA INGGRIS.
  * @param {string} text
  */
 function speakNarrator(text) {
@@ -433,26 +543,99 @@ function speakNarrator(text) {
 
     try {
         window.speechSynthesis.cancel();
+        isNarratorActive = false;
 
         // Hapus tag HTML dan rapikan teks
         const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-        if (!cleanText) return;
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = 'id-ID';
-        utterance.rate = 0.95; // Kecepatan artikulasi ramah siswa
-        utterance.pitch = 1.05;
-        utterance.volume = Math.max(0.1, sfxVolume);
-
-        const voice = resolveIndonesianVoice();
-        if (voice) {
-            utterance.voice = voice;
+        if (!cleanText) {
+            notifyNarratorListeners(false);
+            return;
         }
 
-        activeUtterance = utterance;
-        window.speechSynthesis.speak(utterance);
+        const executeSpeak = (voice) => {
+            // STRICT SAFETY GUARD: Jika tidak ada suara Bahasa Indonesia, jangan pernah membaca dengan suara Inggris!
+            if (!voice || !isIndonesianVoice(voice)) {
+                console.warn('[Audio] Tidak ditemukan suara resmi Bahasa Indonesia di peramban ini. Pembacaan suara dibatalkan agar tidak menggunakan aksen bahasa Inggris.');
+                isNarratorActive = false;
+                notifyNarratorListeners(false);
+                return;
+            }
+
+            try {
+                window.speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.voice = voice;
+                utterance.lang = voice.lang || 'id-ID';
+                utterance.rate = 0.95; // Kecepatan artikulasi ramah siswa
+                utterance.pitch = 1.05;
+                utterance.volume = Math.max(0.1, sfxVolume);
+
+                utterance.onstart = () => {
+                    isNarratorActive = true;
+                    notifyNarratorListeners(true);
+                };
+
+                utterance.onend = () => {
+                    isNarratorActive = false;
+                    activeUtterance = null;
+                    notifyNarratorListeners(false);
+                };
+
+                utterance.onerror = (e) => {
+                    isNarratorActive = false;
+                    activeUtterance = null;
+                    notifyNarratorListeners(false);
+                };
+
+                activeUtterance = utterance;
+                isNarratorActive = true;
+                notifyNarratorListeners(true);
+                window.speechSynthesis.speak(utterance);
+            } catch (err) {
+                console.warn('[Audio] Gagal membacakan teks narator:', err);
+                isNarratorActive = false;
+                notifyNarratorListeners(false);
+            }
+        };
+
+        const immediateVoice = resolveIndonesianVoice();
+        if (immediateVoice) {
+            executeSpeak(immediateVoice);
+        } else {
+            // Jika daftar suara browser belum terisi (sering terjadi saat halaman baru dimuat di Chromium),
+            // tunggu pemuatan getVoices() hingga maksimal 300ms.
+            let hasHandled = false;
+            const onVoicesLoaded = () => {
+                if (hasHandled) return;
+                const v = resolveIndonesianVoice();
+                if (v) {
+                    hasHandled = true;
+                    if (window.speechSynthesis.removeEventListener) {
+                        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesLoaded);
+                    }
+                    executeSpeak(v);
+                }
+            };
+
+            if (window.speechSynthesis.addEventListener) {
+                window.speechSynthesis.addEventListener('voiceschanged', onVoicesLoaded);
+            }
+
+            setTimeout(() => {
+                if (!hasHandled) {
+                    hasHandled = true;
+                    if (window.speechSynthesis.removeEventListener) {
+                        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesLoaded);
+                    }
+                    executeSpeak(resolveIndonesianVoice());
+                }
+            }, 300);
+        }
     } catch (err) {
-        console.warn('[Audio] Gagal membacakan teks narator:', err);
+        console.warn('[Audio] Gagal inisialisasi narator:', err);
+        isNarratorActive = false;
+        notifyNarratorListeners(false);
     }
 }
 
@@ -465,7 +648,9 @@ function stopNarrator() {
             window.speechSynthesis.cancel();
         } catch (e) {}
     }
+    isNarratorActive = false;
     activeUtterance = null;
+    notifyNarratorListeners(false);
 }
 
 
@@ -540,7 +725,7 @@ const BADGES_DB = [
 // ==========================================
 
 /**
- * Konfigurasi 10 Level Tantangan Mudah (C1–C3)
+ * Konfigurasi 10 Level Tantangan Mudah
  * @type {Object.<number, Array<{order: Object, text: string, image: string, uangDibayarDetail: Object}>>}
  */
 const LEVEL_DATA = {
@@ -1514,6 +1699,27 @@ function saveData() {
 }
 
 /**
+ * Memeriksa apakah string nama adalah nama profil pengembang (dev mode).
+ * Format khusus: '*#minerva#*' (termasuk bintang '*' dan pagar '#').
+ * @param {string} name
+ * @returns {boolean}
+ */
+function isDevProfileName(name) {
+    if (!name || typeof name !== 'string') return false;
+    return name.trim().toLowerCase() === '*#minerva#*';
+}
+
+/**
+ * Memeriksa apakah objek user adalah profil pengembang (dev mode).
+ * @param {Object} user
+ * @returns {boolean}
+ */
+function isDevProfile(user) {
+    if (!user || !user.name) return false;
+    return isDevProfileName(user.name);
+}
+
+/**
  * Mendapatkan gelar pemain berdasarkan laba dan sumbangan sosial.
  * @param {number} laba
  * @param {number} sumbangan
@@ -2105,86 +2311,6 @@ async function releaseWakeLock() {
 }
 
 
-/**
- * Memvalidasi input kelas siswa.
- * Memastikan kelas berada dalam rentang sekolah formal (tingkat 1-12 atau I-XII),
- * menolak input yang tidak masuk akal (seperti kelas 100, 99, 0, dsb.),
- * serta menolak karakter atau simbol khusus yang tidak perlu.
- * 
- * @param {string} rawInput 
- * @returns {string} String kelas yang sudah divalidasi dan dinormalisasi
- * @throws {Error} Jika format kelas tidak valid
- */
-function validateKelas(rawInput) {
-    if (typeof rawInput !== 'string') {
-        throw new Error('Input kelas harus berupa teks.');
-    }
-    const trimmed = rawInput.trim();
-    if (!trimmed) {
-        throw new Error('Kelas tidak boleh kosong. Masukkan kelas Anda (contoh: 7A, 8B, atau 9-1).');
-    }
-    if (trimmed.length > 20) {
-        throw new Error('Format kelas terlalu panjang (maksimal 20 karakter).');
-    }
-
-    // Cek karakter atau simbol yang tidak perlu:
-    // Hanya izinkan huruf alfabet (a-z, A-Z), angka (0-9), spasi, tanda hubung (-), dan titik (.)
-    if (/[^a-zA-Z0-9\s.-]/.test(trimmed)) {
-        throw new Error('Kelas mengandung karakter atau simbol yang tidak diizinkan. Hanya huruf, angka, spasi, titik (.), dan tanda hubung (-) yang diperbolehkan.');
-    }
-
-    // Cek tanda baca berulang atau di posisi awal/akhir
-    if (/[-.]{2,}/.test(trimmed) || /^[-.]|[-.]$/.test(trimmed)) {
-        throw new Error('Format tanda baca pada kelas tidak valid (contoh yang benar: 7A, 7-A, atau VII-A).');
-    }
-
-    // Hapus prefix umum seperti 'Kelas' atau 'Kls' untuk memeriksa tingkat kelas
-    const withoutPrefix = trimmed.replace(/^(?:kelas|kls)\s*/i, '').trim();
-    if (!withoutPrefix) {
-        throw new Error('Harap cantumkan tingkat kelas Anda (contoh: 7A, 8B, atau 9-1).');
-    }
-
-    // 1. Cek jika diawali dengan angka Arab (misal: 7, 7A, 7-1, 10 MIPA 1, 100)
-    const arabicMatch = withoutPrefix.match(/^(\d+)/);
-    if (arabicMatch) {
-        const gradeNum = parseInt(arabicMatch[1], 10);
-        if (gradeNum < 1 || gradeNum > 12) {
-            throw new Error(`Tingkat kelas "${gradeNum}" tidak valid! Tingkat kelas sekolah harus antara 1 sampai 12 (contoh: 7A, 8B, atau 9-1).`);
-        }
-        return trimmed.replace(/\s+/g, ' ');
-    }
-
-    // 2. Cek jika diawali dengan angka Romawi (misal: VII A, VII-A, IX, XII-1, C, XX, XIII)
-    const romanPrefixMatch = withoutPrefix.match(/^([IVXLCDMivxlcdm]+)(?:$|[\s.-].*|([A-HJ-LN-UWY-Za-hj-ln-uwy-z]).*)$/);
-    if (romanPrefixMatch) {
-        const romanStr = romanPrefixMatch[1].toUpperCase();
-        const romanVals = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
-        let num = 0;
-        let validRoman = true;
-        for (let i = 0; i < romanStr.length; i++) {
-            const curr = romanVals[romanStr[i]];
-            if (!curr) { validRoman = false; break; }
-            const next = romanVals[romanStr[i + 1]];
-            if (next && next > curr) {
-                num += next - curr;
-                i++;
-            } else {
-                num += curr;
-            }
-        }
-        if (validRoman && num > 0) {
-            if (num < 1 || num > 12) {
-                throw new Error(`Tingkat kelas Romawi "${romanStr}" (${num}) tidak valid! Tingkat kelas sekolah harus antara 1 sampai 12 (contoh: VII A, VIII B, atau IX-1).`);
-            }
-            return trimmed.replace(/\s+/g, ' ');
-        }
-    }
-
-    // Jika tidak mencantumkan tingkat kelas yang dapat dikenali
-    throw new Error('Format kelas tidak valid! Harap masukkan tingkat kelas yang benar antara 1-12 atau I-XII (contoh: 7A, 8B, atau VII-A).');
-}
-
-
 
 // ==========================================
 // FILE: js/core/sync.js
@@ -2192,7 +2318,6 @@ function validateKelas(rawInput) {
 // ==========================================
 // core/sync.js — Sinkronisasi Hybrid (Firebase Realtime Database + BroadcastChannel)
 // ==========================================
-
 
 
 
@@ -2600,11 +2725,7 @@ async function updateStudentProfileInRoom(studentId, partialData) {
         safeUpdate.nama_fasil = candidateName.trim();
     }
     if (typeof candidateKelas === 'string' && candidateKelas.trim() !== '') {
-        try {
-            safeUpdate.kelas_fasil = validateKelas(candidateKelas);
-        } catch (e) {
-            console.warn('[Sync] Kelas fasil ditolak karena tidak valid:', e.message);
-        }
+        safeUpdate.kelas_fasil = candidateKelas.trim();
     }
 
     if (Object.keys(safeUpdate).length === 0) return false;
@@ -3562,6 +3683,40 @@ const NARRATIONS = {
 };
 
 /**
+ * Memperbarui status tampilan tombol speaker narator di Level 0 (ON / OFF).
+ * @param {boolean} isSpeaking
+ */
+function updateNarrateButtonUI(isSpeaking) {
+    const btn = document.getElementById('btn-level-zero-narrate');
+    if (!btn) return;
+
+    if (isSpeaking) {
+        btn.classList.add('speaking');
+        btn.classList.remove('muted');
+        btn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        btn.title = 'Hentikan Suara (Klik untuk Matikan)';
+        btn.setAttribute('aria-label', 'Hentikan Suara');
+    } else {
+        btn.classList.remove('speaking');
+        btn.classList.add('muted');
+        btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+        btn.title = 'Putar Penjelasan Suara (Klik untuk Hidupkan)';
+        btn.setAttribute('aria-label', 'Putar Penjelasan Suara');
+    }
+}
+
+/**
+ * Mengambil narasi teks aktif yang sesuai dengan tahap Level 0 saat ini.
+ * @returns {string}
+ */
+function getCurrentStageNarration() {
+    if (currentStage === 2 && allocatedCount === 5) {
+        return NARRATIONS.success2;
+    }
+    return NARRATIONS[currentStage] || '';
+}
+
+/**
  * Membuka modal materi pengantar Level 0.
  */
 function openLevelZeroModal() {
@@ -3580,6 +3735,7 @@ function closeLevelZeroModal() {
     const modal = document.getElementById('modal-level-zero');
     if (modal) modal.classList.add('hidden');
     stopNarrator();
+    updateNarrateButtonUI(false);
 }
 
 /**
@@ -3885,14 +4041,25 @@ function initLevelZeroEvents() {
         }
     });
 
-    // Tombol Narator di Header Modal
+    // Daftarkan listener sinkronisasi otomatis status Web Speech API ke tombol speaker
+    addNarratorListener((speaking) => {
+        updateNarrateButtonUI(speaking);
+    });
+
+    // Tombol Narator di Header Modal (ON / OFF Toggle)
     const narrateBtn = document.getElementById('btn-level-zero-narrate');
     if (narrateBtn) {
         narrateBtn.addEventListener('click', () => {
             playSFX('nav');
-            const txt = NARRATIONS[currentStage];
-            if (txt) {
-                speakNarrator(txt);
+            if (isNarratorSpeaking()) {
+                // Saat suara sedang berbunyi -> Matikan/Hentikan suara (OFF)
+                stopNarrator();
+            } else {
+                // Saat suara sedang mati -> Hidupkan kembali suara narasi (ON)
+                const txt = getCurrentStageNarration();
+                if (txt) {
+                    speakNarrator(txt);
+                }
             }
         });
     }
@@ -4039,11 +4206,22 @@ function renderUserList() {
     state.users.forEach(u => {
         const btn = document.createElement('button');
         btn.className = 'user-btn';
+        const isDev = isDevProfile(u);
+        const avatarHtml = isDev
+            ? '<div class="user-avatar" style="background: linear-gradient(135deg, #f59e0b, #b45309); color: white;"><i class="fa-solid fa-code"></i></div>'
+            : `<div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>`;
+        const devBadge = isDev
+            ? ' <span style="font-size:0.65rem; background:#fef3c7; color:#92400e; font-weight:700; padding:2px 6px; border-radius:6px; margin-left:4px; border:1px solid #fcd34d;">DEV (20 LV)</span>'
+            : '';
+        const metaText = isDev
+            ? `Kelas ${u.kelas || 'DEV'} • Lvl 20 (Semua Level Terbuka) • Rp ${(u.money || 0).toLocaleString('id-ID')}`
+            : `Kelas ${u.kelas || '-'} • Lvl ${u.maxLevel || 1} • Rp ${(u.money || 0).toLocaleString('id-ID')}`;
+
         btn.innerHTML = `
-            <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
+            ${avatarHtml}
             <div class="user-info">
-                <div class="user-name">${u.name}</div>
-                <div class="user-meta">Kelas ${u.kelas || '-'} • Lvl ${u.maxLevel || 1} • Rp ${u.money.toLocaleString('id-ID')}</div>
+                <div class="user-name">${u.name}${devBadge}</div>
+                <div class="user-meta">${metaText}</div>
             </div>
             <i class="fa-solid fa-chevron-right"></i>
         `;
@@ -4118,7 +4296,8 @@ function renderLobby() {
     document.getElementById('lobby-gender').innerText = state.currentUser.gender;
     document.getElementById('lobby-class').innerText  = state.currentUser.kelas;
 
-    const title = getTitle(state.currentUser.money, state.currentUser.sumbangan || state.currentUser.donasi || 0);
+    const isDev = isDevProfile(state.currentUser);
+    const title = isDev ? "Pengembang (Dev Mode)" : getTitle(state.currentUser.money, state.currentUser.sumbangan || state.currentUser.donasi || 0);
     document.getElementById('lobby-title').innerText    = title;
     document.getElementById('lobby-id-name').innerText  = state.currentUser.name;
     document.getElementById('lobby-id-title').innerText = title;
@@ -4162,8 +4341,9 @@ function renderLevels() {
 
     const tabEasy = document.getElementById('tab-level-easy');
     const tabHard = document.getElementById('tab-level-hard');
-    const maxLevel = state.currentUser.maxLevel || 0;
-    const isHardUnlocked = maxLevel >= 10;
+    const isDev = isDevProfile(state.currentUser);
+    const maxLevel = isDev ? 20 : (state.currentUser.maxLevel || 0);
+    const isHardUnlocked = isDev || maxLevel >= 10;
 
     // Pastikan tab aktif konsisten
     if (!state.currentLevelTab) state.currentLevelTab = 'easy';
@@ -4217,7 +4397,9 @@ function renderLevels() {
 
     for (let i = startLevel; i <= endLevel; i++) {
         let isUnlocked = false;
-        if (!isHardMode) {
+        if (isDev) {
+            isUnlocked = true;
+        } else if (!isHardMode) {
             isUnlocked = i <= (maxLevel + 1);
         } else {
             isUnlocked = isHardUnlocked && (i <= Math.max(11, maxLevel + 1));
@@ -5635,6 +5817,9 @@ function handleCalculate() {
 
 
 let fasilChartInstance = null;
+let fasilChartViewMode = 'each'; // 'each' (default: grafik level 1, 2, 3... terpisah) | 'group' (rentang fase)
+let lastFasilStudents = [];
+let isFasilTableEditMode = false; // Status apakah sedang dalam mode edit profil murid di tabel fasilitator
 
 // ==========================================
 // BUKU KAS
@@ -6079,6 +6264,8 @@ function checkPIN() {
 }
 
 function openFasilitator() {
+    isFasilTableEditMode = false;
+    activeEditingStudentId = null;
     switchScreen('screen-fasilitator');
 
     // Tugas 2: Jika sudah ada sesi room dari localStorage/state,
@@ -6280,6 +6467,51 @@ function setActiveEditingStudentId(id) {
 }
 
 /**
+ * Memperbarui tampilan tombol dan banner Mode Edit di Ruang Fasilitator.
+ */
+function updateFasilEditModeUI() {
+    const btnToggle = document.getElementById('btn-toggle-fasil-edit');
+    const banner = document.getElementById('fasil-edit-mode-banner');
+
+    if (btnToggle) {
+        if (isFasilTableEditMode) {
+            btnToggle.classList.add('btn-edit-mode-active');
+            btnToggle.classList.remove('btn-secondary');
+            btnToggle.innerHTML = `<i class="fa-solid fa-check"></i> Selesai Edit`;
+            btnToggle.title = 'Kunci dan selesaikan mode edit data murid';
+        } else {
+            btnToggle.classList.remove('btn-edit-mode-active');
+            btnToggle.classList.add('btn-secondary');
+            btnToggle.innerHTML = `<i class="fa-solid fa-user-pen"></i> Mode Edit`;
+            btnToggle.title = 'Aktifkan mode edit untuk mengubah nama dan kelas siswa';
+        }
+    }
+
+    if (banner) {
+        banner.classList.toggle('hidden', !isFasilTableEditMode);
+    }
+}
+
+/**
+ * Mengubah status Mode Edit tabel fasilitator (ON/OFF).
+ * @param {boolean} [forceState]
+ */
+function toggleFasilTableEditMode(forceState) {
+    if (typeof forceState === 'boolean') {
+        isFasilTableEditMode = forceState;
+    } else {
+        isFasilTableEditMode = !isFasilTableEditMode;
+    }
+
+    if (!isFasilTableEditMode) {
+        activeEditingStudentId = null;
+    }
+
+    updateFasilEditModeUI();
+    renderFasilTableAndEWS();
+}
+
+/**
  * Menyimpan editan fasilitator (HANYA nama_fasil dan kelas_fasil) ke Firebase
  * serta cache lokal tanpa menimpa data asli perangkat murid.
  * @param {string} studentId
@@ -6301,20 +6533,6 @@ async function handleSaveStudentEdit(studentId) {
         return;
     }
 
-    let validatedKelas = '-';
-    if (newKelas) {
-        try {
-            validatedKelas = validateKelas(newKelas);
-        } catch (err) {
-            if (kelasInput) {
-                kelasInput.classList.add('error-flash');
-                setTimeout(() => kelasInput.classList.remove('error-flash'), 800);
-                kelasInput.focus();
-            }
-            return showMsg('Kelas Tidak Valid', err.message);
-        }
-    }
-
     try {
         playSFX('success');
     } catch (e) { /* ignore */ }
@@ -6324,7 +6542,7 @@ async function handleSaveStudentEdit(studentId) {
         const localUser = state.users.find(u => String(u.id) === String(studentId) || String(u.name) === String(studentId));
         if (localUser) {
             localUser.nama_fasil = newName;
-            localUser.kelas_fasil = validatedKelas;
+            if (newKelas) localUser.kelas_fasil = newKelas;
             saveData();
         }
     }
@@ -6332,7 +6550,7 @@ async function handleSaveStudentEdit(studentId) {
     // 2. Simpan secara parsial (HANYA nama_fasil & kelas_fasil) ke Firebase & cache lokal
     await updateStudentProfileInRoom(studentId, {
         nama_fasil: newName,
-        kelas_fasil: validatedKelas
+        kelas_fasil: newKelas || '-'
     });
 
     // 3. Matikan mode edit dan render ulang tabel
@@ -6359,17 +6577,8 @@ async function handleSaveStudentEdit(studentId) {
  */
 async function handleInlineStudentUpdate(studentId, field, newValue, inputEl) {
     if (field !== 'name' && field !== 'kelas' && field !== 'nama_fasil' && field !== 'kelas_fasil') return;
-    let safeVal = newValue;
-    if (field === 'kelas' || field === 'kelas_fasil') {
-        try {
-            safeVal = validateKelas(newValue);
-        } catch (err) {
-            if (inputEl) inputEl.focus();
-            return showMsg('Kelas Tidak Valid', err.message);
-        }
-    }
     const targetKey = (field === 'name' || field === 'nama_fasil') ? 'nama_fasil' : 'kelas_fasil';
-    await updateStudentProfileInRoom(studentId, { [targetKey]: safeVal });
+    await updateStudentProfileInRoom(studentId, { [targetKey]: newValue });
 }
 
 /**
@@ -6608,6 +6817,7 @@ function renderFasilTableAndEWS() {
     if (!tbody || !ewsList) return;
 
     updateFasilSortHeadersUI();
+    updateFasilEditModeUI();
 
     const rawStudents = getAggregatedStudents();
     const students = sortFasilStudents(rawStudents);
@@ -6615,7 +6825,7 @@ function renderFasilTableAndEWS() {
     // Ambil nilai yang sedang diketik jika mode edit sedang aktif pada salah satu baris
     let typingName = null;
     let typingKelas = null;
-    if (activeEditingStudentId) {
+    if (isFasilTableEditMode && activeEditingStudentId) {
         const activeRow = tbody.querySelector(`tr[data-student-id="${activeEditingStudentId}"]`);
         if (activeRow) {
             const nIn = activeRow.querySelector('.fasil-edit-name');
@@ -6623,6 +6833,8 @@ function renderFasilTableAndEWS() {
             if (nIn) typingName = nIn.value;
             if (kIn) typingKelas = kIn.value;
         }
+    } else if (!isFasilTableEditMode) {
+        activeEditingStudentId = null;
     }
 
     tbody.innerHTML = '';
@@ -6645,7 +6857,7 @@ function renderFasilTableAndEWS() {
             const safeId = escapeHtmlAttr(u.id);
             const safeName = escapeHtmlAttr(u.name);
             const safeKelas = escapeHtmlAttr(u.kelas);
-            const isEditing = (activeEditingStudentId !== null && String(u.id) === String(activeEditingStudentId));
+            const isEditing = (isFasilTableEditMode && activeEditingStudentId !== null && String(u.id) === String(activeEditingStudentId));
 
             if (isEditing) {
                 const valName = escapeHtmlAttr(typingName !== null ? typingName : u.name);
@@ -6683,6 +6895,29 @@ function renderFasilTableAndEWS() {
                     </tr>
                 `;
             } else {
+                let actionButtonsHtml = '';
+                if (isFasilTableEditMode) {
+                    actionButtonsHtml = `
+                        <div class="fasil-action-buttons">
+                            <button class="btn-detail-user" data-id="${safeId}" title="Lihat Rapor Belajar Siswa">
+                                <i class="fa-solid fa-chart-line"></i> Detail
+                            </button>
+                            <button class="btn-edit-student" data-id="${safeId}" title="Edit Nama & Kelas Siswa">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                            </button>
+                            ${u.isLocal ? `<button class="btn-delete-user" data-id="${safeId}" title="Hapus"><i class="fa-solid fa-trash"></i></button>` : '<span class="fasil-live-tag">Sesi Live</span>'}
+                        </div>
+                    `;
+                } else {
+                    actionButtonsHtml = `
+                        <div class="fasil-action-buttons">
+                            <button class="btn-detail-user" data-id="${safeId}" title="Lihat Rapor Belajar Siswa">
+                                <i class="fa-solid fa-chart-line"></i> Detail
+                            </button>
+                        </div>
+                    `;
+                }
+
                 tbody.innerHTML += `
                     <tr class="fasil-tr" data-student-id="${safeId}">
                         <td class="fasil-td text-center font-bold fasil-col-no">${idx + 1}</td>
@@ -6700,15 +6935,7 @@ function renderFasilTableAndEWS() {
                         <td class="fasil-td text-center">${u.accuracyStr}</td>
                         <td class="fasil-td text-center font-bold" style="color:#1976d2;">${u.quizStr}</td>
                         <td class="fasil-td text-center">
-                            <div class="fasil-action-buttons">
-                                <button class="btn-detail-user" data-id="${safeId}" title="Lihat Rapor Belajar Siswa">
-                                    <i class="fa-solid fa-chart-line"></i> Detail
-                                </button>
-                                <button class="btn-edit-student" data-id="${safeId}" title="Edit Nama & Kelas Siswa">
-                                    <i class="fa-solid fa-pen-to-square"></i> Edit
-                                </button>
-                                ${u.isLocal ? `<button class="btn-delete-user" data-id="${safeId}" title="Hapus"><i class="fa-solid fa-trash"></i></button>` : '<span style="color:#94a3b8; font-size:0.75rem;">Sesi Live</span>'}
-                            </div>
+                            ${actionButtonsHtml}
                         </td>
                     </tr>
                 `;
@@ -6746,14 +6973,6 @@ function renderFasilTableAndEWS() {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 handleSaveStudentEdit(btn.dataset.id);
-            });
-        });
-
-        // Filter karakter tidak perlu pada input kelas fasilitator
-        tbody.querySelectorAll('.fasil-edit-kelas').forEach(kIn => {
-            kIn.addEventListener('input', e => {
-                const cleaned = e.target.value.replace(/[^a-zA-Z0-9\s.-]/g, '');
-                if (e.target.value !== cleaned) e.target.value = cleaned;
             });
         });
 
@@ -6874,6 +7093,8 @@ function renderFasilTableAndEWS() {
  * Menghancurkan instance grafik kelas fasilitator jika ada.
  */
 function destroyFasilChart() {
+    isFasilTableEditMode = false;
+    activeEditingStudentId = null;
     if (fasilChartInstance) {
         fasilChartInstance.destroy();
         fasilChartInstance = null;
@@ -6881,98 +7102,230 @@ function destroyFasilChart() {
 }
 
 /**
- * Render atau perbarui Bar Chart distribusi kemampuan murid berdasarkan rentang level.
+ * Mengubah mode tampilan grafik capaian level kelas ('each' untuk tiap level terpisah, 'group' untuk rentang fase).
+ * @param {'each' | 'group'} mode
+ */
+function setFasilChartViewMode(mode) {
+    if (mode !== 'each' && mode !== 'group') return;
+    fasilChartViewMode = mode;
+    const btnEach = document.getElementById('btn-chart-view-each');
+    const btnGroup = document.getElementById('btn-chart-view-group');
+    if (btnEach) btnEach.classList.toggle('active', mode === 'each');
+    if (btnGroup) btnGroup.classList.toggle('active', mode === 'group');
+    renderFasilClassChart(lastFasilStudents || getAggregatedStudents());
+}
+
+/**
+ * Render atau perbarui Bar Chart capaian murid (per level terpisah 1, 2, 3... atau rentang fase).
  * @param {Array} students Daftar seluruh siswa teragregasi
  */
 function renderFasilClassChart(students) {
     const canvas = document.getElementById('fasilClassChart');
     if (!canvas) return;
 
+    if (Array.isArray(students)) {
+        lastFasilStudents = students;
+    }
+    const studentList = Array.isArray(students) ? students : (lastFasilStudents || []);
+
     // Hancurkan chartInstance lama jika ada untuk mencegah error canvas tumpang tindih
     destroyFasilChart();
 
     if (typeof Chart === 'undefined') return;
 
-    // Distribusi level murid: "Level 1-3", "Level 4-7", "Level 8-10", "Level 11+"
-    let c1_3 = 0, c4_7 = 0, c8_10 = 0, c11plus = 0;
-    if (Array.isArray(students)) {
-        students.forEach(s => {
+    // Pastikan status tombol toggle aktif tersinkronisasi
+    const btnEach = document.getElementById('btn-chart-view-each');
+    const btnGroup = document.getElementById('btn-chart-view-group');
+    if (btnEach) btnEach.classList.toggle('active', fasilChartViewMode === 'each');
+    if (btnGroup) btnGroup.classList.toggle('active', fasilChartViewMode === 'group');
+
+    const ctx = canvas.getContext('2d');
+
+    if (fasilChartViewMode === 'group') {
+        // Mode Rentang Kelompok Fase: "Level 1-3", "Level 4-7", "Level 8-10", "Level 11+"
+        let c1_3 = 0, c4_7 = 0, c8_10 = 0, c11plus = 0;
+        studentList.forEach(s => {
             const lvl = Number(s.maxLevel) || 1;
             if (lvl <= 3) c1_3++;
             else if (lvl <= 7) c4_7++;
             else if (lvl <= 10) c8_10++;
             else c11plus++;
         });
-    }
 
-    const counts = [c1_3, c4_7, c8_10, c11plus];
+        const counts = [c1_3, c4_7, c8_10, c11plus];
 
-    const ctx = canvas.getContext('2d');
-    fasilChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Level 1-3', 'Level 4-7', 'Level 8-10', 'Level 11+'],
-            datasets: [{
-                label: 'Jumlah Murid',
-                data: counts,
-                backgroundColor: [
-                    'rgba(245, 158, 11, 0.78)',  // Emas / Amber hangat
-                    'rgba(217, 119, 6, 0.82)',   // Amber pekat
-                    'rgba(180, 83, 9, 0.88)',    // Cokelat keemasan
-                    'rgba(16, 185, 129, 0.85)'   // Emerald hijau tuntas
-                ],
-                borderColor: [
-                    '#f59e0b',
-                    '#d97706',
-                    '#b45309',
-                    '#10b981'
-                ],
-                borderWidth: 1.5,
-                borderRadius: 8,
-                borderSkipped: false,
-                maxBarThickness: 56
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#78350f',
-                    titleColor: '#fef3c7',
-                    bodyColor: '#ffffff',
-                    padding: 8,
-                    cornerRadius: 8,
-                    displayColors: false,
-                    callbacks: {
-                        label: (ctx) => `${ctx.raw} murid`
-                    }
-                }
+        fasilChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Level 1-3', 'Level 4-7', 'Level 8-10', 'Level 11+'],
+                datasets: [{
+                    label: 'Jumlah Murid',
+                    data: counts,
+                    backgroundColor: [
+                        'rgba(245, 158, 11, 0.78)',  // Emas / Amber hangat
+                        'rgba(217, 119, 6, 0.82)',   // Amber pekat
+                        'rgba(180, 83, 9, 0.88)',    // Cokelat keemasan
+                        'rgba(16, 185, 129, 0.85)'   // Emerald hijau tuntas
+                    ],
+                    borderColor: [
+                        '#f59e0b',
+                        '#d97706',
+                        '#b45309',
+                        '#10b981'
+                    ],
+                    borderWidth: 1.5,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    maxBarThickness: 56
+                }]
             },
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: {
-                        color: '#78350f',
-                        font: { weight: 'bold', size: 11 }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#78350f',
+                        titleColor: '#fef3c7',
+                        bodyColor: '#ffffff',
+                        padding: 8,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: (ctx) => `${ctx.raw} murid`
+                        }
                     }
                 },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        precision: 0,
-                        color: '#92400e',
-                        font: { size: 11 }
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#78350f',
+                            font: { weight: 'bold', size: 11 }
+                        }
                     },
-                    grid: {
-                        color: 'rgba(254, 230, 138, 0.45)'
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0,
+                            color: '#92400e',
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: 'rgba(254, 230, 138, 0.45)'
+                        }
                     }
                 }
             }
+        });
+    } else {
+        // Mode Per Level Terpisah (Default): Level 1, Level 2, Level 3, ..., Level 20+
+        const totalLevels = Math.max(20, ...studentList.map(s => Number(s.maxLevel) || 1));
+        const labels = [];
+        const counts = new Array(totalLevels).fill(0);
+        const bgColors = [];
+        const borderColors = [];
+
+        for (let lvl = 1; lvl <= totalLevels; lvl++) {
+            labels.push(`Level ${lvl}`);
+
+            // Skema warna harmonis tematik berdasarkan fase kurikulum Algebra-Mart:
+            if (lvl <= 3) {
+                // Fase 1: Konsep Variabel Tunggal & Koefisien (Amber Keemasan)
+                bgColors.push('rgba(245, 158, 11, 0.85)');
+                borderColors.push('#d97706');
+            } else if (lvl <= 7) {
+                // Fase 2: Dua Variabel Berbeda & Suku Sejenis (Oranye Hangat)
+                bgColors.push('rgba(249, 115, 22, 0.85)');
+                borderColors.push('#ea580c');
+            } else if (lvl <= 10) {
+                // Fase 3: Komutatif & Evaluasi Aljabar (Cokelat Keemasan)
+                bgColors.push('rgba(217, 119, 6, 0.85)');
+                borderColors.push('#b45309');
+            } else if (lvl <= 15) {
+                // Fase 4: Substitusi Riil & Campuran HOTS (Biru Samudra)
+                bgColors.push('rgba(14, 165, 233, 0.85)');
+                borderColors.push('#0284c7');
+            } else if (lvl <= 20) {
+                // Fase 5: Sifat Distributif & Penguasaan Sempurna (Hijau Emerald)
+                bgColors.push('rgba(16, 185, 129, 0.85)');
+                borderColors.push('#059669');
+            } else {
+                // Level Ekstra
+                bgColors.push('rgba(168, 85, 247, 0.85)');
+                borderColors.push('#7e22ce');
+            }
         }
-    });
+
+        studentList.forEach(s => {
+            const lvl = Math.max(1, Math.min(totalLevels, Number(s.maxLevel) || 1));
+            counts[lvl - 1]++;
+        });
+
+        fasilChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Jumlah Murid',
+                    data: counts,
+                    backgroundColor: bgColors,
+                    borderColor: borderColors,
+                    borderWidth: 1.5,
+                    borderRadius: 5,
+                    borderSkipped: false,
+                    maxBarThickness: 32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#78350f',
+                        titleColor: '#fef3c7',
+                        bodyColor: '#ffffff',
+                        padding: 8,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            title: (items) => `Level ${items[0].dataIndex + 1}`,
+                            label: (ctx) => `${ctx.raw} murid`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 0,
+                            color: '#78350f',
+                            font: { weight: 'bold', size: 10 },
+                            callback: function(val, index) {
+                                return `Lvl ${index + 1}`;
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0,
+                            color: '#92400e',
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: 'rgba(254, 230, 138, 0.45)'
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
 
 /**
@@ -7950,18 +8303,56 @@ function isMobileDevice() {
     return isMobileUA || (isTouch && isSmallPhysicalScreen) || (isTouch && isMobileViewport) || isMobileViewport;
 }
 
+let lastStableLandscapeW = 0;
+let lastStableLandscapeH = 0;
+
+function isInputActive() {
+    if (typeof document === 'undefined') return false;
+    if (document.documentElement.classList.contains('keyboard-open') || document.body.classList.contains('keyboard-open')) {
+        return true;
+    }
+    const el = document.activeElement;
+    if (!el) return false;
+    const tag = el.tagName ? el.tagName.toUpperCase() : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+        if (el.readOnly || el.disabled || el.type === 'button' || el.type === 'submit' || el.type === 'range') {
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
+
 function fitScreen() {
     const container = document.getElementById('app-container');
     if (!container) return;
 
+    // Proteksi utama: Jangan hitung ulang skala saat pengguna sedang mengetik di keyboard HP!
+    if (isInputActive()) return;
+
     let winW = window.innerWidth;
     let winH = window.innerHeight;
+
     if (window.visualViewport) {
-        winW = Math.round(window.visualViewport.width);
-        winH = Math.round(window.visualViewport.height);
+        const vpW = Math.round(window.visualViewport.width);
+        const vpH = Math.round(window.visualViewport.height);
+        // Deteksi tinggi yang terpotong keyboard virtual HP
+        const isTruncated = (vpH < 250 && lastStableLandscapeH >= 270) || (vpW / vpH > 2.6 && lastStableLandscapeH >= 270);
+        if (!isTruncated) {
+            winW = vpW;
+            winH = vpH;
+        } else if (lastStableLandscapeW > 0 && lastStableLandscapeH > 0) {
+            winW = lastStableLandscapeW;
+            winH = lastStableLandscapeH;
+        }
     } else {
         winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
         winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
+    }
+
+    if (winW >= winH && winH >= 250) {
+        lastStableLandscapeW = winW;
+        lastStableLandscapeH = winH;
     }
 
     const aspect = winW / winH;
@@ -8030,7 +8421,6 @@ window._openLevelZero  = openLevelZeroModal;
 window._login          = login;
 window._fitScreen      = fitScreen;
 window._getAppScale    = getAppScale;
-window._validateKelas  = validateKelas;
 
 // Penskalaan otomatis segera saat skrip dimuat dan saat jendela diubah ukurannya
 window.addEventListener('resize', fitScreen);
@@ -8059,6 +8449,25 @@ window.addEventListener('scroll', () => {
     if (window.scrollX !== 0 || window.scrollY !== 0) {
         window.scrollTo(0, 0);
     }
+});
+
+// Global Focus Listener untuk menandai saat keyboard virtual HP aktif
+document.addEventListener('focusin', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        if (!e.target.readOnly && !e.target.disabled && e.target.type !== 'range') {
+            document.documentElement.classList.add('keyboard-open');
+            document.body.classList.add('keyboard-open');
+        }
+    }
+});
+
+document.addEventListener('focusout', (e) => {
+    document.documentElement.classList.remove('keyboard-open');
+    document.body.classList.remove('keyboard-open');
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        fitScreen();
+    }, 120);
 });
 
 // Penanganan Optimasi Gawai Ponsel (Screen Wake Lock & Auto Fullscreen)
@@ -8105,34 +8514,57 @@ function startFromGateway() {
 function createUser() {
     const nameInput  = document.getElementById('new-username');
     const classInput = document.getElementById('new-class');
-    const name       = nameInput ? nameInput.value.trim() : '';
-    const gender     = document.getElementById('new-gender').value;
-    const rawKelas   = classInput ? classInput.value : '';
+    const name   = nameInput ? nameInput.value.trim() : '';
+    const gender = document.getElementById('new-gender') ? document.getElementById('new-gender').value : 'Laki-laki';
+    let kelas    = classInput ? classInput.value.trim() : '';
 
-    if (!name) return showMsg('Error', 'Nama harus diisi!');
-    if (!rawKelas || !rawKelas.trim()) return showMsg('Error', 'Kelas harus diisi!');
+    const isDev = isDevProfileName(name);
 
-    let validatedKelas;
-    try {
-        validatedKelas = validateKelas(rawKelas);
-    } catch (err) {
-        if (classInput) {
-            classInput.classList.add('error-flash');
-            setTimeout(() => classInput.classList.remove('error-flash'), 800);
-            classInput.focus();
+    if (isDev && !kelas) {
+        kelas = 'DEV';
+    }
+
+    if (!name || !kelas) return showMsg('Error', 'Nama dan Kelas harus diisi!');
+
+    // Jika profil dev *#minerva#* sudah pernah dibuat sebelumnya, perbarui & langsung login
+    const existingDevIdx = state.users.findIndex(u => isDevProfile(u));
+    if (isDev && existingDevIdx !== -1) {
+        state.users[existingDevIdx].name = '*#minerva#*';
+        state.users[existingDevIdx].maxLevel = 20;
+        state.users[existingDevIdx].kelas = kelas || state.users[existingDevIdx].kelas || 'DEV';
+        if (!state.users[existingDevIdx].money || state.users[existingDevIdx].money < 500000) {
+            state.users[existingDevIdx].money = 500000;
         }
-        return showMsg('Kelas Tidak Valid', err.message);
+        saveData();
+        if (nameInput) nameInput.value = '';
+        if (classInput) classInput.value = '';
+        login(state.users[existingDevIdx].id);
+        return;
     }
 
     const newUser = {
-        id: Date.now().toString(), name, gender, kelas: validatedKelas,
-        money: 0, revenue: 0, cost: 0, maxLevel: 0,
-        badges: [], history: [], createdAt: new Date().toISOString()
+        id: Date.now().toString(),
+        name: isDev ? '*#minerva#*' : name,
+        gender,
+        kelas,
+        money: isDev ? 500000 : 0,
+        revenue: 0,
+        cost: 0,
+        maxLevel: isDev ? 20 : 0,
+        badges: isDev ? [
+            'si_teliti', 'master_variabel', 'ahli_komutatif', 'pembedah_suku',
+            'penakluk_nol', 'jenius_aljabar', 'bintang_tiga', 'kolektor_sempurna',
+            'si_jujur', 'saudagar_cilik', 'juragan_pasar', 'sultan_aljabar',
+            'uang_pas', 'laci_kilat', 'dermawan_muda', 'pahlawan_desa',
+            'reputasi_emas', 'skor_kuis_sempurna', 'pantang_menyerah', 'penakluk_tantangan'
+        ] : [],
+        history: [],
+        createdAt: new Date().toISOString()
     };
 
     state.users.push(newUser);
     saveData();
-    if (nameInput)  nameInput.value  = '';
+    if (nameInput) nameInput.value = '';
     if (classInput) classInput.value = '';
     login(newUser.id);
 }
@@ -8140,6 +8572,11 @@ function createUser() {
 function login(id) {
     state.currentUser = state.users.find(u => u.id === id);
     if (state.currentUser) {
+        if (isDevProfile(state.currentUser)) {
+            state.currentUser.name = '*#minerva#*';
+            state.currentUser.maxLevel = 20;
+            saveData();
+        }
         playBGM();
         requestFullScreen();
         requestWakeLock();
@@ -8504,16 +8941,7 @@ function bindEvents() {
 
     // --- Login Screen ---
     document.getElementById('new-username')?.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
-    const newClassEl = document.getElementById('new-class');
-    if (newClassEl) {
-        newClassEl.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
-        newClassEl.addEventListener('input', e => {
-            const cleaned = e.target.value.replace(/[^a-zA-Z0-9\s.-]/g, '');
-            if (e.target.value !== cleaned) {
-                e.target.value = cleaned;
-            }
-        });
-    }
+    document.getElementById('new-class')?.addEventListener('keydown', e => { if (e.key === 'Enter') createUser(); });
     document.querySelector('.btn-add-user')?.addEventListener('click', createUser);
 
     // --- Lobby Screen ---
@@ -8551,8 +8979,9 @@ function bindEvents() {
 
     document.getElementById('tab-level-hard')?.addEventListener('click', () => {
         playSFX('nav');
+        const isDev = isDevProfile(state.currentUser);
         const maxLevel = state.currentUser ? (state.currentUser.maxLevel || 0) : 0;
-        if (maxLevel < 10) {
+        if (!isDev && maxLevel < 10) {
             showMsg(
                 'Tantangan Terkunci 🔒',
                 'Kamu harus menyelesaikan seluruh <strong>10 Level Tantangan Mudah</strong> terlebih dahulu untuk membuka Tantangan Sulit!'
@@ -8592,6 +9021,22 @@ function bindEvents() {
     document.getElementById('btn-refresh-fasil')?.addEventListener('click', () => {
         playSFX('nav');
         forceRefreshFasilData();
+    });
+    document.getElementById('btn-toggle-fasil-edit')?.addEventListener('click', () => {
+        playSFX('click');
+        toggleFasilTableEditMode();
+    });
+    document.getElementById('btn-close-edit-mode-banner')?.addEventListener('click', () => {
+        playSFX('nav');
+        toggleFasilTableEditMode(false);
+    });
+    document.getElementById('btn-chart-view-each')?.addEventListener('click', () => {
+        playSFX('click');
+        setFasilChartViewMode('each');
+    });
+    document.getElementById('btn-chart-view-group')?.addEventListener('click', () => {
+        playSFX('click');
+        setFasilChartViewMode('group');
     });
     document.getElementById('btn-print-report')?.addEventListener('click', handlePrintDetailedPDF);
     document.getElementById('btn-copy-wa')?.addEventListener('click', handleCopyWhatsAppReport);
@@ -8673,27 +9118,6 @@ function bindEvents() {
     document.querySelectorAll('.clickable-item[data-var]').forEach(item => {
         item.addEventListener('click', () => addVariable(item.dataset.var));
     });
-    // --- Efek Membal Elastis (Juicy Spring / Squash & Stretch) & Haptic ---
-    document.addEventListener('pointerdown', (e) => {
-        const el = e.target.closest(
-            'button, .btn, .btn-primary, .btn-secondary, .btn-ghost, .btn-destructive, .btn-danger, .btn-back, .btn-gateway, .btn-start-game, .user-btn, .clickable-item, .numpad-grid button, .btn-uang, .tray-product, .confirm-button, .btn-add-user, .btn-level-unlocked, .btn-level-hard-unlocked, .tab-btn'
-        );
-        if (!el || el.disabled || el.classList.contains('disabled')) return;
-
-        // Getaran mikro haptic untuk perangkat HP/Android
-        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-            try { navigator.vibrate(12); } catch (_) {}
-        }
-
-        // Picu animasi membal elastis
-        el.classList.remove('juicy-spring');
-        void el.offsetWidth;
-        el.classList.add('juicy-spring');
-        setTimeout(() => {
-            el.classList.remove('juicy-spring');
-        }, 320);
-    }, { passive: true });
-
 }
 
 // ==========================================
@@ -8743,6 +9167,30 @@ document.addEventListener('MSFullscreenChange',      handleFullscreenChange);
 function initApp() {
     fitScreen();
     initAudio();
+
+    // Migrasi profil dev lama ('dev') menjadi '*#minerva#*' & pastikan maxLevel: 20
+    let usersChanged = false;
+    state.users.forEach(u => {
+        if (u && u.name) {
+            const lower = u.name.trim().toLowerCase();
+            if (lower === 'dev') {
+                u.name = '*#minerva#*';
+                u.maxLevel = 20;
+                if (!u.kelas) u.kelas = 'DEV';
+                usersChanged = true;
+            } else if (lower === '*#minerva#*') {
+                u.name = '*#minerva#*';
+                if ((u.maxLevel || 0) < 20) {
+                    u.maxLevel = 20;
+                    usersChanged = true;
+                }
+            }
+        }
+    });
+    if (usersChanged) {
+        saveData();
+    }
+
     renderUserList();
     initGameListeners();
     initTutorialEvents();

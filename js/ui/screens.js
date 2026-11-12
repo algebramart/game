@@ -2,7 +2,7 @@
 // ui/screens.js — Navigasi & Render Layar
 // ==========================================
 import { state } from '../core/state.js';
-import { getTitle } from '../core/engine.js';
+import { getTitle, isDevProfile } from '../core/engine.js';
 import { playSFX } from '../core/audio.js';
 
 /**
@@ -129,11 +129,22 @@ export function renderUserList() {
     state.users.forEach(u => {
         const btn = document.createElement('button');
         btn.className = 'user-btn';
+        const isDev = isDevProfile(u);
+        const avatarHtml = isDev
+            ? '<div class="user-avatar" style="background: linear-gradient(135deg, #f59e0b, #b45309); color: white;"><i class="fa-solid fa-code"></i></div>'
+            : `<div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>`;
+        const devBadge = isDev
+            ? ' <span style="font-size:0.65rem; background:#fef3c7; color:#92400e; font-weight:700; padding:2px 6px; border-radius:6px; margin-left:4px; border:1px solid #fcd34d;">DEV (20 LV)</span>'
+            : '';
+        const metaText = isDev
+            ? `Kelas ${u.kelas || 'DEV'} • Lvl 20 (Semua Level Terbuka) • Rp ${(u.money || 0).toLocaleString('id-ID')}`
+            : `Kelas ${u.kelas || '-'} • Lvl ${u.maxLevel || 1} • Rp ${(u.money || 0).toLocaleString('id-ID')}`;
+
         btn.innerHTML = `
-            <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
+            ${avatarHtml}
             <div class="user-info">
-                <div class="user-name">${u.name}</div>
-                <div class="user-meta">Kelas ${u.kelas || '-'} • Lvl ${u.maxLevel || 1} • Rp ${u.money.toLocaleString('id-ID')}</div>
+                <div class="user-name">${u.name}${devBadge}</div>
+                <div class="user-meta">${metaText}</div>
             </div>
             <i class="fa-solid fa-chevron-right"></i>
         `;
@@ -208,7 +219,8 @@ export function renderLobby() {
     document.getElementById('lobby-gender').innerText = state.currentUser.gender;
     document.getElementById('lobby-class').innerText  = state.currentUser.kelas;
 
-    const title = getTitle(state.currentUser.money, state.currentUser.sumbangan || state.currentUser.donasi || 0);
+    const isDev = isDevProfile(state.currentUser);
+    const title = isDev ? "Pengembang (Dev Mode)" : getTitle(state.currentUser.money, state.currentUser.sumbangan || state.currentUser.donasi || 0);
     document.getElementById('lobby-title').innerText    = title;
     document.getElementById('lobby-id-name').innerText  = state.currentUser.name;
     document.getElementById('lobby-id-title').innerText = title;
@@ -252,8 +264,9 @@ export function renderLevels() {
 
     const tabEasy = document.getElementById('tab-level-easy');
     const tabHard = document.getElementById('tab-level-hard');
-    const maxLevel = state.currentUser.maxLevel || 0;
-    const isHardUnlocked = maxLevel >= 10;
+    const isDev = isDevProfile(state.currentUser);
+    const maxLevel = isDev ? 20 : (state.currentUser.maxLevel || 0);
+    const isHardUnlocked = isDev || maxLevel >= 10;
 
     // Pastikan tab aktif konsisten
     if (!state.currentLevelTab) state.currentLevelTab = 'easy';
@@ -307,7 +320,9 @@ export function renderLevels() {
 
     for (let i = startLevel; i <= endLevel; i++) {
         let isUnlocked = false;
-        if (!isHardMode) {
+        if (isDev) {
+            isUnlocked = true;
+        } else if (!isHardMode) {
             isUnlocked = i <= (maxLevel + 1);
         } else {
             isUnlocked = isHardUnlocked && (i <= Math.max(11, maxLevel + 1));
