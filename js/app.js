@@ -49,11 +49,17 @@ export function getAppScale() {
  */
 export function isMobileDevice() {
     if (typeof window === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+
+    // Pastikan laptop dan desktop PC (Windows, Mac, Linux non-Android) TIDAK PERNAH dianggap ponsel HP
+    const isDesktopOS = /Windows NT|Macintosh|X11/i.test(ua) && !/Android|iPhone|iPad|Mobile/i.test(ua);
+    if (isDesktopOS) return false;
+
     const winW = Math.max(window.innerWidth, document.documentElement.clientWidth || 0);
     const winH = Math.max(window.innerHeight, document.documentElement.clientHeight || 0);
 
     // 1. Cek User-Agent (Ponsel Android / iPhone / Mobile)
-    const isMobileUA = /Android.*Mobile|iPhone|iPod|Windows Phone|webOS/i.test(navigator.userAgent);
+    const isMobileUA = /Android.*Mobile|iPhone|iPod|Windows Phone|webOS/i.test(ua);
 
     // 2. Cek Karakteristik Layar Ponsel (Viewport khas ponsel landscape: height <= 520px)
     const isMobileViewport = (winH <= 520 && winW <= 1050) || (winW <= 520 && winH <= 1050);
@@ -63,7 +69,7 @@ export function isMobileDevice() {
     const isSmallPhysicalScreen = typeof window.screen !== 'undefined' &&
         Math.min(window.screen.width, window.screen.height) <= 540;
 
-    return isMobileUA || (isTouch && isSmallPhysicalScreen) || (isTouch && isMobileViewport) || isMobileViewport;
+    return isMobileUA || (isTouch && isSmallPhysicalScreen) || (isTouch && isMobileViewport);
 }
 
 let lastStableLandscapeW = 0;
@@ -71,6 +77,7 @@ let lastStableLandscapeH = 0;
 
 function isInputActive() {
     if (typeof document === 'undefined') return false;
+    if (!isMobileDevice()) return false; // Hanya aktif untuk gawai HP/ponsel
     if (document.documentElement.classList.contains('keyboard-open') || document.body.classList.contains('keyboard-open')) {
         return true;
     }
@@ -214,8 +221,9 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Global Focus Listener untuk menandai saat keyboard virtual HP aktif
+// Global Focus Listener untuk menandai saat keyboard virtual HP aktif (KHUSUS HP SAJA!)
 document.addEventListener('focusin', (e) => {
+    if (!isMobileDevice()) return; // JANGAN aktifkan di laptop/PC!
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
         if (!e.target.readOnly && !e.target.disabled && e.target.type !== 'range') {
             document.documentElement.classList.add('keyboard-open');

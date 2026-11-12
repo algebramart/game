@@ -655,23 +655,21 @@ html.is-mobile-device .modal-join-room-card .room-code-input {
 }
 
 /* =========================================
-   KONDISI SAAT KEYBOARD VIRTUAL HP AKTIF (PENGGUNA SEDANG MENGETIK)
+   KONDISI SAAT KEYBOARD VIRTUAL HP AKTIF (PENGGUNA SEDANG MENGETIK DI HP)
    Menyembunyikan elemen non-esensial dan menaikkan form ke area atas layar
-   sehingga apa yang diketik 100% terlihat jelas dan tidak tertutup keyboard HP
+   sehingga apa yang diketik 100% terlihat jelas dan tidak tertutup keyboard HP.
+   HANYA BERLAKU PADA PERANGKAT HP (html.is-mobile-device) DAN TIDAK BOLEH AKTIF DI LAPTOP/PC!
    ========================================= */
-html.is-mobile-device.keyboard-open .login-screen,
-body.keyboard-open .login-screen {
+html.is-mobile-device.keyboard-open .login-screen {
     justify-content: flex-start !important;
     padding-top: 0.35rem !important;
 }
 
-html.is-mobile-device.keyboard-open .login-header,
-body.keyboard-open .login-header {
+html.is-mobile-device.keyboard-open .login-header {
     display: none !important;
 }
 
-html.is-mobile-device.keyboard-open .login-card,
-body.keyboard-open .login-card {
+html.is-mobile-device.keyboard-open .login-card {
     padding: 0.75rem 1.5rem !important;
     max-height: none !important;
     margin-top: 0 !important;
@@ -681,98 +679,81 @@ body.keyboard-open .login-card {
 }
 
 html.is-mobile-device.keyboard-open .login-card .card-title,
-html.is-mobile-device.keyboard-open .login-card .user-list-container,
-body.keyboard-open .login-card .card-title,
-body.keyboard-open .login-card .user-list-container {
+html.is-mobile-device.keyboard-open .login-card .user-list-container {
     display: none !important;
 }
 
-html.is-mobile-device.keyboard-open .new-profile-form,
-body.keyboard-open .new-profile-form {
+html.is-mobile-device.keyboard-open .new-profile-form {
     border-top: none !important;
     margin-top: 0 !important;
     padding-top: 0 !important;
     gap: 8px !important;
 }
 
-html.is-mobile-device.keyboard-open .new-profile-form h3,
-body.keyboard-open .new-profile-form h3 {
+html.is-mobile-device.keyboard-open .new-profile-form h3 {
     font-size: 0.95rem !important;
     margin-bottom: 2px !important;
 }
 
-html.is-mobile-device.keyboard-open .new-profile-form .btn-add-user,
-body.keyboard-open .new-profile-form .btn-add-user {
+html.is-mobile-device.keyboard-open .new-profile-form .btn-add-user {
     height: 42px !important;
     min-height: 42px !important;
     margin-top: 4px !important;
     padding: 0 24px !important;
 }
 
-/* Modal Gabung Kelas & PIN saat keyboard aktif di HP */
-html.is-mobile-device.keyboard-open .modal-overlay,
-body.keyboard-open .modal-overlay {
+/* Modal Gabung Kelas & PIN saat keyboard aktif KHUSUS di HP */
+html.is-mobile-device.keyboard-open .modal-overlay {
     align-items: flex-start !important;
     padding-top: 0.5rem !important;
 }
 
-html.is-mobile-device.keyboard-open .modal-card,
-body.keyboard-open .modal-card {
+html.is-mobile-device.keyboard-open .modal-card {
     padding: 1.15rem 1.75rem !important;
     transform: translateY(-10px) !important;
     transition: all 0.25s ease-out !important;
 }
 
 html.is-mobile-device.keyboard-open .modal-join-room-card .join-room-desc,
-html.is-mobile-device.keyboard-open .modal-join-room-card p,
-body.keyboard-open .modal-join-room-card .join-room-desc,
-body.keyboard-open .modal-join-room-card p {
+html.is-mobile-device.keyboard-open .modal-join-room-card p {
     display: none !important;
 }
 
-html.is-mobile-device.keyboard-open .modal-join-room-card h3,
-body.keyboard-open .modal-join-room-card h3 {
+html.is-mobile-device.keyboard-open .modal-join-room-card h3 {
     font-size: 1.35rem !important;
     margin-bottom: 0.35rem !important;
 }
 
-html.is-mobile-device.keyboard-open .modal-join-room-card .room-input-container,
-body.keyboard-open .modal-join-room-card .room-input-container {
+html.is-mobile-device.keyboard-open .modal-join-room-card .room-input-container {
     margin: 8px 0 !important;
 }
 
-html.is-mobile-device.keyboard-open .modal-join-room-card .room-code-input,
-body.keyboard-open .modal-join-room-card .room-code-input {
+html.is-mobile-device.keyboard-open .modal-join-room-card .room-code-input {
     height: 52px !important;
     min-height: 52px !important;
     font-size: 1.6rem !important;
     letter-spacing: 5px !important;
 }
 
-html.is-mobile-device.keyboard-open .modal-join-room-card .modal-actions-join,
-body.keyboard-open .modal-join-room-card .modal-actions-join {
+html.is-mobile-device.keyboard-open .modal-join-room-card .modal-actions-join {
     margin-top: 8px !important;
 }
 
-html.is-mobile-device.keyboard-open .modal-pin-card p,
-body.keyboard-open .modal-pin-card p {
+html.is-mobile-device.keyboard-open .modal-pin-card p {
     display: none !important;
 }
 
-html.is-mobile-device.keyboard-open .modal-pin-card h3,
-body.keyboard-open .modal-pin-card h3 {
+html.is-mobile-device.keyboard-open .modal-pin-card h3 {
     font-size: 1.35rem !important;
     margin-bottom: 0.35rem !important;
 }
 
-html.is-mobile-device.keyboard-open .modal-pin-card .form-input,
-body.keyboard-open .modal-pin-card .form-input {
+html.is-mobile-device.keyboard-open .modal-pin-card .form-input {
     height: 48px !important;
     margin: 8px 0 !important;
 }
 
-html.is-mobile-device.keyboard-open .modal-pin-card .modal-pin-actions,
-body.keyboard-open .modal-pin-card .modal-pin-actions {
+html.is-mobile-device.keyboard-open .modal-pin-card .modal-pin-actions {
     margin-top: 8px !important;
 }
 
